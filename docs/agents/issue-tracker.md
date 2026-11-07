@@ -56,3 +56,15 @@ Used by `/wayfinder`. The **map** is a single issue with **child** issues as tic
 - Claiming an issue (assign) → move to **In Progress**: `gh project item-edit --project-id PVT_kwHOAjwwTc4BqlJ3 --id <ITEM_ID> --field-id PVTSSF_lAHOAjwwTc4BqlJ3zho7r1Y --single-select-option-id 47fc9ee4`. Get `<ITEM_ID>` from `gh project item-list 3 --owner HyeokjaeChoi --format json`.
 - Closing an issue → **Done** (the Project's built-in "Item closed" workflow; if it didn't move, set it the same way with option `98236657`).
 - Status option IDs: Todo=`f75ad846`, In Progress=`47fc9ee4`, Done=`98236657`.
+
+## Branches, PRs and gates
+
+- **No direct push to `main`.** Every change, docs included, goes issue → branch → PR → green `gate` → merge. `main` is protected (PR required, required check `gate`).
+- **One branch per Project #3 issue**, named `<issue#>-<short-slug>` (e.g. `16-ci-gates`; `gh issue develop <n> --name <n>-<slug>` creates it). Work outside an issue gets an issue first.
+- **Shared checkout**: several sessions use the main folder, so never switch branches there. Work in a worktree: `git worktree add ../pleos-wt-<n> -b <n>-<slug> origin/main`.
+- **PR**: target `main`, body starts with `Closes #<n>` (template in `.github/pull_request_template.md`). Squash merge, then delete the branch.
+- **CI gate** (`.github/workflows/ci.yml`, job `gate`): `./gradlew ktlintCheck testDebugUnitTest assembleDebug`. A PR that changes only `*.md` or `docs/**` still runs `gate` but skips the Gradle steps, so docs-only PRs pass without a build.
+- **Local hooks** (`.githooks/`, enabled once per clone with `git config core.hooksPath .githooks`; worktrees share it):
+  - `pre-commit`: on staged `*.kt`/`*.kts`, runs `ktlintFormat`, re-stages those files, then `ktlintCheck`; the commit is blocked only for violations ktlint cannot auto-fix (e.g. wildcard imports).
+  - `pre-push`: `ktlintCheck testDebugUnitTest`.
+- **Lint choice**: ktlint (`org.jlleitschuh.gradle.ktlint`, `android_studio` style, `@Composable` names exempt via `.editorconfig`). detekt is not used yet; add it when a review finds a bug class ktlint misses.
