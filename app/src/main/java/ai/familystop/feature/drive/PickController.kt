@@ -10,6 +10,7 @@ sealed interface PickState {
     data object Idle : PickState
     data class Adding(val place: StopPlace) : PickState
     data class Undoable(val place: StopPlace, val expiresAtMs: Long) : PickState
+    data class Removing(val place: StopPlace) : PickState
     data class Done(val place: StopPlace, val note: String? = null) : PickState
     data class Failed(val place: StopPlace, val message: String) : PickState
 }
@@ -22,6 +23,10 @@ class PickController(
 ) {
     var state: PickState by mutableStateOf(PickState.Idle)
         private set
+
+    internal fun restore(s: PickState) {
+        state = s
+    }
 
     fun pick(place: StopPlace) {
         if (state !is PickState.Idle && state !is PickState.Failed) return
@@ -36,13 +41,12 @@ class PickController(
 
     fun undo() {
         val s = state as? PickState.Undoable ?: return
-        state = PickState.Idle
+        state = PickState.Removing(s.place) // keeps cards locked until the removal answers
         navi.removeWaypoint(s.place) { r ->
-            if (r.isFailure &&
-                state == PickState.Idle
-            ) {
-                state =
-                    PickState.Done(s.place, "취소하지 못했습니다. 정차 후 내비에서 지우세요.")
+            state = if (r.isSuccess) {
+                PickState.Idle
+            } else {
+                PickState.Done(s.place, "취소하지 못했습니다. 정차 후 내비에서 지우세요.")
             }
         }
     }
@@ -52,3 +56,40 @@ class PickController(
         if (nowMs >= s.expiresAtMs) state = PickState.Done(s.place)
     }
 }
+
+/** Survives Activity recreation (e.g. day/night switch) so the undo window is not lost. */
+fun pickControllerSaver(navi: NaviGateway, clock: () -> Long) =
+    androidx.compose.runtime.saveable.Saver<PickController, List<Any?>>(
+        save = { c ->
+            when (val s = c.state) {
+                is PickState.Undoable -> listOf(s.expiresAtMs) + s.place.toList()
+                is PickState.Done -> if (s.note ==
+                    null
+                ) {
+                    listOf(null) + s.place.toList()
+                } else {
+                    emptyList()
+                }
+                else -> emptyList()
+            }
+        },
+        restore = { l ->
+            PickController(navi, clock).also { c ->
+                if (l.isNotEmpty()) {
+                    val place =
+                        StopPlace(l[1] as String, l[2] as Double, l[3] as Double, l[4] as String?)
+                    c.restore(
+                        if (l[0] !=
+                            null
+                        ) {
+                            PickState.Undoable(place, l[0] as Long)
+                        } else {
+                            PickState.Done(place)
+                        }
+                    )
+                }
+            }
+        }
+    )
+
+private fun StopPlace.toList() = listOf(name, lat, lon, poiId)

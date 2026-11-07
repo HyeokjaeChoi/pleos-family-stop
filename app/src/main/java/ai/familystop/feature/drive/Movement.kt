@@ -1,7 +1,10 @@
 package ai.familystop.feature.drive
 
+import android.content.ComponentName
 import android.content.Context
+import android.content.ServiceConnection
 import android.os.Handler
+import android.os.IBinder
 import android.os.Looper
 import java.lang.reflect.Proxy
 
@@ -55,18 +58,20 @@ class MovementTracker(private val holdMs: Long = 2_000) {
 
 /**
  * `CarUxRestrictionsManager` via reflection (android.car is not on the compile classpath).
- * Any failure reports UNKNOWN, which keeps the driving restrictions.
+ * Connects asynchronously; until connected (and on any failure) the screen stays restricted
+ * because the tracker starts at UNKNOWN.
  */
 class CarUxMovementSource(private val context: Context) : MovementSignalSource {
     private var car: Any? = null
     private var manager: Any? = null
     private var listener: Any? = null
+    private var stopped = true
     private val main = Handler(Looper.getMainLooper())
 
-    // ponytail: createCar blocks the caller; move to async Car.createCar(ctx, conn) if it janks.
     override fun start(onSignal: (MovementState, String) -> Unit) {
+        stopped = false
         fun emit(state: MovementState, reason: String) {
-            main.post { onSignal(state, reason) }
+            main.post { if (!stopped) onSignal(state, reason) }
         }
         fun emitRestrictions(r: Any) {
             val restricted = r.javaClass.getMethod(
@@ -77,19 +82,14 @@ class CarUxMovementSource(private val context: Context) : MovementSignalSource {
                 "CarUxRestrictions requiresDistractionOptimization=$restricted"
             )
         }
-        try {
-            val carClass = Class.forName("android.car.Car")
-            val c = carClass.getMethod("createCar", Context::class.java).invoke(null, context)
-                ?: return emit(MovementState.UNKNOWN, "Car 서비스 없음")
-            car = c
+        fun attach(carClass: Class<*>, c: Any) {
             val service = carClass.getField("CAR_UX_RESTRICTION_SERVICE").get(null) as String
             val m = carClass.getMethod("getCarManager", String::class.java).invoke(c, service)
                 ?: return emit(MovementState.UNKNOWN, "CarUxRestrictionsManager 없음")
             manager = m
-            val listenerClass =
-                Class.forName(
-                    "android.car.drivingstate.CarUxRestrictionsManager\$OnUxRestrictionsChangedListener"
-                )
+            val listenerClass = Class.forName(
+                "android.car.drivingstate.CarUxRestrictionsManager\$OnUxRestrictionsChangedListener"
+            )
             val l = Proxy.newProxyInstance(listenerClass.classLoader, arrayOf(listenerClass)) {
                     proxy,
                     method,
@@ -108,6 +108,28 @@ class CarUxMovementSource(private val context: Context) : MovementSignalSource {
             m.javaClass.getMethod("registerListener", listenerClass).invoke(m, l)
             m.javaClass.getMethod("getCurrentCarUxRestrictions").invoke(m)?.let(::emitRestrictions)
                 ?: emit(MovementState.UNKNOWN, "현재 제한 값 없음")
+        }
+        try {
+            val carClass = Class.forName("android.car.Car")
+            val conn = object : ServiceConnection {
+                override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+                    val c = car
+                    if (stopped || c == null) return
+                    try {
+                        attach(carClass, c)
+                    } catch (e: Exception) {
+                        emit(MovementState.UNKNOWN, "CarUx 사용 불가: ${e.javaClass.simpleName}")
+                    }
+                }
+
+                override fun onServiceDisconnected(name: ComponentName?) {
+                    emit(MovementState.UNKNOWN, "Car 서비스 연결 끊김")
+                }
+            }
+            car =
+                carClass.getMethod("createCar", Context::class.java, ServiceConnection::class.java)
+                    .invoke(null, context, conn)
+            carClass.getMethod("connect").invoke(car)
         } catch (e: Exception) {
             emit(MovementState.UNKNOWN, "CarUx 사용 불가: ${e.javaClass.simpleName}")
         } catch (e: LinkageError) {
@@ -116,6 +138,7 @@ class CarUxMovementSource(private val context: Context) : MovementSignalSource {
     }
 
     override fun stop() {
+        stopped = true
         runCatching {
             val m = manager
             val l = listener

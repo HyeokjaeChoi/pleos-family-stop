@@ -40,4 +40,24 @@ class DriveLogicTest {
         c.undo() // too late
         assertEquals(1, navi.waypoints.size)
     }
+
+    @Test
+    fun cardsStayLockedWhileUndoPendingAndFailedUndoIsReported() {
+        var cb: ((Result<Unit>) -> Unit)? = null
+        val navi = object : ai.familystop.core.NaviGateway {
+            override fun addWaypoint(place: StopPlace, onResult: (Result<Unit>) -> Unit) =
+                onResult(Result.success(Unit))
+            override fun removeWaypoint(place: StopPlace, onResult: (Result<Unit>) -> Unit) {
+                cb = onResult
+            }
+        }
+        val c = PickController(navi, { 0 })
+        val a = StopPlace("a", 0.0, 0.0)
+        c.pick(a)
+        c.undo()
+        c.pick(StopPlace("b", 0.0, 0.0)) // ignored: removal still pending
+        assertEquals(PickState.Removing(a), c.state)
+        cb!!(Result.failure(IllegalStateException()))
+        assertTrue((c.state as PickState.Done).note != null)
+    }
 }

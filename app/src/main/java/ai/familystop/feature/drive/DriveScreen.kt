@@ -82,7 +82,9 @@ fun DriveScreen(
     val draft = rememberSaveable(saver = DraftSaver) { InputDraft() }
     val tracker = remember { MovementTracker() }
     var reading by remember { mutableStateOf(tracker.reading) }
-    val picker = remember(navi) { PickController(navi, ::nowMs) }
+    val picker = rememberSaveable(navi, saver = pickControllerSaver(navi, ::nowMs)) {
+        PickController(navi, ::nowMs)
+    }
     var now by remember { mutableLongStateOf(nowMs()) }
 
     DisposableEffect(movement) {
