@@ -167,18 +167,20 @@ class PleosNaviGateway(context: Context) : NaviGateway {
     }
 
     // A failed or timed-out add keeps its slot: Navi may still apply it late, so the undo must send a real removal.
-    // A removal always frees its slot once attempted.
+    // A failed removal keeps its slot too; only a confirmed removal event (onChanged) frees it.
     private fun finish(op: Op, result: Result<Unit>) {
         if (inFlight !== op) return
         inFlight = null
         op.timeout?.let(main::removeCallbacks)
-        if (op.cmd == WaypointCmdType.REMOVE) slots.release(op.index!!.ordinal)
         op.onResult(result)
         drain()
     }
 
     private fun failQueued(error: Throwable) {
-        while (true) queue.removeFirstOrNull()?.onResult?.invoke(Result.failure(error)) ?: return
+        // Snapshot first: callbacks may enqueue retries, which must wait for the next init.
+        val batch = queue.toList()
+        queue.clear()
+        batch.forEach { it.onResult(Result.failure(error)) }
     }
 
     private companion object {
