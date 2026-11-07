@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-feature android:name="android.hardware.type.automotive" android:required="true" />
+
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH" />
+    <uses-permission android:name="pleos.car.permission.CAR_ENERGY" />
+
+    <application
+        android:label="Family Stop"
+        android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+        <!-- Single activity. Driving screens must stay usable while moving (ADR-0003),
+             so it is distraction-optimized; parked-only UI is gated inside via UX restrictions. -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <meta-data android:name="distractionOptimized" android:value="true" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

@@ -8,3 +8,5 @@
 - TTS `onError` 시 같은 문장을 자동 재시도하지 않고 화면에 한 줄 상태(예: "후보 2개 · 정차 후 확인")만 띄운 뒤 상세는 정차 후에 보여준다.
 - 온디바이스 엔진 오류 시 정차 후 화면 입력으로 대체한다.
 - 지표 수집(정차 가치·재사용)은 시연 범위 밖으로 보류(PT 이후)한다.
+- 콘솔 확인 결과 Pleos STT·TTS가 "준비 중"이다. 음성 출력은 `VoiceOutput` 인터페이스 뒤에 두고 Pleos `ON_DEVICE`가 에뮬에서 동작하면 그것을, 아니면 Android 플랫폼 `TextToSpeech`를 쓴다(`TextToSpeech.getEngines()`로 실측). 둘 다 안 되면 음성 출력 실패 대체(한 줄 상태 표시)만 남는다.
+- 음성 입력은 Pleos STT가 열리기 전까지 시연에서 뺀다. 내장 Gleo AI는 Gleo Interface(App Schema)로 연동할 수 있지만 Pleos 스키마 심사가 필요해 이번 일정에는 넣지 않는다. Google Gemini 탑재 근거는 찾지 못했다.

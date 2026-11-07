@@ -9,3 +9,4 @@
 - 추천 응답 목표 3s, 외부 API 타임아웃 5s는 잠정값이며 프로토타입 측정 후 확정한다(초과 시 데이터 미수신 대체 동작).
 - Pleos 문서 스냅샷(2026-11-07 조사)에서 FusedLocation·STT·TTS가 My Project SDK 접근 상태 "Not Available Yet / Coming Soon"으로 보인다(Vehicle State·NaviHelper는 "Ready to Use"). My Project에서 실제 상태를 확인하기 전까지 위치·음성의 SDK 사용은 전제가 흔들린다. 근거: `docs/research/aaos-dev-notes.md`.
 - 가상 시설 데이터는 공모전 시연 한정이다. Pleos 앱 마켓 심사는 더미 데이터를 허용하지 않으므로 입점 단계에서는 실제 데이터로 바꿔야 한다.
+- 콘솔 확인 결과 FusedLocation이 "준비 중"이고, Pleos Connect는 non-GAS AAOS로 보여(`docs/research/location-voice-alternatives.md`) Google `FusedLocationProviderClient`도 쓸 수 없을 가능성이 높다(에뮬 실측 필요). 위치는 `LocationSource` 인터페이스 뒤에 두고, 지금은 Android 플랫폼 `LocationManager`(API 31+ `FUSED_PROVIDER`, 그 외 `GPS_PROVIDER`) 구현을 쓰며 Pleos FusedLocation이 열리면 그 구현으로 바꾼다. 플랫폼 API는 외부 SDK가 아니므로 이 ADR의 원칙과 충돌하지 않는다.
