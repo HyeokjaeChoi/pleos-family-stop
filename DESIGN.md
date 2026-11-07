@@ -72,7 +72,16 @@ Figma는 대체 폰트 Noto Sans KR 사용. 구현은 Compose 기본 폰트(Pleo
 ## 6. 상태 표현
 
 - 상태는 **아이콘 + 문구 + 색** 3중. 색만으로 구분 금지. 외곽선으로 구분하지 않는다(border-less).
-- `StatusChip`(Figma 컴포넌트 4종, `bg/raised` 면 + 상태색 아이콘·글자 + 본문색 문구): 사용 가능 ✓ / 혼잡 ! / 이용 불가 ✕ / 미확인 ?. 아이콘 글리프는 임시 문자, 구현은 Material Icons로 대체하고 문구는 유지.
+- `StatusChip`(Figma 컴포넌트 4종, `bg/raised` 면 + 상태색 아이콘 24dp + 본문색 문구): 사용 가능 `check_circle` / 혼잡 `warning` / 이용 불가 `cancel` / 미확인 `help`. 아이콘만 단독으로 쓰지 않고 항상 문구와 함께 쓴다.
+
+### 아이콘 세트 (Material Symbols)
+
+- 세트: **Material Symbols Rounded, Fill 1, weight 400** (Apache-2.0, `google/material-design-icons`). 근거: 코드(Compose `material-icons`)와 같은 글리프라 매핑이 필요 없고, AAOS Car UI 가이드의 vector drawable 요건과 맞으며, Rounded 모양이 카드 모서리(radius 16~24)·소프트한 글자와 어울린다. Fill 1로 먼 거리·눈부심에서 식별성을 높인다(화살표·닫기류는 Fill 영향 없음).
+- 크기: 주 44 / 보조 36 / 3차 24dp. 최소 36dp(지도 마커). 칩 안은 24, 단독 터치 아이콘은 터치 대상 76dp 안에 44로 중앙 배치.
+- 색: 토큰에 바인딩(기본 `text/primary`, 상태는 `status/*`, 버튼 위는 `accent/on`). 하드코딩 금지, Night/Day 자동 대응.
+- 이름 매핑(Figma `Icon/<이름>` = Compose `Icons.Rounded.<PascalCase>`): `check_circle`, `warning`, `cancel`, `help`, `add_location_alt`(경유지 추가), `undo`(취소), `ev_station`(충전), `mic`·`volume_up`(음성), `close`, `arrow_back`. 구현 시 vector drawable로 가져오며, `material-icons-extended` 의존성 크기가 부담이면 필요한 아이콘만 SVG→vector drawable로 추가한다.
+- 새 아이콘은 같은 세트·같은 설정에서만 추가한다. 다른 세트가 필요하면 선 굵기·모서리 스타일을 맞추고 이 문서에 기록한다. Figma Community 아이콘 파일은 쓰지 않았다.
+- Figma: 페이지 `Foundations`의 `Icons (Material Symbols Rounded…)` 프레임에 컴포넌트 11개(44 기준, 스케일 제약 설정).
 - 뜻이 다른 배지는 다른 색(k-style-ui-ux 체크리스트 항목).
 - 데이터 미수신·권한 거부·값 없음은 빈칸·0 대신 **'미확인'** 칩 + 이유 한 줄(#11).
 - 오류·실패 문구는 원인+다음 행동 한 문장. 음성 안내 문구는 화면 문구와 같은 어휘.
@@ -108,6 +117,7 @@ Figma에는 StatusChip, DriveCard, Button/Primary 시안만 있다. 나머지는
 
 - **k-style-ui-ux** (https://github.com/vmc-inner-circle/k-style-ui-ux, 사용자 확인): PRD→한국 앱 스타일 모바일 화면 초안 플러그인. **설치·실행하지 않고** `checklist.md`만 읽기 전용 참조. 반영: 뜻이 다른 배지는 다른 색, 한 번뿐인 행동은 누른 뒤 모습(UndoBar), 대상마다 시작·끝 화면. 한국 앱 팔레트·모바일 레이아웃은 차량 화면과 맞지 않아 쓰지 않음.
 - **omd(oh-my-design)**: 로컬에 설치돼 있으나 위 레포와 다른 도구. 이번 작업에서 사용하지 않음.
+- **아이콘**: Figma Community 검색(Material 계열, 차량 특화 `Car & Equipment`·`Icons for driving` 등, Phosphor)으로 후보를 조사했으나 상세 페이지·라이선스는 열지 않았고, 코드 1:1 대응을 이유로 Google 공식 레포 Material Symbols를 선택(Apache-2.0 확인).
 - **Mobbin MCP**: 연결됨. iOS 레퍼런스 약 28건 열람, 모바일이라 구조 참고만. border-less 카드 참고: Waymo 차량 제어 카드, Bevel 위젯, Perplexity 다크 카드, corner 장소 카드. 계정 생성·결제 없음.
 - **Aside 웹 조사**(출처 URL은 위 본문에 표기): Google Design for Driving(색·터치·글자·대비), AAOS 시스템 경험 개요(낮/밤 테마), Pleos Connect UI Design Guide(intro·colors·typography·layout·basic-button 페이지: 대부분 수치가 이미지라 텍스트에는 없음). Polestar·Tesla·Volvo 카드 스타일과 CarPlay 수치는 확인 못 함.
 
