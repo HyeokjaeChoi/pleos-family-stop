@@ -1,9 +1,14 @@
 #!/bin/sh
-# Auto-fix Kotlin style on staged files, re-stage, then block the commit if violations remain.
+# Auto-fix Kotlin style on staged files only, re-stage them, then block the commit if violations remain.
 files=$(git diff --cached --name-only --diff-filter=ACMR -- '*.kt' '*.kts')
 [ -z "$files" ] && exit 0
+# Re-staging a file that also has unstaged hunks would sneak those hunks into the commit.
+if git diff --name-only -- '*.kt' '*.kts' | grep -qFx "$files"; then
+  echo "pre-commit: staged Kotlin files also have unstaged changes. Stage or stash them, then commit."
+  exit 1
+fi
 . "$(dirname "$0")/java-home.sh"
-./gradlew -q ktlintFormat >/dev/null 2>&1 # unfixable violations are reported by ktlintCheck below
-# ponytail: re-adds whole files, so partially staged hunks get fully staged.
-echo "$files" | xargs git add
-./gradlew -q ktlintCheck || { echo "pre-commit: ktlint violations remain (not auto-fixable). Fix and commit again."; exit 1; }
+# internalKtlintGitFilter limits ktlint-gradle to these paths (same property its own git hook uses).
+./gradlew -q ktlintFormat -PinternalKtlintGitFilter="$files" >/dev/null 2>&1 # unfixable ones reported below
+git diff --cached --name-only -z --diff-filter=ACMR -- '*.kt' '*.kts' | xargs -0 git add -- || exit 1
+./gradlew -q ktlintCheck -PinternalKtlintGitFilter="$files" || { echo "pre-commit: ktlint violations remain (not auto-fixable). Fix and commit again."; exit 1; }
