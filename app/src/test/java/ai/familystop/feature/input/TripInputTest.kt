@@ -3,6 +3,7 @@ package ai.familystop.feature.input
 import java.time.LocalDateTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -40,6 +41,19 @@ class TripInputTest {
     @Test
     fun manualSocOutOfRangeRejectedOnlyWhenUsed() {
         assertEquals(listOf(InputError.SOC_RANGE), errors(ok.copy(manualSocText = "120")))
-        assertEquals(null, errors(ok.copy(manualSocText = "120"), auto = 50))
+        assertNull(errors(ok.copy(manualSocText = "120"), auto = 50))
+        assertEquals(listOf(InputError.SOC_RANGE), errors(ok.copy(manualSocText = "abc")))
+    }
+
+    @Test
+    fun edgeCases() {
+        val r = validate(
+            ok.copy(timeText = "9:30", manualSocText = "0"),
+            null,
+            now.withHour(9)
+        ) as ValidationResult.Ok
+        assertEquals(LocalDateTime.of(2026, 11, 8, 9, 30), r.input.arrival)
+        assertEquals(Soc.Manual(0), r.input.soc)
+        assertNull(errors(ok.copy(timeText = "10:00", manualSocText = "100")))
     }
 }

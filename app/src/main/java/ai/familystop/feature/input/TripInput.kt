@@ -72,7 +72,7 @@ data class TripDraft(
     val urgent: Boolean = false,
     val chargeNeed: ChargeNeed = ChargeNeed.UNDECIDED,
     val manualSocText: String = ""
-)
+) : java.io.Serializable
 
 /**
  * 추천 요청 전 검증. 목적지 누락·지난 시간은 수정을 요구한다(F-GFBDZR).
@@ -94,16 +94,20 @@ fun validate(draft: TripDraft, autoSoc: Int?, now: LocalDateTime): ValidationRes
         arrival.isBefore(now) -> errors += InputError.TIME_PAST
     }
 
-    val manual = draft.manualSocText.trim().takeIf {
-        it.isNotEmpty()
-    }?.let { it.toIntOrNull() ?: -1 }
-    if (autoSoc == null && manual != null && manual !in 0..100) errors += InputError.SOC_RANGE
+    val manualText = draft.manualSocText.trim()
+    val manual = manualText.toIntOrNull()
+    if (autoSoc == null &&
+        manualText.isNotEmpty() &&
+        manual !in 0..100
+    ) {
+        errors += InputError.SOC_RANGE
+    }
 
-    if (errors.isNotEmpty()) return ValidationResult.Invalid(errors)
+    if (errors.isNotEmpty() || arrival == null) return ValidationResult.Invalid(errors)
     return ValidationResult.Ok(
         TripInput(
             destination = draft.destination.trim(),
-            arrival = arrival!!,
+            arrival = arrival,
             needs = draft.needs,
             urgent = draft.urgent,
             chargeNeed = draft.chargeNeed,
