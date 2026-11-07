@@ -10,57 +10,75 @@ import ai.pleos.playground.navi.data.WaypointChangedInfo
 import ai.pleos.playground.navi.helper.NaviHelper
 import ai.pleos.playground.navi.helper.listener.NaviHelperEventListener
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 
-/** [NaviGateway] on Pleos NaviHelper (ADR-0001, ADR-0003). Call from the main thread. */
+/**
+ * [NaviGateway] on Pleos NaviHelper (ADR-0001, ADR-0003).
+ * Main thread only: SDK callbacks are re-posted to main, so [onResult] callbacks run there too.
+ * App-scoped; call [close] to release the service binding.
+ */
 class PleosNaviGateway(context: Context) : NaviGateway {
     private class Pending(
-        val index: Int,
+        val index: WaypointIndex,
         val cmd: WaypointCmdType,
-        val onResult: (Result<Unit>) -> Unit,
-        val place: StopPlace
-    )
+        val onResult: (Result<Unit>) -> Unit
+    ) {
+        var timeout: Runnable? = null
+    }
 
-    private val helper = NaviHelper(context)
+    private val main = Handler(Looper.getMainLooper())
+    private val helper = NaviHelper(context.applicationContext)
     private val slots = WaypointSlots()
     private val pending = mutableListOf<Pending>()
     private var connected = false
-    private var failure: Throwable? = null
 
     private val listener = object : NaviHelperEventListener {
         override fun onWaypointChanged(info: WaypointChangedInfo) {
-            val i = info.index.ordinal
-            val p = pending.firstOrNull { it.index == i && it.cmd == info.cmdType } ?: return
-            pending.remove(p)
-            if (p.cmd == WaypointCmdType.REMOVE) slots.release(p.index)
-            p.onResult(Result.success(Unit))
+            main.post { onChanged(info) }
         }
 
         // The SDK error does not say which request failed: fail all in flight and roll back.
-        override fun onError(code: NaviErrorCode) =
-            failPending(IllegalStateException("navi error: $code"))
+        override fun onError(code: NaviErrorCode) {
+            main.post { failPending(IllegalStateException("navi error: $code")) }
+        }
     }
 
     init {
+        connect()
+    }
+
+    // ponytail: no sync with waypoints set in the Navi UI (getWaypointInfo); reconcile if the demo needs it.
+    private fun connect() {
         helper.initialize(
             {
-                connected = true
-                helper.addListener(listener)
+                main.post {
+                    connected = true
+                    helper.addListener(listener)
+                }
             },
-            { failure = it }
+            { main.post { connected = false } }
         )
     }
 
+    fun close() {
+        helper.removeListener(listener)
+        helper.release()
+        failPending(IllegalStateException("navi closed"))
+    }
+
     override fun addWaypoint(place: StopPlace, onResult: (Result<Unit>) -> Unit) {
-        notReady()?.let { return onResult(Result.failure(it)) }
+        if (!ready()) return onResult(Result.failure(IllegalStateException("navi not connected")))
         val i = slots.reserve(place)
             ?: return onResult(Result.failure(IllegalStateException("waypoints full or duplicate")))
-        pending += Pending(i, WaypointCmdType.ADD, onResult, place)
+        val index = WaypointIndex.entries[i]
+        track(Pending(index, WaypointCmdType.ADD, onResult))
         helper.addWaypoint(
             RequestWaypointInfo(
                 latitude = place.lat,
                 longitude = place.lon,
                 poiName = place.name,
-                waypointIndex = index(i),
+                waypointIndex = index,
                 poiId = place.poiId.orEmpty(),
                 poiSubId = "",
                 address = ""
@@ -69,23 +87,54 @@ class PleosNaviGateway(context: Context) : NaviGateway {
     }
 
     override fun removeWaypoint(place: StopPlace, onResult: (Result<Unit>) -> Unit) {
-        notReady()?.let { return onResult(Result.failure(it)) }
+        if (!ready()) return onResult(Result.failure(IllegalStateException("navi not connected")))
         val i = slots.indexOf(place) ?: return onResult(Result.success(Unit)) // nothing to undo
-        pending += Pending(i, WaypointCmdType.REMOVE, onResult, place)
-        helper.removeWaypoint(index(i))
-    }
-
-    private fun notReady(): Throwable? =
-        failure ?: IllegalStateException("navi not connected").takeIf { !connected }
-
-    private fun failPending(error: Throwable) {
-        val failed = pending.toList()
-        pending.clear()
-        failed.forEach {
-            if (it.cmd == WaypointCmdType.ADD) slots.release(it.index)
-            it.onResult(Result.failure(error))
+        val index = WaypointIndex.entries[i]
+        if (pending.any { it.index == index && it.cmd == WaypointCmdType.REMOVE }) {
+            return onResult(Result.success(Unit)) // double tap while the first remove is in flight
         }
+        track(Pending(index, WaypointCmdType.REMOVE, onResult))
+        helper.removeWaypoint(index)
     }
 
-    private fun index(i: Int) = if (i == 0) WaypointIndex.FIRST else WaypointIndex.SECOND
+    // After a failed init the next call retries; initialize() is a no-op while connecting/connected.
+    private fun ready(): Boolean {
+        if (!connected) connect()
+        return connected
+    }
+
+    private fun track(p: Pending) {
+        p.timeout = Runnable { fail(p, IllegalStateException("navi timeout")) }
+        main.postDelayed(p.timeout!!, REQUEST_TIMEOUT_MS)
+        pending += p
+    }
+
+    private fun onChanged(info: WaypointChangedInfo) {
+        val p = pending.firstOrNull { it.index == info.index && it.cmd == info.cmdType }
+        if (info.cmdType == WaypointCmdType.REMOVE) {
+            // Also covers removals made in the Navi UI.
+            val all = info.index == WaypointIndex.ALL
+            (if (all) 0..1 else listOf(info.index.ordinal)).forEach(slots::release)
+        }
+        p ?: return
+        done(p)
+        p.onResult(Result.success(Unit))
+    }
+
+    private fun done(p: Pending) {
+        pending.remove(p)
+        p.timeout?.let(main::removeCallbacks)
+    }
+
+    private fun fail(p: Pending, error: Throwable) {
+        done(p)
+        if (p.cmd == WaypointCmdType.ADD) slots.release(p.index.ordinal)
+        p.onResult(Result.failure(error))
+    }
+
+    private fun failPending(error: Throwable) = pending.toList().forEach { fail(it, error) }
+
+    private companion object {
+        const val REQUEST_TIMEOUT_MS = 5_000L
+    }
 }
