@@ -15,32 +15,41 @@ import android.os.Looper
 
 /**
  * [NaviGateway] on Pleos NaviHelper (ADR-0001, ADR-0003).
- * Main thread only: SDK callbacks are re-posted to main, so [onResult] callbacks run there too.
+ * Main thread only: SDK callbacks are re-posted to main, so `onResult` callbacks run there too.
+ * Requests run one at a time (queued until connected), so slot state never races.
  * App-scoped; call [close] to release the service binding.
  */
 class PleosNaviGateway(context: Context) : NaviGateway {
-    private class Pending(
-        val index: WaypointIndex,
+    private class Op(
+        val place: StopPlace,
         val cmd: WaypointCmdType,
         val onResult: (Result<Unit>) -> Unit
     ) {
+        var index: WaypointIndex? = null
         var timeout: Runnable? = null
     }
 
     private val main = Handler(Looper.getMainLooper())
     private val helper = NaviHelper(context.applicationContext)
     private val slots = WaypointSlots()
-    private val pending = mutableListOf<Pending>()
+    private val queue = ArrayDeque<Op>()
+    private var inFlight: Op? = null
     private var connected = false
+    private var connecting = false
+    private var closed = false
 
     private val listener = object : NaviHelperEventListener {
         override fun onWaypointChanged(info: WaypointChangedInfo) {
             main.post { onChanged(info) }
         }
 
-        // The SDK error does not say which request failed: fail all in flight and roll back.
+        // The SDK error does not say which request failed: fail the one in flight.
         override fun onError(code: NaviErrorCode) {
-            main.post { failPending(IllegalStateException("navi error: $code")) }
+            main.post {
+                inFlight?.let {
+                    finish(it, Result.failure(IllegalStateException("navi error: $code")))
+                }
+            }
         }
     }
 
@@ -50,89 +59,127 @@ class PleosNaviGateway(context: Context) : NaviGateway {
 
     // ponytail: no sync with waypoints set in the Navi UI (getWaypointInfo); reconcile if the demo needs it.
     private fun connect() {
+        connecting = true
         helper.initialize(
             {
                 main.post {
+                    if (closed) return@post
+                    connecting = false
                     connected = true
                     helper.addListener(listener)
+                    drain()
                 }
             },
-            { main.post { connected = false } }
+            {
+                main.post {
+                    if (closed) return@post
+                    connecting = false
+                    connected = false
+                    failQueued(IllegalStateException("navi init failed: ${it.message}"))
+                }
+            }
         )
     }
 
     fun close() {
+        if (closed) return
+        closed = true
+        connected = false
         helper.removeListener(listener)
         helper.release()
-        failPending(IllegalStateException("navi closed"))
+        val error = IllegalStateException("navi closed")
+        inFlight?.let { finish(it, Result.failure(error)) }
+        failQueued(error)
     }
 
-    override fun addWaypoint(place: StopPlace, onResult: (Result<Unit>) -> Unit) {
-        if (!ready()) return onResult(Result.failure(IllegalStateException("navi not connected")))
-        val i = slots.reserve(place)
-            ?: return onResult(Result.failure(IllegalStateException("waypoints full or duplicate")))
-        val index = WaypointIndex.entries[i]
-        track(Pending(index, WaypointCmdType.ADD, onResult))
+    override fun addWaypoint(place: StopPlace, onResult: (Result<Unit>) -> Unit) =
+        enqueue(Op(place, WaypointCmdType.ADD, onResult))
+
+    override fun removeWaypoint(place: StopPlace, onResult: (Result<Unit>) -> Unit) =
+        enqueue(Op(place, WaypointCmdType.REMOVE, onResult))
+
+    private fun enqueue(op: Op) {
+        if (closed) return op.onResult(Result.failure(IllegalStateException("navi closed")))
+        queue += op
+        // A failed init retries on the next request.
+        if (!connected && !connecting) connect()
+        drain()
+    }
+
+    private fun drain() {
+        while (connected && inFlight == null) {
+            val op = queue.removeFirstOrNull() ?: return
+            if (op.cmd == WaypointCmdType.ADD) send(op) else sendRemove(op)
+        }
+    }
+
+    private fun send(op: Op) {
+        val i = slots.reserve(op.place)
+            ?: return op.onResult(
+                Result.failure(IllegalStateException("waypoints full or duplicate"))
+            )
+        start(op, WaypointIndex.entries[i])
         helper.addWaypoint(
             RequestWaypointInfo(
-                latitude = place.lat,
-                longitude = place.lon,
-                poiName = place.name,
-                waypointIndex = index,
-                poiId = place.poiId.orEmpty(),
+                latitude = op.place.lat,
+                longitude = op.place.lon,
+                poiName = op.place.name,
+                waypointIndex = op.index!!,
+                poiId = op.place.poiId.orEmpty(),
                 poiSubId = "",
                 address = ""
             )
         )
     }
 
-    override fun removeWaypoint(place: StopPlace, onResult: (Result<Unit>) -> Unit) {
-        if (!ready()) return onResult(Result.failure(IllegalStateException("navi not connected")))
-        val i = slots.indexOf(place) ?: return onResult(Result.success(Unit)) // nothing to undo
-        val index = WaypointIndex.entries[i]
-        if (pending.any { it.index == index && it.cmd == WaypointCmdType.REMOVE }) {
-            return onResult(Result.success(Unit)) // double tap while the first remove is in flight
-        }
-        track(Pending(index, WaypointCmdType.REMOVE, onResult))
-        helper.removeWaypoint(index)
+    private fun sendRemove(op: Op) {
+        // Not in a slot: nothing to undo (also a repeated undo after the first one finished).
+        val i = slots.indexOf(op.place) ?: return op.onResult(Result.success(Unit))
+        start(op, WaypointIndex.entries[i])
+        helper.removeWaypoint(op.index!!)
     }
 
-    // After a failed init the next call retries; initialize() is a no-op while connecting/connected.
-    private fun ready(): Boolean {
-        if (!connected) connect()
-        return connected
-    }
-
-    private fun track(p: Pending) {
-        p.timeout = Runnable { fail(p, IllegalStateException("navi timeout")) }
-        main.postDelayed(p.timeout!!, REQUEST_TIMEOUT_MS)
-        pending += p
+    private fun start(op: Op, index: WaypointIndex) {
+        op.index = index
+        op.timeout = Runnable { finish(op, Result.failure(IllegalStateException("navi timeout"))) }
+        main.postDelayed(op.timeout!!, REQUEST_TIMEOUT_MS)
+        inFlight = op
     }
 
     private fun onChanged(info: WaypointChangedInfo) {
-        val p = pending.firstOrNull { it.index == info.index && it.cmd == info.cmdType }
+        val op = inFlight
         if (info.cmdType == WaypointCmdType.REMOVE) {
             // Also covers removals made in the Navi UI.
-            val all = info.index == WaypointIndex.ALL
-            (if (all) 0..1 else listOf(info.index.ordinal)).forEach(slots::release)
+            if (info.index ==
+                WaypointIndex.ALL
+            ) {
+                (0..1).forEach(slots::release)
+            } else {
+                slots.release(info.index.ordinal)
+            }
         }
-        p ?: return
-        done(p)
-        p.onResult(Result.success(Unit))
+        if (op != null &&
+            op.index == info.index &&
+            op.cmd == info.cmdType
+        ) {
+            finish(op, Result.success(Unit))
+        }
     }
 
-    private fun done(p: Pending) {
-        pending.remove(p)
-        p.timeout?.let(main::removeCallbacks)
+    // A failed or timed-out add keeps its slot: Navi may still apply it late, so the undo must send a real removal.
+    // A removal always frees its slot once attempted.
+    private fun finish(op: Op, result: Result<Unit>) {
+        if (inFlight !== op) return
+        inFlight = null
+        op.timeout?.let(main::removeCallbacks)
+        if (op.cmd == WaypointCmdType.REMOVE) slots.release(op.index!!.ordinal)
+        op.onResult(result)
+        drain()
     }
 
-    private fun fail(p: Pending, error: Throwable) {
-        done(p)
-        if (p.cmd == WaypointCmdType.ADD) slots.release(p.index.ordinal)
-        p.onResult(Result.failure(error))
+    private fun failQueued(error: Throwable) {
+        while (true) queue.removeFirstOrNull()?.onResult?.invoke(Result.failure(error)) ?: return
     }
-
-    private fun failPending(error: Throwable) = pending.toList().forEach { fail(it, error) }
 
     private companion object {
         const val REQUEST_TIMEOUT_MS = 5_000L
