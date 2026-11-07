@@ -1,11 +1,18 @@
 package ai.familystop.fake
 
-import ai.familystop.core.*
+import ai.familystop.core.GeoPoint
+import ai.familystop.core.LocationSource
+import ai.familystop.core.NaviGateway
+import ai.familystop.core.StopPlace
+import ai.familystop.core.VehicleEnergySource
+import ai.familystop.core.VoiceOutput
 
 // Temporary implementations so screens can be built before the real ones land.
 
-class FakeLocationSource(private val point: GeoPoint = GeoPoint(37.5665, 126.9780, 0)) : LocationSource {
-    override fun start(onUpdate: (GeoPoint) -> Unit, onUnavailable: (String) -> Unit) = onUpdate(point)
+class FakeLocationSource(private val point: GeoPoint = GeoPoint(37.5665, 126.9780, 0)) :
+    LocationSource {
+    override fun start(onUpdate: (GeoPoint) -> Unit, onUnavailable: (String) -> Unit) =
+        onUpdate(point)
     override fun stop() {}
 }
 
@@ -17,10 +24,15 @@ class FakeVoiceOutput(private val log: (String) -> Unit = {}) : VoiceOutput {
 class FakeNaviGateway : NaviGateway {
     val waypoints = mutableListOf<StopPlace>()
     override fun addWaypoint(place: StopPlace, onResult: (Result<Unit>) -> Unit) =
-        if (waypoints.size >= 2) onResult(Result.failure(IllegalStateException("waypoints full")))
-        else { waypoints += place; onResult(Result.success(Unit)) }
+        if (waypoints.size >= 2) {
+            onResult(Result.failure(IllegalStateException("waypoints full")))
+        } else {
+            waypoints += place
+            onResult(Result.success(Unit))
+        }
     override fun removeWaypoint(place: StopPlace, onResult: (Result<Unit>) -> Unit) {
-        waypoints.remove(place); onResult(Result.success(Unit))
+        waypoints.remove(place)
+        onResult(Result.success(Unit))
     }
 }
 
