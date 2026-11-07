@@ -1,0 +1,4 @@
+#!/bin/sh
+# Same gate as CI minus assemble, so a red PR is caught before pushing.
+. "$(dirname "$0")/java-home.sh"
+./gradlew -q ktlintCheck testDebugUnitTest || { echo "pre-push: lint or unit tests failed."; exit 1; }
