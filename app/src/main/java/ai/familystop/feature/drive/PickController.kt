@@ -4,6 +4,7 @@ import ai.familystop.core.NaviGateway
 import ai.familystop.core.StopPlace
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.setValue
 
 sealed interface PickState {
@@ -57,39 +58,36 @@ class PickController(
     }
 }
 
-/** Survives Activity recreation (e.g. day/night switch) so the undo window is not lost. */
-fun pickControllerSaver(navi: NaviGateway, clock: () -> Long) =
-    androidx.compose.runtime.saveable.Saver<PickController, List<Any?>>(
-        save = { c ->
-            when (val s = c.state) {
-                is PickState.Undoable -> listOf(s.expiresAtMs) + s.place.toList()
-                is PickState.Done -> if (s.note ==
-                    null
-                ) {
-                    listOf(null) + s.place.toList()
-                } else {
-                    emptyList()
-                }
-                else -> emptyList()
-            }
-        },
-        restore = { l ->
-            PickController(navi, clock).also { c ->
-                if (l.isNotEmpty()) {
-                    val place =
-                        StopPlace(l[1] as String, l[2] as Double, l[3] as Double, l[4] as String?)
-                    c.restore(
-                        if (l[0] !=
-                            null
-                        ) {
-                            PickState.Undoable(place, l[0] as Long)
-                        } else {
-                            PickState.Done(place)
-                        }
-                    )
-                }
+private const val LOST_NOTE = "진행 중이던 요청 결과를 확인하지 못했습니다. 정차 후 내비의 경유지를 확인하세요."
+
+/**
+ * Survives Activity recreation (e.g. day/night switch). An in-flight add/remove loses its callback,
+ * so it restores as a locked [PickState.Done] with a note instead of accepting another pick.
+ */
+fun pickControllerSaver(navi: NaviGateway, clock: () -> Long) = Saver<PickController, List<Any?>>(
+    save = { c ->
+        when (val s = c.state) {
+            is PickState.Undoable -> listOf(s.expiresAtMs) + s.place.toList()
+            is PickState.Done -> listOf(s.note) + s.place.toList()
+            is PickState.Adding -> listOf(LOST_NOTE) + s.place.toList()
+            is PickState.Removing -> listOf(LOST_NOTE) + s.place.toList()
+            else -> emptyList()
+        }
+    },
+    restore = { l ->
+        PickController(navi, clock).also { c ->
+            if (l.isNotEmpty()) {
+                val place =
+                    StopPlace(l[1] as String, l[2] as Double, l[3] as Double, l[4] as String?)
+                c.restore(
+                    when (val head = l[0]) {
+                        is Long -> PickState.Undoable(place, head)
+                        else -> PickState.Done(place, head as String?)
+                    }
+                )
             }
         }
-    )
+    }
+)
 
 private fun StopPlace.toList() = listOf(name, lat, lon, poiId)
