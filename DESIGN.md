@@ -3,7 +3,7 @@
 Pleos Connect(AAOS) 인포테인먼트 앱, Jetpack Compose. 사용자: 전기차 가족 여행 운전자·성인 동승자.
 UI 이슈 #6~#12 착수용 최소 기준이다. 범위를 넓히지 않는다.
 
-- Figma: https://www.figma.com/design/So1tPxF3kWdBwk8WXf4Mfr (페이지 `Foundations`: `Foundations / Night`, `Foundations / Day` 두 프레임 — 토큰·타입·StatusChip·주행 카드 2장)
+- Figma: https://www.figma.com/design/So1tPxF3kWdBwk8WXf4Mfr (페이지 `Foundations`: `Foundations / Night`·`Day`: 토큰·타입·StatusChip·카드, `Icons`, `Components`, `Screen / Driving·Parked / Night·Day`)
 - 근거 ADR: 0003(주행 중 한 번 탭+10초 취소), 0004(미확인=주행 중). 근거 문서: `docs/research/aaos-dev-notes.md`
 
 ## 1. 확정 vs 확인 필요
@@ -99,7 +99,7 @@ Figma는 대체 폰트 Noto Sans KR 사용. 구현은 Compose 기본 폰트(Pleo
 | EmptyState | 권한 거부·미수신 대체 | #11 |
 | VoiceHint | 음성 안내 상태 | #12 |
 
-Figma에는 StatusChip, DriveCard, Button/Primary 시안만 있다. 나머지는 같은 토큰으로 조립한다.
+Figma(페이지 `Foundations`)에 있는 컴포넌트: StatusChip 4종, Icon 11종, Button/Primary(아이콘+문구, 최소 높이 76), UndoBar(문구+취소 버튼, 버튼 ≥76), DriveCard(주행 중 큰 카드). 대표 화면(1280×720은 **임시 크기**, 에뮬레이터 확인 후 확정 #3): `Screen / Driving / Night·Day`(카드 2장+UndoBar), `Screen / Parked / Night·Day`(후보 3개 비교+버튼). 나머지 컴포넌트(ConditionForm, WaypointReplaceDialog, EmptyState, VoiceHint 등)는 해당 구현 이슈에서 같은 토큰으로 조립한다.
 
 ## 8. 화면 규칙
 
