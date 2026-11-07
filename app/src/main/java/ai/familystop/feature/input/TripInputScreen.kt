@@ -115,7 +115,8 @@ fun TripInputScreen(
                 }
             }
 
-            val manual = d.manualSocText.toIntOrNull()
+            // 범위 밖 값은 상태로 표시하지 않는다
+            val manual = d.manualSocText.toIntOrNull()?.takeIf { it in 0..100 }
             if (autoSocPercent == null) {
                 Text("배터리 잔량을 차량에서 받지 못했어요. 직접 입력하면 '직접 입력(자동 아님)'으로 표시돼요.")
                 InputField(
