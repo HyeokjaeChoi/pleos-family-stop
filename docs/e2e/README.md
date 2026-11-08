@@ -39,10 +39,10 @@ adb shell am start -n ai.familystop.app/ai.familystop.MainActivity
 
 ## 후속 측정 (2026-11-08, 에뮬레이터 `Pleos_Connect_v2_1_0`)
 
-1. **2초 안정화**: `DriveScreen`에 `FamilyStopMove` 로그(DEBUG 활성 시)를 넣고 Virtual Console REST로 기어를 직접 주입(하트비트 유지, `vconsole.sh`의 2초 대기 없이). 신호 PARKED → `confirmed PARKED`: 2.247 s, 2.326 s, 2.435 s(첫 실행). `tick`이 250 ms 주기라 2.0~2.25 s가 이론값이고 Compose 지터가 더해진다. P(20:45:38.122) 직후 0.55 s 뒤 D가 오면 확정 안 됨, 다시 P(38.677→39.225) 뒤 2.33 s에 확정. D는 신호 후 33~57 ms에 즉시 확정(ADR-0004).
+1. **2초 안정화**: `DriveScreen`에 임시 `FamilyStopMove` 로그(신호 수신·확정 시각, 이 저장소에는 커밋하지 않음)를 넣고 Virtual Console REST로 기어를 직접 주입(하트비트 유지, `vconsole.sh`의 2초 대기 없이). 신호 PARKED → `confirmed PARKED`: 2.247 s, 2.326 s, 2.435 s(첫 실행). `tick`이 250 ms 주기라 2.0~2.25 s가 이론값이고 Compose 지터가 더해진다. P(20:45:38.122) 직후 0.55 s 뒤 D가 오면 확정 안 됨, 다시 P(38.677→39.225) 뒤 2.33 s에 확정. D는 신호 후 33~57 ms에 즉시 확정(ADR-0004).
 2. **권한 거부**: 앱은 사용자 10(`am get-current-user`)으로 실행되는데 `adb shell pm revoke`는 기본 사용자 0에 적용돼 지난 E2E에서 효과가 없었다. `pm revoke --user 10` + `pm set-permission-flags --user 10 … user-fixed`로 거부하면 제출 즉시 「위치 권한이 꺼져 있어요 / 권한 다시 요청 / 직접 입력」(D1), 「직접 입력」은 입력 화면으로 복귀(D2). 위치 끄기(`cmd location set-location-enabled false --user 10`)는 「현재 위치을(를) 받지 못했어요 / 다시 연결 / 직접 입력」(D3).
 3. **TTS**: 지난 보고서의 `UNAUTHENTICATED` 귀속은 틀렸다. 이번에는 엔진 연결 전 단계에서 실패한다(`FamilyStopTts: init status=-1 engine=null`). 이미지의 유일한 `TTS_SERVICE`(`ai.pleos.playground.caas/.service.speech.SpeechService`)의 intent-filter에 `CATEGORY_DEFAULT`가 없어 `cmd package query-services -a android.intent.action.TTS_SERVICE -c android.intent.category.DEFAULT`가 "No services found"를 돌려준다. `TextToSpeech`는 엔진 조회를 `MATCH_DEFAULT_ONLY`로 하므로 기본 엔진이 없다. `TextToSpeech(ctx, listener, "ai.pleos.playground.caas")`로 엔진을 명시해도 같은 `status=-1`. `<queries>`는 이미 선언돼 있다. 위 필터 조회는 확인했지만 `TextToSpeech` 내부가 `MATCH_DEFAULT_ONLY`로 조회한다는 점은 AOSP 소스 기준 추정이며 이 저장소에서 검증하지 않았고, 엔진 명시도 같은 `status=-1`이라 **이미지 구성이 원인이라는 결론은 가설**이다. 앱 쪽 우회는 찾지 못했다. Pleos TTS API(ADR-0002 교체 경로)가 열리면 `VoiceOutput` 구현만 바꾸고, 낭독은 실기기에서 확인한다.
 
-진단 로그(`FamilyStopMove`, `FamilyStopTts`)는 기본 꺼짐이다: `adb shell setprop log.tag.<TAG> DEBUG`.
+TTS 진단 로그 `FamilyStopTts`는 기본 꺼짐이다: `adb shell setprop log.tag.FamilyStopTts DEBUG`.
 
 사이드 발견: 폴백 카드 제목 `${item}을(를)`이 "현재 위치을(를)"로 표시된다(조사 처리 필요).

@@ -2,7 +2,6 @@ package ai.familystop.feature.drive
 
 import ai.familystop.core.NaviGateway
 import ai.familystop.core.StopPlace
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -65,9 +64,6 @@ private val DriveBody =
 
 private fun nowMs() = System.nanoTime() / 1_000_000
 
-// Off by default; E2E timing: adb shell setprop log.tag.FamilyStopMove DEBUG
-private const val TAG = "FamilyStopMove"
-
 /**
  * Driving/unknown: at most 2 big cards, tap = `addWaypoint` + 10 s undo. Parked: [parkedContent]
  * (detail screens belong to other issues). Scrolling, expanding and comparing are absent while
@@ -92,15 +88,8 @@ fun DriveScreen(
     var now by remember { mutableLongStateOf(nowMs()) }
 
     DisposableEffect(movement) {
-        movement.start { state, reason ->
-            if (Log.isLoggable(TAG, Log.DEBUG)) Log.d(TAG, "signal $state ($reason)")
-            reading = tracker.onSignal(state, reason, nowMs())
-        }
+        movement.start { state, reason -> reading = tracker.onSignal(state, reason, nowMs()) }
         onDispose { movement.stop() }
-    }
-    // Logged for E2E timing of the 2 s hold (docs/e2e).
-    LaunchedEffect(reading.state) {
-        if (Log.isLoggable(TAG, Log.DEBUG)) Log.d(TAG, "confirmed ${reading.state}")
     }
     LaunchedEffect(picker) {
         while (true) {
