@@ -26,3 +26,8 @@ interface VehicleEnergySource {
     fun start(onSoc: (Int?) -> Unit)
     fun stop()
 }
+
+/** 시설 제공처. Pleos SDK에 POI 검색이 없어(ADR-0001) 외부 제공처/내장 JSON이 구현한다. */
+fun interface FacilitySource {
+    suspend fun facilities(): List<Facility>
+}
