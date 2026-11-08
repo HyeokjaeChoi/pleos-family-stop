@@ -10,4 +10,9 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "pleos-family-stop"
-include(":app")
+include(
+    ":app",
+    ":core:model", ":core:domain", ":core:testing", ":core:designsystem",
+    ":feature:drive", ":feature:input",
+    ":impl:pleos", ":impl:platform",
+)
