@@ -1,0 +1,7 @@
+[
+  {"id": "demo-a", "name": "가상 가족식당 A", "lat": 37.30, "lon": 127.05, "provides": ["MEAL", "RESTROOM"], "source": "VIRTUAL", "detourKm": 1.2, "extraMinutes": 4},
+  {"id": "demo-b", "name": "가상 키즈카페 B", "lat": 37.28, "lon": 127.02, "provides": ["KIDS_REST", "RESTROOM"], "source": "VIRTUAL", "detourKm": 2.5, "extraMinutes": 7},
+  {"id": "demo-c", "name": "가상 휴게소 C", "lat": 37.25, "lon": 127.08, "provides": ["MEAL", "RESTROOM", "KIDS_REST"], "source": "VIRTUAL", "detourKm": 0.3, "extraMinutes": 2},
+  {"id": "demo-d", "name": "가상 화장실 D", "lat": 37.33, "lon": 127.10, "provides": ["RESTROOM"], "source": "VIRTUAL", "detourKm": 0.5, "extraMinutes": 1},
+  {"id": "demo-e", "name": "가상 분식점 E", "lat": 37.20, "lon": 127.00, "provides": ["MEAL"], "source": "VIRTUAL", "detourKm": 3.0, "extraMinutes": 9}
+]
