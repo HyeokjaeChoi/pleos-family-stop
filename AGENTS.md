@@ -17,3 +17,7 @@ Default five labels, unchanged. See `docs/agents/triage-labels.md`.
 ### Domain docs
 
 Single-context (root `GLOSSARY.md` + `docs/adr/`). See `docs/agents/domain.md`.
+
+### Emulator / E2E
+
+Pleos Connect AAOS 에뮬레이터(Apple Silicon) 셋업·E2E 절차와 함정: `docs/agents/emulator.md`.
