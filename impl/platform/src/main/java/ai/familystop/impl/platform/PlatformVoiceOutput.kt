@@ -2,6 +2,8 @@ package ai.familystop.impl.platform
 
 import ai.familystop.core.VoiceOutput
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import java.util.Locale
@@ -14,60 +16,84 @@ internal fun ttsInitError(status: Int, langResult: Int): String? = when {
     else -> null
 }
 
-/** [VoiceOutput] on Android TextToSpeech; swapped for Pleos TTS ON_DEVICE when it opens (ADR-0002). */
+/**
+ * [VoiceOutput] on Android TextToSpeech; swapped for Pleos TTS ON_DEVICE when it opens (ADR-0002).
+ * Call from the main thread; every `onError` is delivered on the main thread.
+ */
 class PlatformVoiceOutput(context: Context) : VoiceOutput {
     private val appContext = context.applicationContext
-    private val lock = Any()
+    private val main = Handler(Looper.getMainLooper())
     private var tts: TextToSpeech? = null
     private var ready = false
-    private var initError: String? = null
-    private var pending: Pair<String, (String) -> Unit>? = null
+    private var pending: String? = null
     private var errorCb: (String) -> Unit = {}
 
     override fun speak(text: String, onError: (String) -> Unit) {
-        val failure: String?
-        synchronized(lock) {
-            errorCb = onError
+        errorCb = onError
+        if (ready) {
+            say(text)
+        } else {
+            pending = text
             if (tts == null) init()
-            failure = initError
-            if (failure == null && !ready) {
-                pending = text to onError
-                return
-            }
         }
-        if (failure != null) onError(failure) else say(text)
     }
 
     override fun stop() {
-        synchronized(lock) { pending = null }
+        pending = null
         tts?.stop()
     }
 
-    private fun init() {
-        tts = TextToSpeech(appContext) { status ->
-            val t = tts
-            val error = ttsInitError(status, t?.setLanguage(Locale.KOREAN) ?: TextToSpeech.ERROR)
-            val queued: Pair<String, (String) -> Unit>?
-            synchronized(lock) {
-                if (error == null) ready = true else initError = error
-                queued = pending
-                pending = null
-            }
-            if (queued != null) if (error == null) say(queued.first) else queued.second(error)
-        }.also {
-            it.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                override fun onStart(utteranceId: String?) = Unit
-                override fun onDone(utteranceId: String?) = Unit
+    /** Releases the engine; the next [speak] starts a fresh one. */
+    fun close() {
+        pending = null
+        ready = false
+        tts?.shutdown()
+        tts = null
+    }
 
-                @Deprecated("Deprecated in Java")
-                override fun onError(utteranceId: String?) = errorCb("음성 안내를 재생하지 못했습니다")
-            })
+    private fun init() {
+        lateinit var engine: TextToSpeech
+        engine = TextToSpeech(appContext) { status ->
+            // Posted so `engine` is assigned even if init fails synchronously.
+            main.post { onInit(engine, status) }
         }
+        tts = engine
+        engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) = Unit
+            override fun onDone(utteranceId: String?) = Unit
+
+            @Deprecated("Deprecated in Java")
+            override fun onError(utteranceId: String?) = fail("음성 안내를 재생하지 못했습니다")
+        })
+    }
+
+    private fun onInit(engine: TextToSpeech, status: Int) {
+        if (engine !== tts) return
+        val lang = if (status ==
+            TextToSpeech.SUCCESS
+        ) {
+            engine.setLanguage(Locale.KOREAN)
+        } else {
+            TextToSpeech.ERROR
+        }
+        val error = ttsInitError(status, lang)
+        if (error != null) {
+            close() // so a later speak() retries (e.g. voice data installed meanwhile)
+            fail(error)
+            return
+        }
+        ready = true
+        pending?.let { say(it) }
+        pending = null
     }
 
     private fun say(text: String) {
         if (tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "stop-notice") == TextToSpeech.ERROR) {
-            errorCb("음성 안내를 재생하지 못했습니다")
+            fail("음성 안내를 재생하지 못했습니다")
         }
+    }
+
+    private fun fail(message: String) {
+        main.post { errorCb(message) }
     }
 }
