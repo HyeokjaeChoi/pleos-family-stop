@@ -56,6 +56,14 @@ class RecommendController(
     private var job: Job? = null
     private var seq = 0
 
+    /** 이전 결과를 버린다(새 여행 시작·위치 재확인). 진행 중 요청의 늦은 응답도 무효. */
+    @Synchronized
+    fun clear() {
+        job?.cancel()
+        seq++
+        _state.value = RecommendState.Idle
+    }
+
     @Synchronized
     fun request(req: StopRequest) {
         job?.cancel()

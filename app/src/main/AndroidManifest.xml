@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH" />
     <uses-permission android:name="pleos.car.permission.CAR_ENERGY" />
+    <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
 
     <!-- Android 11+ package visibility: lets TextToSpeech find installed engines. -->
     <queries>
@@ -16,6 +17,7 @@
     </queries>
 
     <application
+        android:name=".FamilyStopApp"
         android:label="Family Stop"
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
         <!-- Single activity. Driving screens must stay usable while moving (ADR-0003),

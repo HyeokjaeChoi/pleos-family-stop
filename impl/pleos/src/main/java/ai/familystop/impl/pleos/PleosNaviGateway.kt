@@ -184,6 +184,8 @@ class PleosNaviGateway(context: Context) : NaviGateway {
     }
 
     private companion object {
-        const val REQUEST_TIMEOUT_MS = 5_000L
+        // Measured emulator re-route after addWaypoint: 5~12 s before onWaypointChanged (#14 E2E; 5 s timed out a
+        // successful add). Trade-off: a genuinely lost reply holds the picker/handoff up to 15 s. Do not go below 12 s.
+        const val REQUEST_TIMEOUT_MS = 15_000L
     }
 }

@@ -19,12 +19,15 @@ android {
 
 dependencies {
     implementation(project(":core:domain"))
-    implementation(project(":core:testing")) // fakes = AppGraph defaults until #14
     implementation(project(":core:designsystem"))
     implementation(project(":feature:drive"))
     implementation(project(":feature:input"))
     implementation(project(":feature:fallback"))
     implementation(project(":feature:metrics"))
+    implementation(project(":feature:activity"))
+    implementation(project(":feature:handoff"))
+    implementation(project(":feature:recommend"))
+    implementation(project(":feature:voice"))
     implementation(project(":impl:pleos"))
     implementation(project(":impl:platform"))
     implementation(platform("androidx.compose:compose-bom:2025.10.00"))
