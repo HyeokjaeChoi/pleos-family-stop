@@ -16,5 +16,6 @@ include(
     ":feature:activity", ":feature:drive", ":feature:input", ":feature:recommend",
     ":feature:fallback",
     ":feature:metrics",
+    ":feature:voice",
     ":impl:pleos", ":impl:platform",
 )
