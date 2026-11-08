@@ -7,6 +7,7 @@ import ai.familystop.core.StopNeed
 import ai.familystop.core.StopRequest
 import ai.familystop.core.designsystem.App
 import ai.familystop.core.designsystem.AppButton
+import ai.familystop.core.designsystem.Status
 import ai.familystop.feature.activity.ActivityCandidate
 import ai.familystop.feature.activity.ActivityKind
 import ai.familystop.feature.activity.ChargingActivityScreen
@@ -56,7 +57,9 @@ private fun StopCandidate.driveCard() = DriveCandidate(
     place,
     "$reason\n+${extraMinutes}분 · ${"%.1f".format(detourKm)}km · ${
         if (source == DataSource.VIRTUAL) "가상 데이터" else "실제 데이터"
-    }"
+    }",
+    if (missed.isEmpty()) Status.Ok else Status.Warn,
+    if (missed.isEmpty()) "필요 조건 충족" else "일부 미충족"
 )
 
 @Composable
