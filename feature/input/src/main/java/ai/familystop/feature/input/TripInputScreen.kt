@@ -19,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import java.time.LocalDateTime
 
 private val Gap @Composable get() = Arrangement.spacedBy(App.space.lg) // 터치 대상 간격 24dp 이상
@@ -83,9 +84,8 @@ fun TripInputScreen(
         Text("충전", style = App.type.stopTitle)
         FlowRow(horizontalArrangement = Gap, verticalArrangement = Gap) {
             ChargeNeed.entries.forEach { c ->
-                AppToggleChip(d.chargeNeed == c, c.label) {
-                    d =
-                        d.copy(chargeNeed = c)
+                AppToggleChip(d.chargeNeed == c, c.label, role = Role.RadioButton) {
+                    d = d.copy(chargeNeed = c)
                 }
             }
         }
