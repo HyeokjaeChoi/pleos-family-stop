@@ -21,3 +21,7 @@ Single-context (root `GLOSSARY.md` + `docs/adr/`). See `docs/agents/domain.md`.
 ### Emulator / E2E
 
 Pleos Connect AAOS 에뮬레이터(Apple Silicon) 셋업·E2E 절차와 함정: `docs/agents/emulator.md`.
+
+### Figma gate
+
+UI 화면 구현·수정(문구 수정 포함)은 Figma 선행 필수, 이슈에 `figma-done` 라벨 전에는 UI 파일 편집 불가 (hook + CI `design-gate`). 상세: `docs/agents/figma-gate.md`.
