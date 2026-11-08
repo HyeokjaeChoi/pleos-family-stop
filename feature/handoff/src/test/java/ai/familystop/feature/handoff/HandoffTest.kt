@@ -50,6 +50,7 @@ class HandoffTest {
         val h = ctl(navi)
         h.pick(a)
         navi.adds[0].second(Result.failure(IllegalStateException("x")))
+        navi.removes[0].second(Result.success(Unit)) // 실패한 add의 슬롯 정리
         assertTrue(h.state.value is HandoffState.Failed)
         h.retry()
         assertEquals(HandoffState.Sending(a), h.state.value)
@@ -110,6 +111,7 @@ class HandoffTest {
         h.replace(b)
         navi.removes[1].second(Result.success(Unit))
         navi.adds[3].second(Result.failure(IllegalStateException("x")))
+        navi.removes[2].second(Result.success(Unit))
         assertTrue((h.state.value as HandoffState.Failed).reason.contains("지워졌"))
     }
 
@@ -122,5 +124,31 @@ class HandoffTest {
         h.undo()
         navi.removes[0].second(Result.failure(IllegalStateException("x")))
         assertEquals(HandoffState.Done(a, undoable = true, undoFailed = true), h.state.value)
+    }
+
+    @Test
+    fun failedAddCleansUpSlotBeforeReportingSoRetryWorks() {
+        val navi = Manual()
+        val h = ctl(navi)
+        h.pick(a)
+        navi.adds[0].second(Result.failure(IllegalStateException("x")))
+        assertEquals(HandoffState.Sending(a), h.state.value) // 정리 remove 응답 전
+        assertEquals(listOf(a), navi.removes.map { it.first })
+        navi.removes[0].second(Result.success(Unit))
+        assertTrue(h.state.value is HandoffState.Failed)
+    }
+
+    @Test
+    fun picksAreIgnoredWhileARequestIsStillPending() {
+        val navi = Manual()
+        val h = ctl(navi)
+        h.pick(a)
+        h.backToCompare()
+        h.pick(a) // 첫 add 응답 전: 중복 add를 보내지 않는다
+        assertEquals(1, navi.adds.size)
+        navi.adds[0].second(Result.success(Unit))
+        h.pick(a) // 이미 들어감: 새 요청·새 취소 유예 없음
+        assertEquals(1, navi.adds.size)
+        assertEquals(HandoffState.Done(a, undoable = false), h.state.value)
     }
 }

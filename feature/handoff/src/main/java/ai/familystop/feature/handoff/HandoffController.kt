@@ -46,36 +46,56 @@ class HandoffController(
     private val held = mutableListOf<StopPlace>()
     private var seq = 0
 
-    /** 같은 장소를 이미 보내는 중이거나 넣은 뒤면 병합(무시), 다른 장소를 보내는 중이면 무시한다. */
+    // 끝나지 않은 게이트웨이 요청 수. 비교 복귀로 화면이 풀려도 0이 될 때까지 새 선택을 받지 않아
+    // 늦은 응답이 새 요청과 엇갈리지 않게 한다(게이트웨이도 요청을 한 번에 하나씩 처리한다).
+    private var busy = 0
+
+    private fun settled(block: (Result<Unit>) -> Unit): (Result<Unit>) -> Unit {
+        busy++
+        return { r ->
+            busy--
+            block(r)
+        }
+    }
+
+    /** 같은 장소가 이미 들어가 있거나 처리 중이면 병합(무시)한다. */
     fun pick(place: StopPlace) {
+        if (busy > 0) return
         when (val s = _state.value) {
             is HandoffState.Sending, is HandoffState.NeedReplace -> return
             is HandoffState.Done -> if (s.place == place) return
             else -> Unit
         }
-        if (place in held) return done(place)
-        if (held.size >= MAX_WAYPOINTS) {
+        if (place in held) { // 이미 들어가 있음: 새 요청도, 새 취소 유예도 없다
+            seq++
+            _state.value = HandoffState.Done(place, undoable = false)
+        } else if (held.size >= MAX_WAYPOINTS) {
             _state.value = HandoffState.NeedReplace(place, held.toList())
         } else {
-            add(place)
+            val mine = ++seq
+            _state.value = HandoffState.Sending(place)
+            addAs(mine, place, "길 안내에 전달하지 못했어요.")
         }
     }
 
     /** [NeedReplace]에서 [target]을 빼고 대기 중이던 장소를 넣는다. */
     fun replace(target: StopPlace) {
         val s = _state.value as? HandoffState.NeedReplace ?: return
-        if (target !in s.options) return
+        if (busy > 0 || target !in s.options) return
         val mine = ++seq
         _state.value = HandoffState.Sending(s.place)
-        navi.removeWaypoint(target) { r ->
-            r.onSuccess { held.remove(target) }
-            if (mine != seq) return@removeWaypoint // 그사이 취소됨: 새 경유지는 넣지 않는다
-            if (r.isSuccess) {
-                addAs(mine, s.place, "기존 경유지는 이미 지워졌어요. 다시 시도해 주세요.")
-            } else {
-                fail(mine, s.place, "기존 경유지를 바꾸지 못했어요.")
+        navi.removeWaypoint(
+            target,
+            settled { r ->
+                r.onSuccess { held.remove(target) }
+                when {
+                    mine != seq -> Unit // 그사이 취소됨: 새 경유지는 넣지 않는다
+                    r.isSuccess ->
+                        addAs(mine, s.place, "기존 경유지는 이미 지워졌어요. 다시 시도해 주세요.")
+                    else -> fail(mine, s.place, "기존 경유지를 바꾸지 못했어요.")
+                }
             }
-        }
+        )
     }
 
     /** [Failed]에서 같은 장소를 다시 보낸다. */
@@ -95,31 +115,34 @@ class HandoffController(
     fun undo() {
         val s = _state.value as? HandoffState.Done ?: return
         if (!s.undoable) return
-        navi.removeWaypoint(s.place) { r ->
-            r.onSuccess { held.remove(s.place) }
-            val cur = _state.value
-            if (cur !is HandoffState.Done || cur.place != s.place) return@removeWaypoint
-            _state.value = if (r.isSuccess) HandoffState.Idle else cur.copy(undoFailed = true)
-        }
-    }
-
-    private fun add(place: StopPlace) {
-        val mine = ++seq
-        _state.value = HandoffState.Sending(place)
-        addAs(mine, place)
-    }
-
-    private fun addAs(mine: Int, place: StopPlace, failReason: String = "길 안내에 전달하지 못했어요.") {
-        navi.addWaypoint(place) { r ->
-            // 늦은 성공이어도 경유지는 이미 들어갔으니 기록은 남긴다.
-            r.onSuccess { if (place !in held) held += place }
-            if (mine != seq) return@addWaypoint
-            if (r.isSuccess) {
-                done(place)
-            } else {
-                fail(mine, place, failReason)
+        navi.removeWaypoint(
+            s.place,
+            settled { r ->
+                r.onSuccess { held.remove(s.place) }
+                val cur = _state.value
+                if (cur is HandoffState.Done && cur.place == s.place) {
+                    _state.value =
+                        if (r.isSuccess) HandoffState.Idle else cur.copy(undoFailed = true)
+                }
             }
-        }
+        )
+    }
+
+    private fun addAs(mine: Int, place: StopPlace, failReason: String) {
+        navi.addWaypoint(
+            place,
+            settled { r ->
+                if (r.isSuccess) {
+                    // 늦은 성공이어도 경유지는 이미 들어갔으니 기록은 남긴다.
+                    if (place !in held) held += place
+                    if (mine == seq) done(place)
+                } else {
+                    // 실패·타임아웃한 add는 게이트웨이에 슬롯이 남을 수 있어 재시도가 중복으로 거절된다.
+                    // 정리용 remove를 보낸 뒤에 실패를 알린다(슬롯이 없으면 즉시 성공).
+                    navi.removeWaypoint(place, settled { fail(mine, place, failReason) })
+                }
+            }
+        )
     }
 
     private fun done(place: StopPlace) {
