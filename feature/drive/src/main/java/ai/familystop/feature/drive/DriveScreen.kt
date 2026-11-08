@@ -2,16 +2,16 @@ package ai.familystop.feature.drive
 
 import ai.familystop.core.NaviGateway
 import ai.familystop.core.StopPlace
+import ai.familystop.core.designsystem.App
+import ai.familystop.core.designsystem.AppButton
+import ai.familystop.core.designsystem.AppCard
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -28,12 +28,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
 /** A stop candidate shown as one large card; [summary] is 1~3 short lines (DESIGN.md 8절). */
@@ -45,22 +39,6 @@ class InputDraft(initial: String = "") {
 }
 
 private val DraftSaver = Saver<InputDraft, String>(save = { it.text }, restore = { InputDraft(it) })
-
-private class Palette(night: Boolean) { // DESIGN.md 2절
-    val bgBase = if (night) Color(0xFF080A0C) else Color(0xFFDDE3E8)
-    val surface = if (night) Color(0xFF1B2126) else Color(0xFFFFFFFF)
-    val raised = if (night) Color(0xFF272E34) else Color(0xFFEEF1F4)
-    val text = if (night) Color(0xFFF2F5F7) else Color(0xFF11181D)
-    val textSub = if (night) Color(0xFFB4BEC6) else Color(0xFF46535C)
-    val accent = if (night) Color(0xFF5CB8FF) else Color(0xFF0A62BA)
-    val onAccent = if (night) Color(0xFF06121C) else Color(0xFFFFFFFF)
-    val danger = if (night) Color(0xFFFF6B6B) else Color(0xFFB71C1C)
-}
-
-private val DriveTitle =
-    TextStyle(fontSize = 40.sp, lineHeight = 52.sp, fontWeight = FontWeight.Bold)
-private val DriveBody =
-    TextStyle(fontSize = 32.sp, lineHeight = 44.sp, fontWeight = FontWeight.Medium)
 
 private fun nowMs() = System.nanoTime() / 1_000_000
 
@@ -77,8 +55,6 @@ fun DriveScreen(
     modifier: Modifier = Modifier,
     parkedContent: @Composable (InputDraft) -> Unit = {}
 ) {
-    val night = isSystemInDarkTheme()
-    val p = remember(night) { Palette(night) }
     val draft = rememberSaveable(saver = DraftSaver) { InputDraft() }
     val tracker = remember { MovementTracker() }
     var reading by remember { mutableStateOf(tracker.reading) }
@@ -100,33 +76,51 @@ fun DriveScreen(
         }
     }
 
-    Box(modifier.fillMaxSize().background(p.bgBase).padding(24.dp)) {
+    Box(modifier.fillMaxSize().background(App.colors.bgBase).padding(App.space.lg)) {
         if (!reading.restricted) {
             parkedContent(draft)
             return@Box
         }
-        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(App.space.lg)) {
             if (reading.state == MovementState.UNKNOWN) {
-                Text("이동 상태 미확인 · 주행 중 제한 적용", style = DriveBody, color = p.textSub)
+                Text(
+                    "이동 상태 미확인 · 주행 중 제한 적용",
+                    style = App.type.driveBody,
+                    color = App.colors.textSecondary
+                )
             }
             if (candidates.isEmpty()) {
-                Text("정차 후 입력하면 추천 후보가 여기에 나타나요", style = DriveBody, color = p.textSub)
+                Text(
+                    "정차 후 입력하면 추천 후보가 여기에 나타나요",
+                    style = App.type.driveBody,
+                    color = App.colors.textSecondary
+                )
             }
             val locked = picker.state !is PickState.Idle && picker.state !is PickState.Failed
-            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(App.space.lg)) {
                 candidates.take(2).forEach { c ->
-                    CandidateCard(c, p, !locked, Modifier.weight(1f).fillMaxSize()) {
+                    CandidateCard(c, !locked, Modifier.weight(1f).fillMaxSize()) {
                         picker.pick(c.place)
                     }
                 }
             }
             when (val s = picker.state) {
-                is PickState.Undoable -> UndoBar(s, now, p) { picker.undo() }
-                is PickState.Failed -> Text(s.message, style = DriveBody, color = p.danger)
+                is PickState.Undoable -> UndoBar(s, now) { picker.undo() }
+                is PickState.Failed -> Text(
+                    s.message,
+                    style = App.type.driveBody,
+                    color = App.colors.statusDanger
+                )
                 is PickState.Done -> Text(
                     s.note ?: "${s.place.name} 경유지 추가됨",
-                    style = DriveBody,
-                    color = if (s.note != null) p.danger else p.textSub
+                    style = App.type.driveBody,
+                    color = if (s.note !=
+                        null
+                    ) {
+                        App.colors.statusDanger
+                    } else {
+                        App.colors.textSecondary
+                    }
                 )
                 else -> Unit
             }
@@ -137,66 +131,45 @@ fun DriveScreen(
 @Composable
 private fun CandidateCard(
     c: DriveCandidate,
-    p: Palette,
     enabled: Boolean,
     modifier: Modifier,
     onPick: () -> Unit
 ) {
-    Column(
-        modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(p.surface)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onPick)
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(c.place.name, style = DriveTitle, color = p.text, maxLines = 2)
+    AppCard(modifier, onClick = onPick, enabled = enabled) {
+        Text(
+            c.place.name,
+            style = App.type.driveTitle,
+            color = App.colors.textPrimary,
+            maxLines = 2
+        )
         Text(
             c.summary,
-            style = DriveBody,
-            color = p.textSub,
+            style = App.type.driveBody,
+            color = App.colors.textSecondary,
             maxLines = 3,
             modifier = Modifier.weight(1f)
         )
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = 76.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(if (enabled) p.accent else p.raised),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("경유지로 추가", style = DriveBody, color = if (enabled) p.onAccent else p.textSub)
-        }
+        AppButton("경유지로 추가", null, Modifier.fillMaxWidth(), enabled = enabled, large = true)
     }
 }
 
 @Composable
-private fun UndoBar(s: PickState.Undoable, now: Long, p: Palette, onUndo: () -> Unit) {
+private fun UndoBar(s: PickState.Undoable, now: Long, onUndo: () -> Unit) {
     val sec = ((s.expiresAtMs - now + 999) / 1000).coerceAtLeast(0)
     Row(
-        Modifier.fillMaxWidth().clip(
-            RoundedCornerShape(16.dp)
-        ).background(p.surface).padding(horizontal = 24.dp),
+        Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(App.radius.md))
+            .background(App.colors.bgSurface)
+            .padding(horizontal = App.space.lg),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(24.dp)
+        horizontalArrangement = Arrangement.spacedBy(App.space.lg)
     ) {
         Text(
             "${s.place.name} 경유지로 추가했습니다",
-            style = DriveBody,
-            color = p.text,
+            style = App.type.driveBody,
+            color = App.colors.textPrimary,
             modifier = Modifier.weight(1f)
         )
-        Box(
-            Modifier
-                .heightIn(min = 76.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(p.accent)
-                .clickable(role = Role.Button, onClick = onUndo)
-                .padding(horizontal = 32.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("취소 (${sec}초)", style = DriveBody, color = p.onAccent)
-        }
+        AppButton("취소 (${sec}초)", onUndo, large = true)
     }
 }
