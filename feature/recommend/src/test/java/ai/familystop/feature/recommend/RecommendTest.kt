@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -97,6 +98,19 @@ class RecommendTest {
         )
         c.request(StopRequest(here, all))
         withTimeout(2_000) { c.state.first { it is RecommendState.Failed } }
+        Unit
+    }
+
+    @Test
+    fun sourceFailureDoesNotKillCallerScope() = runBlocking {
+        val scope = CoroutineScope(Job()) // 일반 Job: 자식 실패가 전파되면 scope가 죽는다
+        var fail = true
+        val c = RecommendController(scope, { if (fail) error("boom") else demo })
+        c.request(StopRequest(here, all))
+        withTimeout(2_000) { c.state.first { it is RecommendState.Failed } }
+        fail = false
+        c.request(StopRequest(here, all))
+        withTimeout(2_000) { c.state.first { it is RecommendState.Success } }
         Unit
     }
 }

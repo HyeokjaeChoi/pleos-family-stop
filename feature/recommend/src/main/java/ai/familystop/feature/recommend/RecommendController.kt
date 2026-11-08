@@ -6,12 +6,19 @@ import ai.familystop.core.StopRequest
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
+
+/** 응답 목표 3s(F-QTZQSN)는 측정 기준이라 강제하지 않는다. 초과 시 타임아웃 [FETCH_TIMEOUT_MS]에서 Failed. */
+const val RESPONSE_TARGET_MS = 3_000L
+
+/** 제공처 응답 타임아웃 5s. ponytail: 잠정값(ADR-0001), 프로토타입 측정 후 확정. */
+const val FETCH_TIMEOUT_MS = 5_000L
 
 sealed interface RecommendState {
     data object Idle : RecommendState
@@ -38,12 +45,14 @@ fun RecommendState.driveCards(): List<StopCandidate> =
 class RecommendController(
     private val scope: CoroutineScope,
     private val source: FacilitySource,
-    // ponytail: 5s 타임아웃·3s 응답 목표는 잠정값(ADR-0001). 3s는 측정 목표라 강제하지 않고 측정 후 확정.
-    private val timeoutMs: Long = 5_000
+    private val timeoutMs: Long = FETCH_TIMEOUT_MS,
+    private val onError: (Throwable) -> Unit = {}
 ) {
     private val _state = MutableStateFlow<RecommendState>(RecommendState.Idle)
     val state: StateFlow<RecommendState> = _state
 
+    // fetch 실패가 호출자 scope를 취소하지 않도록 별도 SupervisorJob 아래에서 실행한다.
+    private val fetchScope = CoroutineScope(scope.coroutineContext + SupervisorJob())
     private var job: Job? = null
     private var seq = 0
 
@@ -55,7 +64,7 @@ class RecommendController(
         job = scope.launch {
             val result = try {
                 // 취소를 무시하는 제공처여도 타임아웃으로 상태가 풀리도록 fetch를 별도 async로 둔다.
-                val fetch = scope.async { source.facilities() }
+                val fetch = fetchScope.async { source.facilities() }
                 val facilities = try {
                     withTimeout(timeoutMs) { fetch.await() }
                 } finally {
@@ -67,6 +76,7 @@ class RecommendController(
                 if (e !is TimeoutCancellationException) throw e
                 RecommendState.Failed("시설 정보를 받지 못했어요. 다시 시도해 주세요.")
             } catch (e: Exception) {
+                onError(e)
                 RecommendState.Failed("시설 정보를 불러오지 못했어요. 다시 시도해 주세요.", e)
             }
             publish(mine, result)
