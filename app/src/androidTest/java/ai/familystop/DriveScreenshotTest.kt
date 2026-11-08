@@ -13,10 +13,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.platform.app.InstrumentationRegistry
@@ -76,6 +78,7 @@ class DriveScreenshotTest {
         night: Boolean,
         mode: Navi,
         pick: Boolean,
+        expect: String,
         list: List<DriveCandidate> = cards
     ) {
         rule.setContent {
@@ -89,6 +92,7 @@ class DriveScreenshotTest {
             rule.onAllNodesWithText("경유지로 추가")[0].performClick()
         }
         rule.waitForIdle()
+        rule.onNodeWithText(expect, substring = true).assertIsDisplayed()
         rule.mainClock.advanceTimeBy(1_000) // let the press ripple fade before capturing
         val bmp = rule.onNodeWithTag("shot").captureToImage().asAndroidBitmap()
         val dir = File(InstrumentationRegistry.getInstrumentation().targetContext.filesDir, "shots")
@@ -99,17 +103,18 @@ class DriveScreenshotTest {
         assertTrue(File(dir, "$name.png").length() > 0)
     }
 
-    @Test fun idleNight() = shot("drive-idle-night", true, Navi.Success, false)
+    @Test fun idleNight() = shot("drive-idle-night", true, Navi.Success, false, "가상 휴게소 C")
 
-    @Test fun idleDay() = shot("drive-idle-day", false, Navi.Success, false)
+    @Test fun idleDay() = shot("drive-idle-day", false, Navi.Success, false, "가상 휴게소 C")
 
-    @Test fun undoNight() = shot("drive-undo-night", true, Navi.Success, true)
+    @Test fun undoNight() = shot("drive-undo-night", true, Navi.Success, true, "초 안에 취소할 수 있어요")
 
-    @Test fun undoDay() = shot("drive-undo-day", false, Navi.Success, true)
+    @Test fun undoDay() = shot("drive-undo-day", false, Navi.Success, true, "초 안에 취소할 수 있어요")
 
-    @Test fun failedNight() = shot("drive-failed-night", true, Navi.Fail, true)
+    @Test fun failedNight() = shot("drive-failed-night", true, Navi.Fail, true, "추가 실패")
 
-    @Test fun pendingNight() = shot("drive-pending-night", true, Navi.Hang, true)
+    @Test fun pendingNight() = shot("drive-pending-night", true, Navi.Hang, true, "추가하는 중…")
 
-    @Test fun emptyNight() = shot("drive-empty-night", true, Navi.Success, false, emptyList())
+    @Test fun emptyNight() =
+        shot("drive-empty-night", true, Navi.Success, false, "아직 추천 후보가 없어요", emptyList())
 }

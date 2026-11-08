@@ -55,5 +55,4 @@ object AppIcons {
                 "-7.86-7-8.77z"
         )
     }
-    val Help: ImageVector get() = HelpIcon
 }

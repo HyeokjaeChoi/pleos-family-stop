@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -105,6 +106,7 @@ fun DriveScreen(
         }
         Column(Modifier.fillMaxSize()) {
             if (candidates.isEmpty()) {
+                if (reading.state == MovementState.UNKNOWN) UnknownMovementChip()
                 EmptyState(
                     "아직 추천 후보가 없어요",
                     "정차 후 목적지를 입력하면 후보가 여기에 나타나요",
@@ -115,9 +117,7 @@ fun DriveScreen(
                 Spacer(Modifier.weight(1f))
                 Column(verticalArrangement = Arrangement.spacedBy(App.space.xl)) {
                     DriveHeader(sourceLabel)
-                    if (reading.state == MovementState.UNKNOWN) {
-                        StatusChip(Status.Unknown, "이동 상태 미확인 · 주행 중 제한 적용")
-                    }
+                    if (reading.state == MovementState.UNKNOWN) UnknownMovementChip()
                     val locked =
                         picker.state !is PickState.Idle && picker.state !is PickState.Failed
                     val adding = (picker.state as? PickState.Adding)?.place
@@ -142,6 +142,9 @@ fun DriveScreen(
         }
     }
 }
+
+@Composable
+private fun UnknownMovementChip() = StatusChip(Status.Unknown, "이동 상태 미확인 · 주행 중 제한 적용")
 
 @Composable
 private fun DriveHeader(sourceLabel: String?) {
@@ -228,37 +231,35 @@ private fun StatusSlot(state: PickState, now: Long, onUndo: () -> Unit) {
     }
 }
 
+/** Shared raised container of the fixed status slot (UndoBar / failure). */
 @Composable
-private fun StatusBar(status: Status, chip: String, message: String) {
+private fun SlotBar(content: @Composable RowScope.() -> Unit) {
     Row(
         Modifier.fillMaxSize()
             .clip(RoundedCornerShape(App.radius.md))
             .background(App.colors.bgRaised)
             .padding(horizontal = App.space.xl),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(App.space.lg)
-    ) {
-        StatusChip(status, chip)
-        Text(
-            message,
-            style = App.type.driveBody,
-            color = App.colors.textPrimary,
-            modifier = Modifier.weight(1f)
-        )
-    }
+        horizontalArrangement = Arrangement.spacedBy(App.space.lg),
+        content = content
+    )
+}
+
+@Composable
+private fun StatusBar(status: Status, chip: String, message: String) = SlotBar {
+    StatusChip(status, chip)
+    Text(
+        message,
+        style = App.type.driveBody,
+        color = App.colors.textPrimary,
+        modifier = Modifier.weight(1f)
+    )
 }
 
 @Composable
 private fun UndoBar(s: PickState.Undoable, now: Long, onUndo: () -> Unit) {
     val sec = ((s.expiresAtMs - now + 999) / 1000).coerceAtLeast(0)
-    Row(
-        Modifier.fillMaxSize()
-            .clip(RoundedCornerShape(App.radius.md))
-            .background(App.colors.bgRaised)
-            .padding(horizontal = App.space.xl),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(App.space.lg)
-    ) {
+    SlotBar {
         Text(
             "경유지로 추가했어요 · ${s.place.name} · ${sec}초 안에 취소할 수 있어요",
             style = App.type.driveBody.copy(fontFeatureSettings = "tnum"),
