@@ -30,6 +30,7 @@ class Session(private val metrics: MetricsCollector) {
     var picked by mutableStateOf<StopCandidate?>(null)
     var consented by mutableStateOf(false)
     var locateJob: Job? = null
+    var announced: Any? = null // last recommendation read aloud
 
     val charging get() = trip?.chargeNeed == ChargeNeed.YES
 

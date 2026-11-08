@@ -45,7 +45,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -85,14 +84,15 @@ private fun StopCandidate.driveCard() = DriveCandidate(
 @Composable
 fun AppRoot(graph: AppGraph) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val s = graph.session
     val rec by graph.recommend.state.collectAsState()
     var soc by remember { mutableStateOf<Int?>(null) }
     val movement = remember { CarUxMovementSource(context) }
-    val navi = remember(rec) {
+    // Stable instance: DriveScreen keys its PickController (and the 10 s undo) on this object.
+    val navi = remember {
         ShellNavi(graph.navi, graph.guide, s) { place ->
-            (rec as? RecommendState.Success)?.candidates?.firstOrNull { it.place == place }
+            (graph.recommend.state.value as? RecommendState.Success)
+                ?.candidates?.firstOrNull { it.place == place }
         }
     }
 
@@ -101,7 +101,11 @@ fun AppRoot(graph: AppGraph) {
         onDispose { graph.energy.stop() }
     }
     LaunchedEffect(rec) {
-        (rec as? RecommendState.Success)?.let { graph.guide.announce(it.candidates) }
+        // Once per result: Activity recreation must not read the same candidates again.
+        if (s.announced !== rec && rec is RecommendState.Success) {
+            s.announced = rec
+            graph.guide.announce(rec.candidates)
+        }
     }
 
     fun locate() {
@@ -117,7 +121,8 @@ fun AppRoot(graph: AppGraph) {
             s.locating = false
             s.fallback = cause
         }
-        s.locateJob = scope.launch {
+        s.locateJob = graph.scope.launch {
+            // process scope: survives Activity recreation
             delay(FETCH_TIMEOUT_MS)
             fail(FallbackCause.Data(DataFailure("현재 위치", "지금은 현재 위치 기준 추천을 할 수 없어요.")))
         }
