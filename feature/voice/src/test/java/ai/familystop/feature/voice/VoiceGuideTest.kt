@@ -93,4 +93,32 @@ class VoiceGuideTest {
         assertEquals("경유지에 추가했어요. 가.", v.spoken.single())
         assertEquals("경유지 추가됨", g.status)
     }
+
+    @Test
+    fun failedNextKeepsButtonForManualRetry() {
+        val v = RecordingVoice()
+        val g = VoiceGuide(v)
+        g.announce(three)
+        v.fail = true
+        g.next()
+        assertEquals("3번 후보 · 정차 후 확인", g.status)
+        assertTrue(g.hasNext)
+    }
+
+    @Test
+    fun lateErrorOfOlderRequestIsIgnored() {
+        val cbs = mutableListOf<(String) -> Unit>()
+        val v = object : VoiceOutput {
+            override fun speak(text: String, onError: (String) -> Unit) {
+                cbs += onError
+            }
+
+            override fun stop() = Unit
+        }
+        val g = VoiceGuide(v)
+        g.announce(three)
+        g.announceResult(StopPlace("가", 0.0, 0.0), ok = true)
+        cbs[0]("late")
+        assertNull(g.status)
+    }
 }

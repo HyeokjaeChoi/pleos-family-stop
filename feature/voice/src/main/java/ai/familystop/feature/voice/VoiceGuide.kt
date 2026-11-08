@@ -31,8 +31,9 @@ fun resultText(place: StopPlace, ok: Boolean): String =
  * 한 줄 [status]만 남긴다(ADR-0002). 호출은 메인 스레드에서.
  */
 class VoiceGuide(private val voice: VoiceOutput) {
-    private var candidates: List<StopCandidate> = emptyList()
-    private var nextSpoken = false
+    private var candidates by mutableStateOf<List<StopCandidate>>(emptyList())
+    private var nextSpoken by mutableStateOf(false)
+    private var request = 0 // 오래된 요청의 늦은 오류가 최신 상태를 덮지 않게 한다
 
     /** 음성 실패 시 화면에 띄울 한 줄. null = 표시 없음. */
     var status: String? by mutableStateOf(null)
@@ -45,29 +46,41 @@ class VoiceGuide(private val voice: VoiceOutput) {
     fun announce(candidates: List<StopCandidate>) {
         this.candidates = candidates
         nextSpoken = false
-        status = null
         val text = recommendationText(candidates)
-        if (text ==
-            null
-        ) {
+        if (text == null) {
+            request++
+            status = null
             voice.stop()
         } else {
-            say(text, "후보 ${candidates.take(SPOKEN_FIRST).size}개 · 정차 후 확인")
+            say(text, "후보 ${minOf(candidates.size, SPOKEN_FIRST)}개 · 정차 후 확인")
         }
     }
 
+    /** 읽기에 실패하면 버튼을 남겨 사용자가 직접 다시 누를 수 있다(자동 재시도 없음). */
     fun next() {
         if (!hasNext) return
         nextSpoken = true
-        say(nextText(candidates[SPOKEN_FIRST]), "${SPOKEN_FIRST + 1}번 후보 · 정차 후 확인")
+        say(nextText(candidates[SPOKEN_FIRST]), "${SPOKEN_FIRST + 1}번 후보 · 정차 후 확인") {
+            nextSpoken = false
+        }
     }
 
-    fun announceResult(place: StopPlace, ok: Boolean) {
-        status = null
+    fun announceResult(place: StopPlace, ok: Boolean) =
         say(resultText(place, ok), if (ok) "경유지 추가됨" else "경유지 추가 실패 · 정차 후 확인")
+
+    fun stop() {
+        request++
+        voice.stop()
     }
 
-    fun stop() = voice.stop()
-
-    private fun say(text: String, onFail: String) = voice.speak(text) { status = onFail }
+    private fun say(text: String, onFail: String, undo: () -> Unit = {}) {
+        val id = ++request
+        status = null
+        voice.speak(text) {
+            if (id == request) {
+                undo()
+                status = onFail
+            }
+        }
+    }
 }
