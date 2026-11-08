@@ -11,6 +11,7 @@ import ai.familystop.core.designsystem.EmptyState
 import ai.familystop.core.designsystem.Status
 import ai.familystop.core.designsystem.StatusChip
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -233,10 +234,16 @@ private fun StatusSlot(state: PickState, now: Long, onUndo: () -> Unit) {
             contentKey = { it::class },
             transitionSpec = {
                 (
-                    fadeIn(AppMotion.spec(reduce, AppMotion.ENTER_MS)) +
-                        slideInVertically(AppMotion.spec(reduce, AppMotion.ENTER_MS)) { risePx }
-                    ) togetherWith
-                    fadeOut(AppMotion.spec(reduce, AppMotion.EXIT_MS, AppMotion.EaseExit))
+                    (
+                        fadeIn(AppMotion.spec(reduce, AppMotion.ENTER_MS)) +
+                            slideInVertically(AppMotion.spec(reduce, AppMotion.ENTER_MS)) { risePx }
+                        ) togetherWith
+                        fadeOut(AppMotion.spec(reduce, AppMotion.EXIT_MS, AppMotion.EaseExit))
+                    ).using(
+                    SizeTransform(clip = false) { _, _ ->
+                        AppMotion.spec(reduce, AppMotion.ENTER_MS)
+                    }
+                )
             },
             label = "statusSlot"
         ) { st ->

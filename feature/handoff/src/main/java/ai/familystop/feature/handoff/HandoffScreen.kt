@@ -8,6 +8,7 @@ import ai.familystop.core.designsystem.AppMotion
 import ai.familystop.core.designsystem.Status
 import ai.familystop.core.designsystem.StatusChip
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -39,8 +40,14 @@ fun HandoffScreen(
             state,
             contentKey = { it::class },
             transitionSpec = {
-                fadeIn(AppMotion.spec(reduce, AppMotion.FADE_MS)) togetherWith
-                    fadeOut(AppMotion.spec(reduce, AppMotion.FADE_MS))
+                (
+                    fadeIn(AppMotion.spec(reduce, AppMotion.FADE_MS)) togetherWith
+                        fadeOut(AppMotion.spec(reduce, AppMotion.FADE_MS))
+                    ).using(
+                    SizeTransform(clip = false) { _, _ ->
+                        AppMotion.spec(reduce, AppMotion.FADE_MS)
+                    }
+                )
             },
             label = "handoff"
         ) { state ->

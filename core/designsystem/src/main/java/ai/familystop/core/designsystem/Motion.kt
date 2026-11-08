@@ -1,5 +1,8 @@
 package ai.familystop.core.designsystem
 
+import android.database.ContentObserver
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
@@ -10,10 +13,13 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -49,9 +55,21 @@ val LocalReduceMotion = compositionLocalOf { false }
 @Composable
 internal fun rememberSystemReduceMotion(): Boolean {
     val resolver = LocalContext.current.contentResolver
-    return remember(resolver) {
+    fun read() =
         Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+    var reduce by remember(resolver) { mutableStateOf(read()) }
+    // 실행 중 시스템 설정이 바뀌어도 따라간다.
+    DisposableEffect(resolver) {
+        val uri = Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE)
+        val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                reduce = read()
+            }
+        }
+        resolver.registerContentObserver(uri, false, observer)
+        onDispose { resolver.unregisterContentObserver(observer) }
     }
+    return reduce
 }
 
 /** 누름 시 0.97배. graphicsLayer라 레이아웃·터치 대상 크기는 그대로다. */

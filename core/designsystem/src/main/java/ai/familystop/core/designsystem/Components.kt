@@ -1,12 +1,14 @@
 package ai.familystop.core.designsystem
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -84,8 +86,14 @@ fun StatusChip(status: Status, text: String, modifier: Modifier = Modifier) {
         AnimatedContent(
             status to text,
             transitionSpec = {
-                fadeIn(AppMotion.spec(reduce, AppMotion.FADE_MS)) togetherWith
-                    fadeOut(AppMotion.spec(reduce, AppMotion.FADE_MS))
+                (
+                    fadeIn(AppMotion.spec(reduce, AppMotion.FADE_MS)) togetherWith
+                        fadeOut(AppMotion.spec(reduce, AppMotion.FADE_MS))
+                    ).using(
+                    SizeTransform(clip = false) { _, _ ->
+                        AppMotion.spec(reduce, AppMotion.FADE_MS)
+                    }
+                )
             },
             label = "chip"
         ) { (s, label) ->
@@ -130,7 +138,7 @@ fun AppCard(
                 if (onClick != null) {
                     Modifier.clickable(
                         source,
-                        null,
+                        LocalIndication.current,
                         enabled = enabled,
                         role = Role.Button,
                         onClick = onClick
@@ -183,7 +191,7 @@ fun AppButton(
                 if (onClick != null) {
                     Modifier.clickable(
                         source,
-                        null,
+                        LocalIndication.current,
                         enabled = enabled,
                         role = Role.Button,
                         onClick = onClick
