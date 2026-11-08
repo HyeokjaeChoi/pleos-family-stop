@@ -72,13 +72,33 @@ internal val DayColors = AppColors(
 /** DESIGN.md 3절 텍스트 스타일 4개. 공식 최소(주요 32 · 보조 24) 미만은 두지 않는다. */
 class AppType(
     val driveTitle: TextStyle =
-        TextStyle(fontSize = 40.sp, lineHeight = 52.sp, fontWeight = FontWeight.Bold),
+        TextStyle(
+            fontSize = 40.sp,
+            lineHeight = 52.sp,
+            fontWeight = FontWeight.Bold,
+            fontFeatureSettings = "tnum"
+        ),
     val driveBody: TextStyle =
-        TextStyle(fontSize = 32.sp, lineHeight = 44.sp, fontWeight = FontWeight.Medium),
+        TextStyle(
+            fontSize = 32.sp,
+            lineHeight = 44.sp,
+            fontWeight = FontWeight.Medium,
+            fontFeatureSettings = "tnum"
+        ),
     val stopTitle: TextStyle =
-        TextStyle(fontSize = 32.sp, lineHeight = 44.sp, fontWeight = FontWeight.Bold),
+        TextStyle(
+            fontSize = 32.sp,
+            lineHeight = 44.sp,
+            fontWeight = FontWeight.Bold,
+            fontFeatureSettings = "tnum"
+        ),
     val stopBody: TextStyle =
-        TextStyle(fontSize = 24.sp, lineHeight = 34.sp, fontWeight = FontWeight.Normal)
+        TextStyle(
+            fontSize = 24.sp,
+            lineHeight = 34.sp,
+            fontWeight = FontWeight.Normal,
+            fontFeatureSettings = "tnum"
+        )
 )
 
 /** DESIGN.md 4절 간격. 터치 대상 사이는 [lg] 이상. */
@@ -129,7 +149,11 @@ object App {
  * 배경 면(`bg/base`)과 기본 글자색·스타일(stop/body)을 깔아 주므로 화면은 색을 직접 정하지 않는다.
  */
 @Composable
-fun AppTheme(night: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+fun AppTheme(
+    night: Boolean = isSystemInDarkTheme(),
+    reduceMotion: Boolean = rememberSystemReduceMotion(),
+    content: @Composable () -> Unit
+) {
     val c = if (night) NightColors else DayColors
     val t = remember { AppType() }
     val scheme = if (night) {
@@ -169,7 +193,11 @@ fun AppTheme(night: Boolean = isSystemInDarkTheme(), content: @Composable () -> 
         labelMedium = t.stopBody,
         labelSmall = t.stopBody
     )
-    CompositionLocalProvider(LocalAppColors provides c, LocalAppType provides t) {
+    CompositionLocalProvider(
+        LocalAppColors provides c,
+        LocalAppType provides t,
+        LocalReduceMotion provides reduceMotion
+    ) {
         MaterialTheme(colorScheme = scheme, typography = typography) {
             Surface(Modifier.fillMaxSize(), color = c.bgBase, contentColor = c.textPrimary) {
                 ProvideTextStyle(t.stopBody, content)

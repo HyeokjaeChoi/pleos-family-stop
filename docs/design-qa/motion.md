@@ -91,3 +91,9 @@
 3. 시선을 끄는 효과(흔들림·깜빡임·진동 시각화) 금지. 실패는 칩 전환+음성/문구.
 4. 시스템 애니메이션 비활성(`Settings.Global.ANIMATOR_DURATION_SCALE == 0`) 시 모든 전환은 즉시 교체(duration 0), 상태 정보는 동일하게 전달.
 5. 미확인 이동 상태 = 주행 규칙(정차 전용 모션 쓰지 않음).
+
+## 4. 구현·검증 결과 (2026-11-09)
+구현: `Motion.kt`(`AppMotion` 토큰, `pressScale`, reduce-motion) · `StatusChip`(크로스페이드 150ms+성공 pulse 1회) · `AppButton`/`AppCard`(press 0.97, 버튼 배경 250ms) · `CompareRow`(선택 배경 250ms) · `DriveScreen` 상태 줄(UndoBar 입장 200ms+12dp / 퇴장 160ms) · `HandoffScreen`(4상태 크로스페이드 150ms) · 전역 `tnum`.
+- 반영 안 함(보류): 정차 리스트 stagger·CompareRow 실제 크기 확장·탭 콘텐츠 슬라이드 — 탭 전환은 버튼 배경 전환만 적용.
+- 검증: `ktlintCheck testDebugUnitTest :app:assembleDebug` 통과. 에뮬레이터 계측 27/27 통과(신규 `DriveMotionTest` 2: 모션 켬/끔 모두 카드 위치 불변, UndoBar 표시). `animator_duration_scale=0`에서도 27/27 통과, 이후 1.0 복구.
+- 한계: reduce 경로의 "즉시 교체"는 snap spec 사용으로 코드상 보장하나, 계측으로는 위치 불변·표시만 확인(알파 단정 불가). `HandoffScreenshotTest.sendingNight`가 1회 Activity 종료 NPE로 실패 후 재실행 통과(기존 테스트 flake, 모션 무관로 판단).
