@@ -18,10 +18,14 @@ android {
 }
 
 dependencies {
-    testImplementation("junit:junit:4.13.2")
+    implementation(project(":core:domain"))
+    implementation(project(":core:testing")) // fakes = AppGraph defaults until #14
+    implementation(project(":core:designsystem"))
+    implementation(project(":feature:drive"))
+    implementation(project(":feature:input"))
+    implementation(project(":impl:pleos"))
+    implementation(project(":impl:platform"))
     implementation(platform("androidx.compose:compose-bom:2025.10.00"))
     implementation("androidx.compose.material3:material3")
     implementation("androidx.activity:activity-compose:1.11.0")
-    implementation("ai.pleos.playground:Vehicle:2.3.2")
-    implementation("ai.pleos.playground:NaviHelper:3.0.5")
 }

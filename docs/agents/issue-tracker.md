@@ -65,7 +65,7 @@ Used by `/wayfinder`. The **map** is a single issue with **child** issues as tic
 - **PR**: target `main`, body starts with `Closes #<n>` (template in `.github/pull_request_template.md`). Squash merge, then delete the branch.
 - **Local review before the PR**: before pushing for a PR, run the built-in `/code-review` and `/simplify` locally on the Opus model, apply their findings, then push.
 - **Merge policy** (no approval question needed): turn on Auto-fix for every PR right after opening it. Squash merge as soon as CI `gate` passes and every Qodo finding is handled (fixed and its thread resolved, or answered with the reason it was not changed and resolved). Then delete the branch and the worktree.
-- **CI gate** (`.github/workflows/ci.yml`, job `gate`): `./gradlew ktlintCheck testDebugUnitTest assembleDebug`. A PR that changes only `*.md` files still runs `gate` but skips the Gradle steps, so docs-only PRs pass without a build.
+- **CI gate** (`.github/workflows/ci.yml`, job `gate`): `./gradlew ktlintCheck testDebugUnitTest assembleDebug` (runs across all modules, ADR-0006). A PR that changes only `*.md` files still runs `gate` but skips the Gradle steps, so docs-only PRs pass without a build.
 - **Local hooks** (`.githooks/`, enabled once per clone with `git config core.hooksPath .githooks`; worktrees share it):
   - `pre-commit`: on staged `*.kt`/`*.kts` only, runs `ktlintFormat`, re-stages those files, then `ktlintCheck`; the commit is blocked for violations ktlint cannot auto-fix (e.g. wildcard imports, file names) and when a staged Kotlin file also has unstaged hunks (stage or stash them first).
   - `pre-push`: `ktlintCheck testDebugUnitTest`.

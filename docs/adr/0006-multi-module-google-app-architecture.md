@@ -13,15 +13,14 @@
 | 모듈 | 역할 |
 |---|---|
 | `:app` | 셸: `MainActivity`, `AppGraph`(조립), 네비게이션, 매니페스트 |
-| `:core:model` | 순수 Kotlin 도메인 값 타입(`GeoPoint`, `StopPlace` 등). Android·Compose 의존 없음 |
+| `:core:model` | 도메인 값 타입(`GeoPoint`, `StopPlace` 등). Android·Compose API 미사용 |
 | `:core:domain` | Ports 인터페이스 + 유스케이스. `:core:model`에만 의존 |
+| `:core:testing` | Ports의 fake 구현(`FakeNaviGateway` 등). feature·impl 테스트와 `AppGraph` 기본값이 공유 |
 | `:core:designsystem` | DESIGN.md 토큰·공용 Compose 컴포넌트 |
 | `:feature:drive` | 이동 상황 판별 + 주행 중 제한 화면 (#6) |
 | `:feature:input` | 여행 조건·정차 필요·에너지 입력 (#7) |
 | `:impl:pleos` | `NaviGateway`(NaviHelper), `VehicleEnergySource`(Vehicle) (#4) |
 | `:impl:platform` | `LocationSource`(LocationManager), `VoiceOutput`(TextToSpeech) (#5) |
-
-테스트용 fake(`fake/`)는 `:core:domain`의 `testFixtures`가 아니라 우선 `:app`에 둔다. 다른 모듈 테스트가 fake를 필요로 할 때 `:core:testing`으로 분리한다.
 
 새 기능 화면(#8~#13)은 `:feature:<name>` 모듈로 추가한다. 이름 규칙: 소문자 단일 단어, 패키지는 `ai.familystop.feature.<name>`.
 
@@ -31,11 +30,14 @@
 :app ──▶ :feature:* ──▶ :core:domain ──▶ :core:model
   │          └────────▶ :core:designsystem
   └─────▶ :impl:* ────▶ :core:domain
+  (테스트: :feature:*, :impl:* ─test─▶ :core:testing)
 ```
 
 - `feature → core:domain, core:designsystem`; `impl → core:domain`; `:app`이 모두 조립한다.
 - **feature끼리, impl끼리, feature↔impl은 서로 의존 금지.** feature 간 이동은 `:app` 네비게이션이, 공유가 필요한 타입은 `:core:model`/`:core:domain`이 맡는다.
 - Pleos SDK(`ai.pleos.playground:*`) 의존은 `:impl:pleos`에만 둔다.
+
+모든 라이브러리 모듈은 `com.android.library`이며 `compileSdk`/`minSdk`는 루트 `build.gradle.kts`에서 공통 설정한다. `:core:designsystem`·`:impl:platform`은 코드 이동 시점에 빈 모듈(토큰·#5 구현이 들어올 자리)로 만든다.
 
 ## 하지 않는 것 (과설계 방지)
 

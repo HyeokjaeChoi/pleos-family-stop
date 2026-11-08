@@ -1,5 +1,9 @@
 # Agent Instructions
 
+## Code layout
+
+Multi-module Gradle (ADR-0006): `:app` (shell, `AppGraph`, `MainActivity`), `:core:model`, `:core:domain` (Ports), `:core:testing` (fakes), `:core:designsystem`, `:feature:<name>`, `:impl:pleos`, `:impl:platform`. Package names stay `ai.familystop.*`. A new feature = new `:feature:<name>` module. Features never depend on other features or impls; impls never depend on other impls; `:app` wires everything. Pleos SDK deps live only in `:impl:pleos`. Run everything with `./gradlew ktlintCheck testDebugUnitTest :app:assembleDebug`.
+
 ## Agent skills
 
 ### Issue tracker
