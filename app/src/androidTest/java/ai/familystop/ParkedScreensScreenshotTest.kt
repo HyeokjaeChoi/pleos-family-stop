@@ -12,16 +12,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
-import androidx.test.platform.app.InstrumentationRegistry
-import java.io.File
 import java.time.LocalDateTime
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -36,13 +31,7 @@ class ParkedScreensScreenshotTest {
             }
         }
         rule.waitForIdle()
-        val bmp = rule.onNodeWithTag("shot").captureToImage().asAndroidBitmap()
-        val dir = File(InstrumentationRegistry.getInstrumentation().targetContext.filesDir, "shots")
-            .apply { mkdirs() }
-        File(dir, "$name.png").outputStream().use {
-            bmp.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
-        }
-        assertTrue(File(dir, "$name.png").length() > 0)
+        rule.onNodeWithTag("shot").saveShot(name)
     }
 
     private val activity: @Composable () -> Unit = {
