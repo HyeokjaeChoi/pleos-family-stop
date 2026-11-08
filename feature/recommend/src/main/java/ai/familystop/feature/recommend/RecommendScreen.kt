@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
  * 정차 중 후보 비교 화면(스크롤 허용). 주행 중에는 이 화면을 쓰지 않고
@@ -61,23 +62,30 @@ private fun Notice(message: String, onRetry: () -> Unit) {
 private fun CandidateCard(c: StopCandidate, onPick: (StopPlace) -> Unit) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            // DESIGN.md 3절: 정차 중 제목 32sp, 본문·보조 24sp. 상태는 아이콘+문구+색 3중.
+            Text(c.place.name, fontSize = 32.sp, lineHeight = 44.sp, fontWeight = FontWeight.Bold)
+            c.met.forEach {
+                Text(
+                    "✓ ${it.label} 충족",
+                    fontSize = 24.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            c.missed.forEach {
+                Text("✗ ${it.label} 미충족", fontSize = 24.sp, color = MaterialTheme.colorScheme.error)
+            }
+            Text(c.reason, fontSize = 24.sp)
+            Text("도착 시간 +${c.extraMinutes}분", fontSize = 24.sp)
+            Text("우회 ${c.detourKm}km", fontSize = 24.sp)
             Text(
-                c.place.name,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-            // 상태는 아이콘 + 문구 (색 단독 금지, DESIGN.md 6절)
-            Text(
-                c.met.joinToString("  ") { "✓ ${it.label} 충족" } +
-                    c.missed.joinToString("") { "  ✗ ${it.label} 미충족" },
-                style = MaterialTheme.typography.titleMedium
-            )
-            Text(c.reason, style = MaterialTheme.typography.bodyLarge)
-            Text("도착 시간 +${c.extraMinutes}분", style = MaterialTheme.typography.bodyLarge)
-            Text("우회 ${c.detourKm}km", style = MaterialTheme.typography.bodyMedium)
-            Text(
-                if (c.source == DataSource.REAL) "출처: 실제 데이터" else "출처: 가상 데이터(시연)",
-                style = MaterialTheme.typography.bodyMedium
+                if (c.source ==
+                    DataSource.REAL
+                ) {
+                    "출처: 실제 데이터"
+                } else {
+                    "출처: 가상 데이터(시연)"
+                },
+                fontSize = 24.sp
             )
             Button(onClick = { onPick(c.place) }, modifier = Modifier.heightIn(min = 76.dp)) {
                 Text("경유지로 추가")

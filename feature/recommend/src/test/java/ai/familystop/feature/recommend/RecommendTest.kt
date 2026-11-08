@@ -1,5 +1,7 @@
 package ai.familystop.feature.recommend
 
+import ai.familystop.core.Facility
+import ai.familystop.core.FacilitySource
 import ai.familystop.core.GeoPoint
 import ai.familystop.core.StopNeed
 import ai.familystop.core.StopRequest
@@ -80,6 +82,19 @@ class RecommendTest {
             RecommendController(CoroutineScope(Dispatchers.Default), {
                 CompletableDeferred<List<Facility>>().await()
             }, timeoutMs = 50)
+        c.request(StopRequest(here, all))
+        withTimeout(2_000) { c.state.first { it is RecommendState.Failed } }
+        Unit
+    }
+
+    @Test
+    fun timeoutAlsoCoversSourcesThatIgnoreCancellation() = runBlocking {
+        val never = CompletableDeferred<List<Facility>>()
+        val c = RecommendController(
+            CoroutineScope(Dispatchers.Default),
+            { withContext(NonCancellable) { never.await() } },
+            timeoutMs = 50
+        )
         c.request(StopRequest(here, all))
         withTimeout(2_000) { c.state.first { it is RecommendState.Failed } }
         Unit

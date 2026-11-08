@@ -1,9 +1,8 @@
 package ai.familystop.feature.recommend
 
-import ai.familystop.core.DataSource
+import ai.familystop.core.Facility
 import ai.familystop.core.StopCandidate
 import ai.familystop.core.StopNeed
-import ai.familystop.core.StopPlace
 import ai.familystop.core.StopRequest
 import kotlin.math.asin
 import kotlin.math.cos
@@ -13,20 +12,6 @@ import kotlin.math.sqrt
 
 const val MAX_CANDIDATES = 3
 const val DRIVING_MAX_CANDIDATES = 2 // ADR-0003: 주행 중 큰 카드 최대 2개
-
-/** 시설 하나. 우회 거리·시간은 시연 경로 기준 사전 계산값. */
-data class Facility(
-    val place: StopPlace,
-    val provides: Set<StopNeed>,
-    val source: DataSource,
-    val detourKm: Double,
-    val extraMinutes: Int
-)
-
-/** 시설 제공처. ponytail: 외부 API 연동 시 Facility와 함께 :core:domain으로 옮겨 :impl:*가 구현(ADR-0006). */
-fun interface FacilitySource {
-    suspend fun facilities(): List<Facility>
-}
 
 // ponytail: 시연 구간 반경 고정. 실제 경로 기반 탐색은 외부 제공처 연동 시 교체.
 private const val RADIUS_KM = 30.0

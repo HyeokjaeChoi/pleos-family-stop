@@ -1,6 +1,7 @@
 package ai.familystop.feature.recommend
 
 import ai.familystop.core.DataSource
+import ai.familystop.core.Facility
 import ai.familystop.core.StopNeed
 import ai.familystop.core.StopPlace
 import org.json.JSONArray

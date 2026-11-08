@@ -28,3 +28,12 @@ data class StopCandidate(
     val detourKm: Double,
     val source: DataSource
 )
+
+/** 정차 가능한 시설 하나. 우회 거리·시간은 경로 기준 계산값(시연 데이터는 사전 계산). */
+data class Facility(
+    val place: StopPlace,
+    val provides: Set<StopNeed>,
+    val source: DataSource,
+    val detourKm: Double,
+    val extraMinutes: Int
+)
