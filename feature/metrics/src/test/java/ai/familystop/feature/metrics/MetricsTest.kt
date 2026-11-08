@@ -63,6 +63,20 @@ class MetricsTest {
     }
 
     @Test
+    fun listsRoundTripNewlinesAndEmptyItemsAndWithdrawRemovesTmp() {
+        val id = collector.startTrip()
+        collector.grantConsent(id, true)
+        val m = metrics(
+            id
+        ).copy(choiceReasons = listOf("a\nb", "", "c"), unresolvedNeeds = emptyList())
+        assertTrue(collector.record(m))
+        assertEquals(m, store.load(id))
+        File(dir, "$id.tmp").writeText("partial")
+        assertTrue(collector.withdraw(id))
+        assertTrue(collector.storedTrips().isEmpty())
+    }
+
+    @Test
     fun corruptFileLoadsAsNullAndOrphansAreListed() {
         File(dir, "abc.properties").writeText("origin=NOPE")
         assertNull(store.load("abc"))

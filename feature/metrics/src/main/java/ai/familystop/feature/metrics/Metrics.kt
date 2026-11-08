@@ -50,41 +50,58 @@ class FileMetricsStore(private val dir: File) : MetricsStore {
         p["channel"] = metrics.recruitChannel
         metrics.baselinePlanMinutes?.let { p["baseline"] = it.toString() }
         metrics.prototypePlanMinutes?.let { p["prototype"] = it.toString() }
-        p["reasons"] = metrics.choiceReasons.joinToString("\n")
-        p["unresolved"] = metrics.unresolvedNeeds.joinToString("\n")
+        putList(p, "reasons", metrics.choiceReasons)
+        putList(p, "unresolved", metrics.unresolvedNeeds)
         metrics.spendWon?.let { p["spend"] = it.toString() }
         val target = file(metrics.tripId)
         val tmp = File(dir, "${metrics.tripId}.tmp")
-        tmp.outputStream().use { p.store(it, null) }
-        check(tmp.renameTo(target)) { "rename failed" }
+        try {
+            tmp.outputStream().use { p.store(it, null) }
+            check(tmp.renameTo(target)) { "rename failed" }
+        } catch (e: Exception) {
+            tmp.delete()
+            throw e
+        }
     }
 
     override fun deleteTrip(tripId: String) {
         val f = file(tripId)
-        check(f.delete() || !f.exists()) { "delete failed" }
+        val tmp = File(dir, "$tripId.tmp") // 중단된 저장의 잔여 파일도 함께 지운다
+        check((f.delete() || !f.exists()) && (tmp.delete() || !tmp.exists())) { "delete failed" }
     }
 
     override fun listTrips(): List<String> =
-        dir.listFiles { f -> f.extension == "properties" }.orEmpty().map { it.nameWithoutExtension }
+        dir.listFiles { f -> f.extension == "properties" || f.extension == "tmp" }
+            .orEmpty()
+            .map { it.nameWithoutExtension }
+            .distinct()
 
     override fun load(tripId: String): TripMetrics? {
         val f = file(tripId).takeIf { it.exists() } ?: return null
         return runCatching {
             val p = Properties().also { pr -> f.inputStream().use { pr.load(it) } }
-            fun lines(k: String) = p.getProperty(k).orEmpty().lines().filter { it.isNotEmpty() }
             TripMetrics(
                 tripId,
                 DataOrigin.valueOf(p.getProperty("origin")),
                 p.getProperty("channel").orEmpty(),
                 p.getProperty("baseline")?.toInt(),
                 p.getProperty("prototype")?.toInt(),
-                lines("reasons"),
-                lines("unresolved"),
+                getList(p, "reasons"),
+                getList(p, "unresolved"),
                 p.getProperty("spend")?.toInt()
             )
         }.getOrNull() // 손상된 파일은 없는 것으로 취급
     }
 }
+
+// 줄바꿈·빈 문자열도 보존하도록 `<key>.n`(개수) + `<key>.<i>`로 저장한다.
+private fun putList(p: Properties, key: String, items: List<String>) {
+    p["$key.n"] = items.size.toString()
+    items.forEachIndexed { i, v -> p["$key.$i"] = v }
+}
+
+private fun getList(p: Properties, key: String): List<String> =
+    List(p.getProperty("$key.n")?.toInt() ?: 0) { p.getProperty("$key.$it") ?: error("missing") }
 
 /**
  * 동의 없이는 수집하지 않는다. 저장 실패는 삼켜서 핵심 기능을 막지 않는다.

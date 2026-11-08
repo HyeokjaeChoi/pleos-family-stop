@@ -24,20 +24,29 @@ import androidx.compose.ui.unit.sp
 private val Touch = 76.dp // DESIGN.md 4절 touch/min
 
 /**
- * 측정 동의 화면. 정차 중에만 보인다(주행·미확인은 안내만, ADR-0004).
- * 동의는 운전자 본인 확인 후에만 가능하다. 거절해도 앱 기능은 그대로 쓴다.
+ * 측정 동의·철회 화면(공개 composable 1개). 정차 중에만 보인다(주행·미확인은 안내만, ADR-0004).
+ * 동의하지 않아도 앱 기능은 그대로 쓴다.
+ *
+ * 운전자 확인은 화면의 자기 선언이다. SDK에 운전자 식별값이 없어 동승자 탭을 기술적으로
+ * 막을 수 없다(한계). 선언 상태는 [tripId]에 묶여 새 여행에서 다시 묻는다.
  *
  * @param parked 정차 확인됨. 미확인이면 false.
- * @param onResult 동의 true / 거절 false. true는 "운전자 본인" 확인 뒤에만 호출되므로
+ * @param tripId 이번 여행 표식([MetricsCollector.startTrip]).
+ * @param consented 이미 동의했으면 true → 철회 화면을 보인다.
+ * @param onResult 동의 true / 거절 false. true는 운전자 선언 뒤에만 호출되므로
  *   호출 측은 `grantConsent(id, isDriver = true)`로 연결한다.
+ * @param onWithdraw 철회. 호출 측은 [MetricsCollector.withdraw]로 연결한다.
  */
 @Composable
 fun ConsentScreen(
     parked: Boolean,
+    tripId: String,
+    consented: Boolean,
     onResult: (consent: Boolean) -> Unit,
+    onWithdraw: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isDriver by rememberSaveable { mutableStateOf(false) }
+    var isDriver by rememberSaveable(tripId) { mutableStateOf(false) }
     ProvideTextStyle(MaterialTheme.typography.bodyLarge.copy(fontSize = 24.sp)) {
         if (!parked) {
             Text("정차 후에 확인할 수 있어요.", modifier.fillMaxSize().padding(24.dp))
@@ -47,9 +56,19 @@ fun ConsentScreen(
             modifier.fillMaxSize().padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
+            if (consented) {
+                Text("측정 동의를 철회하면 이번 여행 기록이 모두 지워져요.")
+                OutlinedButton(
+                    onClick = onWithdraw,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = Touch)
+                ) { Text("동의 철회하고 기록 삭제") }
+                return@Column
+            }
             Text("이번 여행의 정차 도움 정도를 기록해도 될까요?")
             Text(
-                "계획 시간·선택 이유·남은 필요를 이 기기에만 저장해요. 이름·계정과 연결하지 않고, 언제든 철회하면 이번 여행 기록이 지워져요. 동의하지 않아도 모든 기능을 쓸 수 있어요."
+                "계획 시간·선택 이유·남은 필요를 이 기기에만 저장해요. " +
+                    "이름·계정과 연결하지 않고, 철회하면 이번 여행 기록이 지워져요. " +
+                    "동의하지 않아도 모든 기능을 쓸 수 있어요."
             )
             FilterChip(
                 selected = isDriver,
@@ -66,27 +85,6 @@ fun ConsentScreen(
                 onClick = { onResult(false) },
                 modifier = Modifier.fillMaxWidth().heightIn(min = Touch)
             ) { Text("기록하지 않을게요") }
-        }
-    }
-}
-
-/** 동의 철회 화면(정차 중). 누르면 이번 여행 기록이 삭제된다. */
-@Composable
-fun WithdrawScreen(parked: Boolean, onWithdraw: () -> Unit, modifier: Modifier = Modifier) {
-    ProvideTextStyle(MaterialTheme.typography.bodyLarge.copy(fontSize = 24.sp)) {
-        if (!parked) {
-            Text("정차 후에 확인할 수 있어요.", modifier.fillMaxSize().padding(24.dp))
-            return@ProvideTextStyle
-        }
-        Column(
-            modifier.fillMaxSize().padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            Text("측정 동의를 철회하면 이번 여행 기록이 모두 지워져요.")
-            OutlinedButton(
-                onClick = onWithdraw,
-                modifier = Modifier.fillMaxWidth().heightIn(min = Touch)
-            ) { Text("동의 철회하고 기록 삭제") }
         }
     }
 }
