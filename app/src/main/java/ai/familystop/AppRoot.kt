@@ -31,11 +31,12 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -178,14 +179,22 @@ private fun Parked(
         }
     }
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(App.space.lg)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(App.space.lg)) {
+        // 한 줄 고정 + 가로 스크롤: 좁은 폭·큰 글자에서도 모든 탭에 닿고 폼 높이를 뺏지 않는다.
+        // 동의는 설정성 항목이라 마지막 보조 버튼.
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(App.space.lg)
+        ) {
             Step.entries.filter { it != Step.CONSENT && (it != Step.ACTIVITY || s.charging) }
                 .forEach { step ->
                     AppButton(step.label, { s.step = step }, primary = s.step == step)
                 }
-            Spacer(Modifier.weight(1f))
-            // 동의는 여행 흐름이 아니라 설정성 항목이라 오른쪽 끝에 보조 버튼으로 분리.
-            AppButton(Step.CONSENT.label, { s.step = Step.CONSENT }, primary = false)
+            AppButton(
+                Step.CONSENT.label,
+                { s.step = Step.CONSENT },
+                primary =
+                s.step == Step.CONSENT
+            )
         }
         // Keeps each step's typed-in state while driving removes the parked UI from composition.
         holder.SaveableStateProvider(s.step.name) {
