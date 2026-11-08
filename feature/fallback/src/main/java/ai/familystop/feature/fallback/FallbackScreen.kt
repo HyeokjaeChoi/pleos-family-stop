@@ -44,52 +44,50 @@ private val Title = TextStyle(fontSize = 32.sp, lineHeight = 44.sp, fontWeight =
 private val Body = TextStyle(fontSize = 24.sp, lineHeight = 34.sp, fontWeight = FontWeight.Medium)
 
 /**
- * Shown when [PermissionNotice.capability]'s permission is denied or revoked. Re-asking happens
- * only when the user taps [onRequestAgain]; [onUseAlternative] opens the manual path.
+ * The single public entry point. A denied or revoked permission re-asks, and a failed data item
+ * reconnects, only when the user taps [onRetry]; [onManual] opens the manual-input path. A last
+ * known value carries its source and time and is never shown as current.
  */
 @Composable
-fun PermissionDeniedCard(
-    notice: PermissionNotice,
-    onRequestAgain: () -> Unit,
-    onUseAlternative: () -> Unit,
-    modifier: Modifier = Modifier
-) = FallbackCard(
-    title = notice.title,
-    lines = notice.lines,
-    statusText = "권한 꺼짐",
-    danger = true,
-    primaryLabel = "권한 다시 요청",
-    onPrimary = onRequestAgain,
-    secondaryLabel = "직접 입력",
-    onSecondary = onUseAlternative,
-    modifier = modifier
-)
-
-/**
- * Shown when a data item failed to arrive. The last known value carries its source and time and
- * is labelled as such; nothing is shown as current. Reconnecting happens only on [onReconnect].
- */
-@Composable
-fun DataUnavailableCard(
-    failure: DataFailure,
+fun FallbackCard(
+    cause: FallbackCause,
     nowMs: Long,
-    onReconnect: () -> Unit,
-    onManualInput: () -> Unit,
+    onRetry: () -> Unit,
+    onManual: () -> Unit,
     modifier: Modifier = Modifier
-) = FallbackCard(
-    title = "${failure.item}을(를) 받지 못했어요",
-    lines = listOf(failure.limit, "${failure.item}: ${describeValue(failure.last, nowMs)}"),
-    statusText = if (failure.last == null) "미확인" else "최신 아님",
-    danger = failure.last != null,
-    primaryLabel = "다시 연결",
-    onPrimary = onReconnect,
-    secondaryLabel = "직접 입력",
-    onSecondary = onManualInput,
-    modifier = modifier
-)
+) = when (cause) {
+    is FallbackCause.Permission -> {
+        val notice = PermissionNotice(cause.capability)
+        CardContent(
+            title = notice.title,
+            lines = notice.lines,
+            statusText = "권한 꺼짐",
+            danger = true,
+            primaryLabel = "권한 다시 요청",
+            onPrimary = onRetry,
+            secondaryLabel = "직접 입력",
+            onSecondary = onManual,
+            modifier = modifier
+        )
+    }
+    is FallbackCause.Data -> {
+        val f = cause.failure
+        CardContent(
+            title = "${f.item}을(를) 받지 못했어요",
+            lines = listOf(f.limit, "${f.item}: ${describeValue(f.last, nowMs)}"),
+            statusText = if (f.last == null) "미확인" else "최신 아님",
+            danger = f.last != null,
+            primaryLabel = "다시 연결",
+            onPrimary = onRetry,
+            secondaryLabel = "직접 입력",
+            onSecondary = onManual,
+            modifier = modifier
+        )
+    }
+}
 
 @Composable
-private fun FallbackCard(
+private fun CardContent(
     title: String,
     lines: List<String>,
     statusText: String,

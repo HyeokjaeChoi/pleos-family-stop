@@ -56,3 +56,10 @@ fun describeValue(known: LastKnown?, nowMs: Long, zone: ZoneId = ZoneId.systemDe
 
 /** What a failed data item looks like: which item, why, and the last value if any. */
 data class DataFailure(val item: String, val limit: String, val last: LastKnown? = null)
+
+/** Why the fallback is shown. */
+sealed interface FallbackCause {
+    data class Permission(val capability: Capability) : FallbackCause
+
+    data class Data(val failure: DataFailure) : FallbackCause
+}
