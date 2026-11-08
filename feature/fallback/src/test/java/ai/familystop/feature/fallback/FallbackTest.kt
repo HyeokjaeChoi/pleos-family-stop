@@ -8,13 +8,18 @@ import org.junit.Test
 class FallbackTest {
     @Test
     fun neverReceivedIsUnknown() {
-        assertEquals("미확인", describeValue(null))
+        assertEquals("미확인", describeValue(null, 0))
     }
 
     @Test
     fun lastKnownShowsSourceAndTimeAndIsNotPresentedAsCurrent() {
-        val s = describeValue(LastKnown("72%", "차량", 14 * 3_600_000L + 5 * 60_000L), ZoneOffset.UTC)
-        assertEquals("72% · 마지막 확인값 · 차량 14:05", s)
+        val at = 14 * 3_600_000L + 5 * 60_000L
+        val k = LastKnown("72%", "차량", at)
+        assertEquals("72% · 마지막 확인값 · 차량 14:05", describeValue(k, at + 60_000L, ZoneOffset.UTC))
+        assertEquals(
+            "72% · 마지막 확인값 · 차량 1월 1일 14:05",
+            describeValue(k, at + 86_400_000L, ZoneOffset.UTC)
+        )
     }
 
     @Test

@@ -34,16 +34,25 @@ data class PermissionNotice(val capability: Capability) {
 /** A value last received from [source] at [atMs] (epoch ms). Never shown as the current value. */
 data class LastKnown(val value: String, val source: String, val atMs: Long)
 
-private val clock = DateTimeFormatter.ofPattern("HH:mm")
+private val sameDay = DateTimeFormatter.ofPattern("HH:mm")
+private val otherDay = DateTimeFormatter.ofPattern("M월 d일 HH:mm")
 
-/** `"72% · 마지막 확인값 · 차량 14:05"`, or `"미확인"` when nothing was ever received. */
-fun describeValue(known: LastKnown?, zone: ZoneId = ZoneId.systemDefault()): String =
-    if (known == null) {
-        "미확인"
+/**
+ * `"72% · 마지막 확인값 · 차량 14:05"`, or `"미확인"` when nothing was ever received. A value from
+ * another day also carries its date so it is never mistaken for today's.
+ */
+fun describeValue(known: LastKnown?, nowMs: Long, zone: ZoneId = ZoneId.systemDefault()): String {
+    if (known == null) return "미확인"
+    val at = Instant.ofEpochMilli(known.atMs).atZone(zone)
+    val fmt = if (at.toLocalDate() ==
+        Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate()
+    ) {
+        sameDay
     } else {
-        val at = clock.format(Instant.ofEpochMilli(known.atMs).atZone(zone))
-        "${known.value} · 마지막 확인값 · ${known.source} $at"
+        otherDay
     }
+    return "${known.value} · 마지막 확인값 · ${known.source} ${fmt.format(at)}"
+}
 
 /** What a failed data item looks like: which item, why, and the last value if any. */
 data class DataFailure(val item: String, val limit: String, val last: LastKnown? = null)

@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private class Palette(night: Boolean) { // DESIGN.md 2절
+    val raised = if (night) Color(0xFF272E34) else Color(0xFFEEF1F4)
     val surface = if (night) Color(0xFF1B2126) else Color(0xFFFFFFFF)
     val text = if (night) Color(0xFFF2F5F7) else Color(0xFF11181D)
     val textSub = if (night) Color(0xFFB4BEC6) else Color(0xFF46535C)
@@ -57,8 +58,10 @@ fun PermissionDeniedCard(
     lines = notice.lines,
     statusText = "권한 꺼짐",
     danger = true,
-    primary = "권한 다시 요청" to onRequestAgain,
-    secondary = "직접 입력" to onUseAlternative,
+    primaryLabel = "권한 다시 요청",
+    onPrimary = onRequestAgain,
+    secondaryLabel = "직접 입력",
+    onSecondary = onUseAlternative,
     modifier = modifier
 )
 
@@ -69,16 +72,19 @@ fun PermissionDeniedCard(
 @Composable
 fun DataUnavailableCard(
     failure: DataFailure,
+    nowMs: Long,
     onReconnect: () -> Unit,
     onManualInput: () -> Unit,
     modifier: Modifier = Modifier
 ) = FallbackCard(
     title = "${failure.item}을(를) 받지 못했어요",
-    lines = listOf(failure.limit, "${failure.item}: ${describeValue(failure.last)}"),
-    statusText = "미확인",
+    lines = listOf(failure.limit, "${failure.item}: ${describeValue(failure.last, nowMs)}"),
+    statusText = if (failure.last == null) "미확인" else "최신 아님",
     danger = failure.last != null,
-    primary = "다시 연결" to onReconnect,
-    secondary = "직접 입력" to onManualInput,
+    primaryLabel = "다시 연결",
+    onPrimary = onReconnect,
+    secondaryLabel = "직접 입력",
+    onSecondary = onManualInput,
     modifier = modifier
 )
 
@@ -88,8 +94,10 @@ private fun FallbackCard(
     lines: List<String>,
     statusText: String,
     danger: Boolean,
-    primary: Pair<String, () -> Unit>,
-    secondary: Pair<String, () -> Unit>,
+    primaryLabel: String,
+    onPrimary: () -> Unit,
+    secondaryLabel: String,
+    onSecondary: () -> Unit,
     modifier: Modifier
 ) {
     val c = Palette(isSystemInDarkTheme())
@@ -111,14 +119,8 @@ private fun FallbackCard(
         Text(title, style = Title, color = c.text)
         lines.forEach { Text(it, style = Body, color = c.textSub) }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            FallbackButton(primary.first, c.accent, c.onAccent, primary.second, Modifier.weight(1f))
-            FallbackButton(
-                secondary.first,
-                c.surface,
-                c.text,
-                secondary.second,
-                Modifier.weight(1f)
-            )
+            FallbackButton(primaryLabel, c.accent, c.onAccent, onPrimary, Modifier.weight(1f))
+            FallbackButton(secondaryLabel, c.raised, c.text, onSecondary, Modifier.weight(1f))
         }
     }
 }
