@@ -11,8 +11,7 @@ import java.util.Locale
 /** Error text for a failed TTS init/language setup, null = ready. */
 internal fun ttsInitError(status: Int, langResult: Int): String? = when {
     status != TextToSpeech.SUCCESS -> "음성 엔진을 시작하지 못했습니다"
-    langResult == TextToSpeech.LANG_MISSING_DATA || langResult == TextToSpeech.LANG_NOT_SUPPORTED ->
-        "한국어 음성을 사용할 수 없습니다"
+    langResult < TextToSpeech.LANG_AVAILABLE -> "한국어 음성을 사용할 수 없습니다"
     else -> null
 }
 
@@ -28,7 +27,11 @@ class PlatformVoiceOutput(context: Context) : VoiceOutput {
     private var pending: String? = null
     private var errorCb: (String) -> Unit = {}
 
+    // Bumped by every speak/stop/close; errors of an older request are dropped.
+    private var gen = 0
+
     override fun speak(text: String, onError: (String) -> Unit) {
+        gen++
         errorCb = onError
         if (ready) {
             say(text)
@@ -39,12 +42,14 @@ class PlatformVoiceOutput(context: Context) : VoiceOutput {
     }
 
     override fun stop() {
+        gen++
         pending = null
         tts?.stop()
     }
 
     /** Releases the engine; the next [speak] starts a fresh one. */
     fun close() {
+        gen++
         pending = null
         ready = false
         tts?.shutdown()
@@ -63,7 +68,8 @@ class PlatformVoiceOutput(context: Context) : VoiceOutput {
             override fun onDone(utteranceId: String?) = Unit
 
             @Deprecated("Deprecated in Java")
-            override fun onError(utteranceId: String?) = fail("음성 안내를 재생하지 못했습니다")
+            override fun onError(utteranceId: String?) =
+                fail(utteranceId?.removePrefix(ID_PREFIX)?.toIntOrNull(), "음성 안내를 재생하지 못했습니다")
         })
     }
 
@@ -78,8 +84,11 @@ class PlatformVoiceOutput(context: Context) : VoiceOutput {
         }
         val error = ttsInitError(status, lang)
         if (error != null) {
+            val g = gen
+            val wanted = pending != null
             close() // so a later speak() retries (e.g. voice data installed meanwhile)
-            fail(error)
+            gen = g // close() bumped it; this failure still belongs to the pending request
+            if (wanted) fail(g, error)
             return
         }
         ready = true
@@ -88,12 +97,19 @@ class PlatformVoiceOutput(context: Context) : VoiceOutput {
     }
 
     private fun say(text: String) {
-        if (tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "stop-notice") == TextToSpeech.ERROR) {
-            fail("음성 안내를 재생하지 못했습니다")
+        if (tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "$ID_PREFIX$gen") ==
+            TextToSpeech.ERROR
+        ) {
+            fail(gen, "음성 안내를 재생하지 못했습니다")
         }
     }
 
-    private fun fail(message: String) {
-        main.post { errorCb(message) }
+    private fun fail(requestGen: Int?, message: String) {
+        val cb = errorCb
+        main.post { if (requestGen == gen) cb(message) }
+    }
+
+    private companion object {
+        const val ID_PREFIX = "stop-notice-"
     }
 }

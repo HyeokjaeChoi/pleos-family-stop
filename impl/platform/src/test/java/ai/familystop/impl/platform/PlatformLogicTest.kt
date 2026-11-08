@@ -29,5 +29,6 @@ class PlatformLogicTest {
         assertNull(ttsInitError(TextToSpeech.SUCCESS, TextToSpeech.LANG_AVAILABLE))
         assertNotNull(ttsInitError(TextToSpeech.ERROR, TextToSpeech.LANG_AVAILABLE))
         assertNotNull(ttsInitError(TextToSpeech.SUCCESS, TextToSpeech.LANG_MISSING_DATA))
+        assertNotNull(ttsInitError(TextToSpeech.SUCCESS, TextToSpeech.ERROR))
     }
 }

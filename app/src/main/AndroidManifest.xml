@@ -8,6 +8,13 @@
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH" />
     <uses-permission android:name="pleos.car.permission.CAR_ENERGY" />
 
+    <!-- Android 11+ package visibility: lets TextToSpeech find installed engines. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <application
         android:label="Family Stop"
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
