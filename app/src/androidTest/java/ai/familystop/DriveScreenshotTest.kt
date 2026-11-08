@@ -11,19 +11,14 @@ import ai.familystop.feature.drive.MovementState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
-import androidx.test.platform.app.InstrumentationRegistry
-import java.io.File
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -94,13 +89,7 @@ class DriveScreenshotTest {
         rule.waitForIdle()
         rule.onNodeWithText(expect, substring = true).assertIsDisplayed()
         rule.mainClock.advanceTimeBy(1_000) // let the press ripple fade before capturing
-        val bmp = rule.onNodeWithTag("shot").captureToImage().asAndroidBitmap()
-        val dir = File(InstrumentationRegistry.getInstrumentation().targetContext.filesDir, "shots")
-            .apply { mkdirs() }
-        File(dir, "$name.png").outputStream().use {
-            bmp.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
-        }
-        assertTrue(File(dir, "$name.png").length() > 0)
+        rule.onNodeWithTag("shot").saveShot(name)
     }
 
     @Test fun idleNight() = shot("drive-idle-night", true, Navi.Success, false, "가상 휴게소 C")
