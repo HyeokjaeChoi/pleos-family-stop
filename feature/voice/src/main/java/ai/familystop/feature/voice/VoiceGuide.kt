@@ -59,10 +59,11 @@ class VoiceGuide(private val voice: VoiceOutput) {
     /** 읽기에 실패하면 버튼을 남겨 사용자가 직접 다시 누를 수 있다(자동 재시도 없음). */
     fun next() {
         if (!hasNext) return
-        nextSpoken = true
-        say(nextText(candidates[SPOKEN_FIRST]), "${SPOKEN_FIRST + 1}번 후보 · 정차 후 확인") {
-            nextSpoken = false
-        }
+        say(
+            nextText(candidates[SPOKEN_FIRST]),
+            "${SPOKEN_FIRST + 1}번 후보 · 정차 후 확인",
+            nextRead = true
+        )
     }
 
     fun announceResult(place: StopPlace, ok: Boolean) =
@@ -70,15 +71,17 @@ class VoiceGuide(private val voice: VoiceOutput) {
 
     fun stop() {
         request++
+        nextSpoken = false // 읽다 끊긴 3번째 후보는 다시 누를 수 있다
         voice.stop()
     }
 
-    private fun say(text: String, onFail: String, undo: () -> Unit = {}) {
+    private fun say(text: String, onFail: String, nextRead: Boolean = false) {
         val id = ++request
         status = null
+        nextSpoken = nextRead // 새 요청이 3번째 후보 낭독을 끊으면 버튼을 되살린다
         voice.speak(text) {
             if (id == request) {
-                undo()
+                nextSpoken = false
                 status = onFail
             }
         }

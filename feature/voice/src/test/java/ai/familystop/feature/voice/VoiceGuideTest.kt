@@ -121,4 +121,17 @@ class VoiceGuideTest {
         cbs[0]("late")
         assertNull(g.status)
     }
+
+    @Test
+    fun interruptedNextReadCanBeRequestedAgain() {
+        val g = VoiceGuide(RecordingVoice())
+        g.announce(three)
+        g.next()
+        assertFalse(g.hasNext)
+        g.announceResult(StopPlace("가", 0.0, 0.0), ok = true)
+        assertTrue(g.hasNext)
+        g.next()
+        g.stop()
+        assertTrue(g.hasNext)
+    }
 }
