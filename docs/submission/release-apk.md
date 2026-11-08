@@ -11,18 +11,16 @@ keytool -genkeypair -keystore ~/pleos-release.jks -alias familystop \
   -keyalg RSA -keysize 2048 -validity 10000
 ```
 
-키스토어와 비밀번호는 저장소에 커밋하지 않는다. 같은 키로 서명해야 같은 앱으로 갱신된다. 선정 후 최종 APK(전시용)도 같은 키를 쓴다.
+키스토어와 비밀번호는 저장소에 커밋하지 않는다. 인증서 이름(`dname`)에 실명을 넣지 않는다(양식: 개발자 실명 노출 금지) — 프롬프트에 팀명 또는 가명을 쓴다. 같은 키로 서명해야 같은 앱으로 갱신된다. 선정 후 최종 APK(전시용)도 같은 키를 쓴다.
 
 ## 2. 빌드·서명
-
-`dname`에 실명을 넣지 말 것(양식: 개발자 실명 노출 금지). 위 `keytool`이 묻는 이름·조직에 가명 또는 팀명을 쓴다.
 
 ```bash
 ./gradlew :app:assembleRelease
 BT=$ANDROID_HOME/build-tools/36.1.0
 mkdir -p apk
-$BT/zipalign -f -P 16 4 app/build/outputs/apk/release/app-release-unsigned.apk /tmp/aligned.apk
-$BT/apksigner sign --ks ~/pleos-release.jks --out "apk/팀명_앱이름_release.apk" /tmp/aligned.apk
+$BT/zipalign -f -P 16 4 app/build/outputs/apk/release/app-release-unsigned.apk build/aligned.apk
+$BT/apksigner sign --ks ~/pleos-release.jks --out "apk/팀명_앱이름_release.apk" build/aligned.apk
 $BT/apksigner verify --verbose "apk/팀명_앱이름_release.apk"   # v3 true 이어야 함
 ```
 

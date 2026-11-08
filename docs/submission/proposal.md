@@ -54,8 +54,8 @@
 
 | SDK | 콘솔 상태 | 용도 | 계획 |
 |---|---|---|---|
-| Vehicle State | 사용 가능 | 기어로 주행/정차 판별, EV 배터리 잔량 | 사용 중 (에뮬레이터 실측 완료) |
-| NaviHelper | 사용 가능 | 정차 지점 경유지 추가·취소, 경로 상태 조회 | 사용 중 (에뮬레이터 실측 완료) |
+| Vehicle State | 사용 가능 | 기어로 주행/정차 판별, EV 배터리 잔량 | 배터리 잔량은 구현(`PleosVehicleEnergySource`, 앱 연결은 #14), 기어 판별은 에뮬레이터 실측 완료·앱 구현 예정 |
+| NaviHelper | 사용 가능 | 정차 지점 경유지 추가·취소, 경로 상태 조회 | 구현(`PleosNaviGateway`, 앱 연결은 #14), 에뮬레이터 실측 완료 |
 | FusedLocation | 준비 중 | 현재 위치 | 준비 중이라 Android `LocationManager`로 대체, 오픈 후 전환 |
 | TextToSpeech | 준비 중 | 결과 음성 안내 | Android `TextToSpeech`로 대체, 오픈 후 Pleos `ON_DEVICE`로 전환 |
 | SpeechToText | 준비 중 | 음성 요청 | 시연에서 제외, 오픈 후 검토 |

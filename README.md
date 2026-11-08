@@ -21,7 +21,7 @@ SDK 사용 현황 (Pleos My Project 콘솔 확인, 2026-11-07):
 
 | SDK | 상태 | 앱 사용 |
 |---|---|---|
-| Vehicle State | 사용 가능 | 기어(주행/정차 판별), EV 배터리 잔량 |
+| Vehicle State | 사용 가능 | EV 배터리 잔량(구현), 기어 주행/정차 판별(실측 완료, 앱 구현 예정) |
 | NaviHelper | 사용 가능 | 정차 지점을 경유지로 추가·취소 |
 | FusedLocation | 준비 중 | 대체: Android `LocationManager` (`LocationSource` 뒤) |
 | TextToSpeech | 준비 중 | 대체: Android `TextToSpeech` (`VoiceOutput` 뒤) |
