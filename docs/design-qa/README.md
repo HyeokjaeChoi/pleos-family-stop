@@ -36,3 +36,18 @@
 1. `CompareList`/`CompareRow` 구현(정차 추천 화면) — 신규 이슈 필요(Figma 선행·`figma-done`).
 2. 주행 카드 버튼 아이콘(`add_location_alt`)과 "다음 충전 정차" 헤더 — Figma에는 있으나 구현·DESIGN.md 컴포넌트 목록에 없음. 아이콘 벡터 추가 필요.
 3. UndoBar·핸드오프·충전 활동(자동 확인) 화면은 내비 전면 전환을 피하는 캡처 절차(예: 내비 경로 없이 추가 실패 상태 유도) 확보 후 재캡처.
+
+## 재점검 결과 (#50, 2026-11-08) — 위 불일치 표의 현재 상태
+
+| 화면 | 상태 | 근거 |
+|---|---|---|
+| 주행 카드 | **일치** (#52) | 카드 ≈400dp 고정·세로 중앙, 지표 2칸, 아이콘 버튼, 헤더 "다음 충전 정차". `shots/drive-states/drive-idle-*.png` |
+| 주행 UndoBar·실패·추가 중·빈 상태 | **검증됨** (#52) | fake `NaviGateway` Compose 스크린샷 테스트(`DriveScreenshotTest`) 7건, `shots/drive-states/` |
+| 정차 추천 | **일치** (#53) | `CompareRow` 목록 + 하단 단일 버튼, `RecommendScreenshotTest`, `shots/drive-states/parked-compare-{night,day}.png` |
+| 정차 입력 | **일치** (#54, #55) | 2열, 오류는 해당 칸 아래 `StatusChip`, `imePadding`. 에뮬레이터 `shots/after/parked-input-{night,day}.png` |
+| 충전 활동·폴백·동의 | **코드 반영, 캡처 미실시** (#54) | 폭 제한·위계·버튼 배치. 에뮬레이터 재캡처는 하지 않았다 |
+| 앱 셸 탭 | **일치** (#54, #55) | FlowRow 줄바꿈, "측정 동의"는 마지막 버튼 |
+| 음성 바 | **일치** (#52) | 주행 중 한 줄 `VoiceHint`, 정차에서는 숨김 |
+| 핸드오프 화면 | **미검증** | 스크린샷 테스트 없음(후속 필요) |
+
+한계: 충전/폴백/동의의 Day 모드, Figma Day 프레임((c) 화면)은 만들지 않았다.
