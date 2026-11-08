@@ -5,7 +5,8 @@ import ai.familystop.core.designsystem.AppButton
 import ai.familystop.core.designsystem.AppTextField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -55,42 +56,54 @@ fun ChargingActivityScreen(
             if (!autoCharging && it is ChargeInfo.Auto) ChargeInfo.Manual(it.endsAt) else it
         }
 
-    Column(
+    Column(modifier.fillMaxSize().padding(App.space.lg), verticalArrangement = Gap) {
         // 줄 길이 제한(0.6f): 넓은 화면에서 한 줄이 끝없이 늘어나지 않게
-        modifier.fillMaxHeight().fillMaxWidth(0.6f)
-            .verticalScroll(rememberScrollState()).padding(App.space.lg),
-        verticalArrangement = Gap
-    ) {
-        if (autoChargeEndsAt == null) {
-            Text("충전 정보를 차량에서 받지 못했어요(자동 확인 아님). 남은 충전 시간을 직접 입력해 주세요.")
-            AppTextField(
-                minutesText,
-                {
-                    minutesText = it.filter(Char::isDigit).take(3)
-                    manualEndsAt = manualEnd(minutesText, now)
-                },
-                "충전 종료까지 남은 분 (직접 입력)"
-            )
-        } else {
-            Text("충전 종료 예상은 차량에서 자동 확인했어요.")
-        }
-
-        if (!autoCharging && !started) {
-            Text("충전 시작을 확인하지 못했어요(자동 확인 아님). 충전을 시작했다면 눌러 주세요.")
-            AppButton("충전 시작했어요", { started = true }, Modifier.fillMaxWidth())
-            return@Column
-        }
-        if (!autoCharging) Text("충전 시작은 직접 확인한 값이에요(자동 확인 아님).")
-
-        if (candidates.isEmpty()) Text("주변에 확인된 식사·간식·휴식 후보가 없어요.")
-        candidates.forEach { c ->
-            Column(verticalArrangement = Arrangement.spacedBy(App.space.sm)) {
+        Column(
+            Modifier.weight(1f).fillMaxWidth(0.6f).verticalScroll(rememberScrollState()),
+            verticalArrangement = Gap
+        ) {
+            if (autoChargeEndsAt == null) {
                 Text(
-                    "${c.kind.label} · ${c.name}",
+                    "충전 정보를 차량에서 받지 못했어요. 남은 시간을 직접 입력해 주세요.",
                     style = App.type.stopTitle
                 )
-                Text("왕복 ${c.roundTripMin}분 · 활동 ${c.activityMin}분")
-                Text(assess(c, charge, now).message())
+                AppTextField(
+                    minutesText,
+                    {
+                        minutesText = it.filter(Char::isDigit).take(3)
+                        manualEndsAt = manualEnd(minutesText, now)
+                    },
+                    "충전 종료까지 남은 분 (직접 입력)"
+                )
+            } else {
+                Text("충전 종료 예상은 차량에서 자동 확인했어요.", style = App.type.stopTitle)
+            }
+
+            if (!autoCharging && !started) {
+                Text(
+                    "충전을 시작했다면 아래 버튼을 눌러 주세요. 자동 확인한 값이 아니에요.",
+                    color = App.colors.textSecondary
+                )
+            } else {
+                if (!autoCharging) Text("충전 시작은 직접 확인한 값이에요(자동 확인 아님).")
+                if (candidates.isEmpty()) Text("주변에 확인된 식사·간식·휴식 후보가 없어요.")
+                candidates.forEach { c ->
+                    Column(verticalArrangement = Arrangement.spacedBy(App.space.sm)) {
+                        Text("${c.kind.label} · ${c.name}", style = App.type.stopTitle)
+                        Text("왕복 ${c.roundTripMin}분 · 활동 ${c.activityMin}분")
+                        Text(assess(c, charge, now).message())
+                    }
+                }
+            }
+        }
+        // 주 행동은 하단 우측 고정(Figma ActionBar)
+        if (!autoCharging && !started) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(App.space.lg)
+            ) {
+                Spacer(Modifier.weight(1.8f))
+                AppButton("충전 시작했어요", { started = true }, Modifier.weight(1f))
             }
         }
     }

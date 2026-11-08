@@ -15,6 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import java.time.LocalDateTime
 import org.junit.Rule
@@ -24,12 +26,18 @@ import org.junit.Test
 class ParkedScreensScreenshotTest {
     @get:Rule val rule = createComposeRule()
 
-    private fun shot(name: String, night: Boolean, content: @Composable () -> Unit) {
+    private fun shot(
+        name: String,
+        night: Boolean,
+        content: @Composable () -> Unit,
+        act: () -> Unit = {}
+    ) {
         rule.setContent {
             AppTheme(night = night) {
                 Box(Modifier.size(1680.dp, 950.dp).testTag("shot")) { content() }
             }
         }
+        act()
         rule.waitForIdle()
         rule.onNodeWithTag("shot").saveShot(name)
     }
@@ -66,4 +74,10 @@ class ParkedScreensScreenshotTest {
     @Test fun consentNight() = shot("parked-consent-night", true, consent)
 
     @Test fun consentDay() = shot("parked-consent-day", false, consent)
+
+    private val pickDriver: () -> Unit = { rule.onNodeWithText("저는 운전자 본인이에요").performClick() }
+
+    @Test fun consentDriverNight() = shot("parked-consent-driver-night", true, consent, pickDriver)
+
+    @Test fun consentDriverDay() = shot("parked-consent-driver-day", false, consent, pickDriver)
 }
