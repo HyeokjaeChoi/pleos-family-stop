@@ -33,17 +33,18 @@ sealed interface HandoffState {
 
 /**
  * 선택한 정차 지점을 경유지로 넘기는 흐름 (F-JTGAFQ, ADR-0003). 메인 스레드 전용.
- * 이 컨트롤러가 넣은 경유지만 안다 — 내비 UI에서 사용자가 직접 넣은 경유지는 모른다(포트에 조회가 없음).
+ * [held]에 기록된 경유지만 안다 — 내비 UI에서 사용자가 직접 넣은 경유지는 모른다(포트에 조회가 없음).
  */
 class HandoffController(
     private val scope: CoroutineScope,
     private val navi: NaviGateway,
-    private val undoGraceMs: Long = UNDO_GRACE_MS
+    private val undoGraceMs: Long = UNDO_GRACE_MS,
+    // 주행 카드 흐름과 공유하는 경유지 기록(#42). 앱 셸이 두 흐름의 성공 add/remove를 모두 여기에 남긴다.
+    private val held: MutableList<StopPlace> = mutableListOf()
 ) {
     private val _state = MutableStateFlow<HandoffState>(HandoffState.Idle)
     val state: StateFlow<HandoffState> = _state
 
-    private val held = mutableListOf<StopPlace>()
     private var seq = 0
 
     // 끝나지 않은 게이트웨이 요청 수. 비교 복귀로 화면이 풀려도 0이 될 때까지 새 선택을 받지 않아

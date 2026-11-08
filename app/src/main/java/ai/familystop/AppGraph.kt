@@ -52,5 +52,5 @@ class AppGraph(context: Context) {
         (recommend.state.value as? RecommendState.Success)
             ?.candidates?.firstOrNull { it.place == place }
     }
-    val handoff = HandoffController(scope, shellNavi)
+    val handoff = HandoffController(scope, shellNavi, held = shellNavi.held)
 }
