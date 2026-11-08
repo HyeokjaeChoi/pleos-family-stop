@@ -5,18 +5,25 @@ import ai.familystop.core.StopPlace
 import ai.familystop.core.designsystem.App
 import ai.familystop.core.designsystem.AppButton
 import ai.familystop.core.designsystem.AppCard
+import ai.familystop.core.designsystem.AppIcons
+import ai.familystop.core.designsystem.EmptyState
 import ai.familystop.core.designsystem.Status
 import ai.familystop.core.designsystem.StatusChip
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -33,11 +40,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import kotlinx.coroutines.delay
 
-/** [chip]은 상태를 항상 아이콘+문구 한 쌍으로만 받는다. A stop candidate shown as one large card; [summary] is 1~3 short lines (DESIGN.md 8절). */
+/**
+ * [chip]은 상태를 항상 아이콘+문구 한 쌍으로만 받는다. A stop candidate shown as one large card:
+ * [metrics] are (value, label) pairs shown big, [summary] is 1~2 short lines (DESIGN.md 8절).
+ */
 data class DriveCandidate(
     val place: StopPlace,
     val summary: String,
-    val chip: Pair<Status, String>? = null
+    val chip: Pair<Status, String>? = null,
+    val metrics: List<Pair<String, String>> = emptyList()
 )
 
 /** Input draft that survives driving <-> parked switches and Activity recreation (F-OAXFEH). */
@@ -60,6 +71,8 @@ fun DriveScreen(
     navi: NaviGateway,
     movement: MovementSignalSource,
     modifier: Modifier = Modifier,
+    sourceLabel: String? = null,
+    footer: @Composable () -> Unit = {},
     parkedContent: @Composable (InputDraft) -> Unit = {}
 ) {
     val draft = rememberSaveable(saver = DraftSaver) { InputDraft() }
@@ -74,6 +87,8 @@ fun DriveScreen(
         movement.start { state, reason -> reading = tracker.onSignal(state, reason, nowMs()) }
         onDispose { movement.stop() }
     }
+    // A fresh Undoable must not read the 250 ms-old clock (it showed 11 s for the first frame).
+    LaunchedEffect(picker.state) { now = nowMs() }
     LaunchedEffect(picker) {
         while (true) {
             delay(250)
@@ -88,42 +103,63 @@ fun DriveScreen(
             parkedContent(draft)
             return@Box
         }
-        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(App.space.lg)) {
-            if (reading.state == MovementState.UNKNOWN) {
-                Text(
-                    "이동 상태 미확인 · 주행 중 제한 적용",
-                    style = App.type.driveBody,
-                    color = App.colors.textSecondary
-                )
-            }
+        Column(Modifier.fillMaxSize()) {
             if (candidates.isEmpty()) {
-                Text(
-                    "정차 후 입력하면 추천 후보가 여기에 나타나요",
-                    style = App.type.driveBody,
-                    color = App.colors.textSecondary
+                EmptyState(
+                    "아직 추천 후보가 없어요",
+                    "정차 후 목적지를 입력하면 후보가 여기에 나타나요",
+                    Modifier.weight(1f).fillMaxWidth()
                 )
-            }
-            val locked = picker.state !is PickState.Idle && picker.state !is PickState.Failed
-            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(App.space.lg)) {
-                candidates.take(2).forEach { c ->
-                    CandidateCard(c, !locked, Modifier.weight(1f).fillMaxSize()) {
-                        picker.pick(c.place)
+            } else {
+                // Content is centred in the free height instead of hugging the top-left (#50 D1/D2).
+                Spacer(Modifier.weight(1f))
+                Column(verticalArrangement = Arrangement.spacedBy(App.space.xl)) {
+                    DriveHeader(sourceLabel)
+                    if (reading.state == MovementState.UNKNOWN) {
+                        StatusChip(Status.Unknown, "이동 상태 미확인 · 주행 중 제한 적용")
                     }
+                    val locked =
+                        picker.state !is PickState.Idle && picker.state !is PickState.Failed
+                    val adding = (picker.state as? PickState.Adding)?.place
+                    Row(
+                        Modifier.height(IntrinsicSize.Max),
+                        horizontalArrangement = Arrangement.spacedBy(App.space.lg)
+                    ) {
+                        candidates.take(2).forEach { c ->
+                            CandidateCard(
+                                c,
+                                enabled = !locked,
+                                busy = adding == c.place,
+                                modifier = Modifier.weight(1f).fillMaxHeight()
+                            ) { picker.pick(c.place) }
+                        }
+                    }
+                    StatusSlot(picker.state, now) { picker.undo() }
                 }
+                Spacer(Modifier.weight(1f))
             }
-            when (val s = picker.state) {
-                is PickState.Undoable -> UndoBar(s, now) { picker.undo() }
-                is PickState.Failed -> Text(
-                    s.message,
-                    style = App.type.driveBody,
-                    color = App.colors.statusDanger
-                )
-                is PickState.Done -> StatusChip(
-                    if (s.note != null) Status.Danger else Status.Ok,
-                    s.note ?: "${s.place.name} 경유지 추가됨"
-                )
-                else -> Unit
-            }
+            footer()
+        }
+    }
+}
+
+@Composable
+private fun DriveHeader(sourceLabel: String?) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(App.space.md)
+    ) {
+        Icon(
+            AppIcons.EvStation,
+            contentDescription = null,
+            tint = App.colors.textPrimary,
+            modifier = Modifier.size(App.icon.primary)
+        )
+        Text("다음 충전 정차", style = App.type.driveTitle, color = App.colors.textPrimary)
+        Spacer(Modifier.weight(1f))
+        // ADR-0001: demo data must be labelled on screen.
+        if (sourceLabel != null) {
+            Text(sourceLabel, style = App.type.stopBody, color = App.colors.textSecondary)
         }
     }
 }
@@ -132,25 +168,83 @@ fun DriveScreen(
 private fun CandidateCard(
     c: DriveCandidate,
     enabled: Boolean,
+    busy: Boolean,
     modifier: Modifier,
     onPick: () -> Unit
 ) {
-    AppCard(modifier, onClick = onPick, enabled = enabled) {
-        Text(
-            c.place.name,
-            style = App.type.driveTitle,
-            color = App.colors.textPrimary,
-            maxLines = 2
-        )
-        Text(
-            c.summary,
-            style = App.type.driveBody,
-            color = App.colors.textSecondary,
-            maxLines = 3
-        )
-        c.chip?.let { (status, text) -> StatusChip(status, text) }
+    AppCard(modifier, onClick = onPick, enabled = enabled, spacing = App.space.lg) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(App.space.lg)
+        ) {
+            Text(
+                c.place.name,
+                style = App.type.driveTitle,
+                color = App.colors.textPrimary,
+                maxLines = 2,
+                modifier = Modifier.weight(1f)
+            )
+            c.chip?.let { (status, text) -> StatusChip(status, text) }
+        }
+        if (c.metrics.isNotEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(App.space.xl)) {
+                c.metrics.forEach { (value, label) ->
+                    Column {
+                        Text(value, style = App.type.driveTitle, color = App.colors.textPrimary)
+                        Text(label, style = App.type.stopBody, color = App.colors.textSecondary)
+                    }
+                }
+            }
+        }
+        Text(c.summary, style = App.type.driveBody, color = App.colors.textSecondary, maxLines = 2)
         Spacer(Modifier.weight(1f))
-        AppButton("경유지로 추가", null, Modifier.fillMaxWidth(), enabled = enabled, large = true)
+        AppButton(
+            if (busy) "추가하는 중…" else "경유지로 추가",
+            null,
+            Modifier.fillMaxWidth(),
+            enabled = enabled || busy,
+            large = true,
+            icon = AppIcons.AddLocationAlt,
+            background = if (enabled || busy) null else App.colors.bgRaised
+        )
+    }
+}
+
+/** Fixed-height slot so showing/hiding a status never moves the cards (#50 D6). */
+@Composable
+private fun StatusSlot(state: PickState, now: Long, onUndo: () -> Unit) {
+    Box(Modifier.fillMaxWidth().height(App.statusSlot), contentAlignment = Alignment.CenterStart) {
+        when (state) {
+            is PickState.Undoable -> UndoBar(state, now, onUndo)
+            is PickState.Failed -> StatusBar(Status.Danger, "추가 실패", state.message)
+            is PickState.Done ->
+                if (state.note != null) {
+                    StatusBar(Status.Danger, "확인 필요", state.note)
+                } else {
+                    StatusChip(Status.Ok, "${state.place.name} 경유지 추가됨")
+                }
+            else -> Unit
+        }
+    }
+}
+
+@Composable
+private fun StatusBar(status: Status, chip: String, message: String) {
+    Row(
+        Modifier.fillMaxSize()
+            .clip(RoundedCornerShape(App.radius.md))
+            .background(App.colors.bgRaised)
+            .padding(horizontal = App.space.xl),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(App.space.lg)
+    ) {
+        StatusChip(status, chip)
+        Text(
+            message,
+            style = App.type.driveBody,
+            color = App.colors.textPrimary,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
@@ -158,19 +252,26 @@ private fun CandidateCard(
 private fun UndoBar(s: PickState.Undoable, now: Long, onUndo: () -> Unit) {
     val sec = ((s.expiresAtMs - now + 999) / 1000).coerceAtLeast(0)
     Row(
-        Modifier.fillMaxWidth()
+        Modifier.fillMaxSize()
             .clip(RoundedCornerShape(App.radius.md))
-            .background(App.colors.bgSurface)
-            .padding(horizontal = App.space.lg),
+            .background(App.colors.bgRaised)
+            .padding(horizontal = App.space.xl),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(App.space.lg)
     ) {
         Text(
-            "${s.place.name} 경유지로 추가했습니다",
-            style = App.type.driveBody,
+            "경유지로 추가했어요 · ${s.place.name} · ${sec}초 안에 취소할 수 있어요",
+            style = App.type.driveBody.copy(fontFeatureSettings = "tnum"),
             color = App.colors.textPrimary,
             modifier = Modifier.weight(1f)
         )
-        AppButton("취소 (${sec}초)", onUndo, large = true)
+        AppButton(
+            "취소",
+            onUndo,
+            primary = false,
+            large = true,
+            icon = AppIcons.Undo,
+            background = App.colors.bgSurface
+        )
     }
 }

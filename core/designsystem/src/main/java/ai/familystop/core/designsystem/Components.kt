@@ -3,7 +3,6 @@ package ai.familystop.core.designsystem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -31,6 +30,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /** 상태 4종. 아이콘 + 문구 + 색 3중으로 표시하고 색만으로 구분하지 않는다(DESIGN.md 6절). */
@@ -70,6 +70,7 @@ fun AppCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,
+    spacing: Dp = App.space.md,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Column(
@@ -84,12 +85,15 @@ fun AppCard(
                 }
             )
             .padding(App.space.lg),
-        verticalArrangement = Arrangement.spacedBy(App.space.md),
+        verticalArrangement = Arrangement.spacedBy(spacing),
         content = content
     )
 }
 
-/** 큰 버튼: 높이 ≥ 76dp. [onClick]이 null이면 표시용(부모 카드가 탭을 받음, 포커스 대상 하나만 유지). [large]는 주행 중 글자(drive/body), 아니면 stop/body. */
+/**
+ * 큰 버튼: 높이 ≥ 76dp. [onClick]이 null이면 표시용(부모 카드가 탭을 받음, 포커스 대상 하나만 유지).
+ * [large]는 주행 중 글자(drive/body), 아니면 stop/body. [icon]은 문구 앞 36dp, [background]는 면 색 덮어쓰기(raised 위 버튼 등).
+ */
 @Composable
 fun AppButton(
     label: String,
@@ -97,16 +101,18 @@ fun AppButton(
     modifier: Modifier = Modifier,
     primary: Boolean = true,
     enabled: Boolean = true,
-    large: Boolean = false
+    large: Boolean = false,
+    icon: ImageVector? = null,
+    background: Color? = null
 ) {
     val c = App.colors
-    val bg = if (primary && enabled) c.accentPrimary else c.bgRaised
+    val bg = background ?: if (primary && enabled) c.accentPrimary else c.bgRaised
     val fg = when {
         !enabled -> c.textSecondary
         primary -> c.accentOn
         else -> c.textPrimary
     }
-    Box(
+    Row(
         modifier
             .heightIn(min = App.touchMin)
             .clip(RoundedCornerShape(App.radius.md))
@@ -119,9 +125,37 @@ fun AppButton(
                 }
             )
             .padding(horizontal = App.space.lg),
-        contentAlignment = Alignment.Center
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(App.space.sm, Alignment.CenterHorizontally)
     ) {
+        if (icon != null && enabled) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = fg,
+                modifier = Modifier.size(App.icon.secondary)
+            )
+        }
         Text(label, style = if (large) App.type.driveBody else App.type.stopBody, color = fg)
+    }
+}
+
+/** 빈 상태(DESIGN.md 7절): 아이콘 + 제목 + 안내 한 줄. 가운데 정렬로 면을 채운다. */
+@Composable
+fun EmptyState(title: String, body: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier,
+        verticalArrangement = Arrangement.spacedBy(App.space.lg, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            HelpIcon,
+            contentDescription = null,
+            tint = App.colors.statusUnknown,
+            modifier = Modifier.size(App.icon.primary)
+        )
+        Text(title, style = App.type.driveTitle, color = App.colors.textPrimary)
+        Text(body, style = App.type.driveBody, color = App.colors.textSecondary)
     }
 }
 
@@ -225,7 +259,7 @@ private val CancelIcon: ImageVector by lazy {
     }.build()
 }
 
-private val HelpIcon: ImageVector by lazy {
+internal val HelpIcon: ImageVector by lazy {
     ImageVector.Builder("Help", 24.dp, 24.dp, 24f, 24f).apply {
         path(fill = SolidColor(Color.Black)) {
             moveTo(12f, 2f)

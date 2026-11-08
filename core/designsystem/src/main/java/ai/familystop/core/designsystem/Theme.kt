@@ -119,6 +119,9 @@ object App {
 
     /** 터치 대상 최소 크기(DESIGN.md 4절, 공식 76×76dp). */
     val touchMin = 76.dp
+
+    /** 상태 줄(UndoBar·실패 안내) 고정 높이: 표시·사라짐에도 카드가 움직이지 않게 예약한다. */
+    val statusSlot = 108.dp
 }
 
 /**
