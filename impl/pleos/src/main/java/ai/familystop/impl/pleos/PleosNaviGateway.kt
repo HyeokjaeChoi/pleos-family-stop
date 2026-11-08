@@ -184,6 +184,7 @@ class PleosNaviGateway(context: Context) : NaviGateway {
     }
 
     private companion object {
-        const val REQUEST_TIMEOUT_MS = 5_000L
+        // Emulator re-route after addWaypoint takes 5~9 s before onWaypointChanged (docs/agents/emulator.md §6).
+        const val REQUEST_TIMEOUT_MS = 15_000L
     }
 }
