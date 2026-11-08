@@ -76,10 +76,11 @@ fun TripInputScreen(
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Gap) {
             Column(Modifier.weight(1f), verticalArrangement = Gap) {
+                // 오류는 해당 입력칸 바로 아래에 상태 칩으로(아이콘+문구, 색만으로 구분하지 않음).
                 AppTextField(d.destination, { d = d.copy(destination = it) }, "목적지")
+                ErrorChips(errors, InputError.DESTINATION_MISSING)
                 AppTextField(d.timeText, { d = d.copy(timeText = it) }, "도착 희망 시간 (예: 13:30)")
-                // 오류는 입력칸 바로 아래에 상태 칩으로(아이콘+문구, 색만으로 구분하지 않음).
-                errors.forEach { StatusChip(Status.Danger, it.message) }
+                ErrorChips(errors, InputError.TIME_INVALID, InputError.TIME_PAST)
 
                 Text("정차에서 필요한 것", style = App.type.stopTitle)
                 FlowRow(horizontalArrangement = Gap, verticalArrangement = Gap) {
@@ -113,6 +114,7 @@ fun TripInputScreen(
                         { d = d.copy(manualSocText = it.filter(Char::isDigit).take(3)) },
                         "배터리 잔량 % (직접 입력)"
                     )
+                    ErrorChips(errors, InputError.SOC_RANGE)
                 }
                 Text(
                     when (val soc = resolveSoc(autoSocPercent, manual)) {
@@ -139,4 +141,9 @@ fun TripInputScreen(
             Modifier.fillMaxWidth(0.5f).align(Alignment.End)
         )
     }
+}
+
+@Composable
+private fun ErrorChips(errors: List<InputError>, vararg only: InputError) {
+    errors.filter { it in only }.forEach { StatusChip(Status.Danger, it.message) }
 }
