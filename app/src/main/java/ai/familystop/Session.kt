@@ -27,16 +27,14 @@ class Session(private val metrics: MetricsCollector) {
     var trip by mutableStateOf<TripInput?>(null)
     var locating by mutableStateOf(false)
     var fallback by mutableStateOf<FallbackCause?>(null)
-    var picked by mutableStateOf<StopCandidate?>(null)
     var consented by mutableStateOf(false)
     var locateJob: Job? = null
     var announced: Any? = null // last recommendation read aloud
 
     val charging get() = trip?.chargeNeed == ChargeNeed.YES
 
-    /** Waypoint accepted by the navigation app (from the parked list or the driving cards). */
+    /** Waypoint accepted by the navigation app (from the handoff flow or the driving cards). */
     fun onWaypointAdded(c: StopCandidate) {
-        picked = c
         if (charging) step = Step.ACTIVITY
         metrics.record(
             TripMetrics(

@@ -4,7 +4,6 @@ import ai.familystop.core.DataSource
 import ai.familystop.core.NaviGateway
 import ai.familystop.core.StopCandidate
 import ai.familystop.core.StopNeed
-import ai.familystop.core.StopPlace
 import ai.familystop.core.StopRequest
 import ai.familystop.feature.activity.ActivityCandidate
 import ai.familystop.feature.activity.ActivityKind
@@ -16,6 +15,7 @@ import ai.familystop.feature.fallback.Capability
 import ai.familystop.feature.fallback.DataFailure
 import ai.familystop.feature.fallback.FallbackCard
 import ai.familystop.feature.fallback.FallbackCause
+import ai.familystop.feature.handoff.HandoffScreen
 import ai.familystop.feature.input.TripInput
 import ai.familystop.feature.input.TripInputScreen
 import ai.familystop.feature.metrics.ConsentScreen
@@ -24,7 +24,6 @@ import ai.familystop.feature.recommend.RecommendScreen
 import ai.familystop.feature.recommend.RecommendState
 import ai.familystop.feature.recommend.driveCards
 import ai.familystop.feature.voice.VoiceBar
-import ai.familystop.feature.voice.VoiceGuide
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -53,27 +52,6 @@ import java.time.LocalDateTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/** Announces the result of every waypoint change and reports successes to the [Session]. */
-private class ShellNavi(
-    private val inner: NaviGateway,
-    private val guide: VoiceGuide,
-    private val session: Session,
-    private val candidateOf: (StopPlace) -> StopCandidate?
-) : NaviGateway {
-    override fun addWaypoint(place: StopPlace, onResult: (Result<Unit>) -> Unit) =
-        inner.addWaypoint(place) { r ->
-            guide.announceResult(place, r.isSuccess)
-            if (r.isSuccess) candidateOf(place)?.let(session::onWaypointAdded)
-            onResult(r)
-        }
-
-    override fun removeWaypoint(place: StopPlace, onResult: (Result<Unit>) -> Unit) =
-        inner.removeWaypoint(place) { r ->
-            if (r.isSuccess && session.picked?.place == place) session.picked = null
-            onResult(r)
-        }
-}
-
 private fun StopCandidate.driveCard() = DriveCandidate(
     place,
     "$reason\n+${extraMinutes}분 · ${"%.1f".format(detourKm)}km · ${
@@ -88,14 +66,7 @@ fun AppRoot(graph: AppGraph) {
     val rec by graph.recommend.state.collectAsState()
     var soc by remember { mutableStateOf<Int?>(null) }
     val movement = remember { CarUxMovementSource(context) }
-    // Stable instance: DriveScreen keys its PickController (and the 10 s undo) on this object.
-    val navi = remember {
-        ShellNavi(graph.navi, graph.guide, s) { place ->
-            (graph.recommend.state.value as? RecommendState.Success)
-                ?.candidates?.firstOrNull { it.place == place }
-        }
-    }
-
+    val navi = graph.shellNavi // stable: DriveScreen keys its PickController (10 s undo) on it
     DisposableEffect(Unit) {
         graph.energy.start { soc = it }
         onDispose { graph.energy.stop() }
@@ -167,7 +138,6 @@ fun AppRoot(graph: AppGraph) {
 
     fun submit(trip: TripInput) {
         s.trip = trip
-        s.picked = null
         s.step = Step.RECOMMEND
         requestLocation()
     }
@@ -259,21 +229,19 @@ private fun Recommend(
             )
             else -> RecommendScreen(
                 state = rec,
-                onPick = { navi.addWaypoint(it) {} },
+                onPick = graph.handoff::pick,
                 onRetry = onRetry,
                 modifier = Modifier.weight(1f, fill = false)
             )
         }
-        s.picked?.let { c ->
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text("${c.place.name} 경유지로 추가했습니다")
-                OutlinedButton({
-                    navi.removeWaypoint(c.place) {}
-                }, Modifier.heightIn(min = 76.dp)) {
-                    Text("취소")
-                }
-            }
-        }
+        val handoff by graph.handoff.state.collectAsState()
+        HandoffScreen(
+            handoff,
+            onReplace = graph.handoff::replace,
+            onRetry = graph.handoff::retry,
+            onBack = graph.handoff::backToCompare,
+            onUndo = graph.handoff::undo
+        )
     }
 }
 

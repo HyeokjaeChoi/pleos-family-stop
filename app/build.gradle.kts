@@ -25,6 +25,7 @@ dependencies {
     implementation(project(":feature:fallback"))
     implementation(project(":feature:metrics"))
     implementation(project(":feature:activity"))
+    implementation(project(":feature:handoff"))
     implementation(project(":feature:recommend"))
     implementation(project(":feature:voice"))
     implementation(project(":impl:pleos"))

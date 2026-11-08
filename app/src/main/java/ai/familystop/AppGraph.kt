@@ -5,9 +5,11 @@ import ai.familystop.core.LocationSource
 import ai.familystop.core.NaviGateway
 import ai.familystop.core.VehicleEnergySource
 import ai.familystop.core.VoiceOutput
+import ai.familystop.feature.handoff.HandoffController
 import ai.familystop.feature.metrics.FileMetricsStore
 import ai.familystop.feature.metrics.MetricsCollector
 import ai.familystop.feature.recommend.RecommendController
+import ai.familystop.feature.recommend.RecommendState
 import ai.familystop.feature.recommend.parseFacilities
 import ai.familystop.feature.voice.VoiceGuide
 import ai.familystop.impl.platform.PlatformLocationSource
@@ -44,4 +46,11 @@ class AppGraph(context: Context) {
     val recommend = RecommendController(scope, facilities)
     val guide = VoiceGuide(voice)
     val session = Session(metrics)
+
+    /** Navi seen by every screen: voice result + metrics on each successful add. */
+    val shellNavi = ShellNavi(navi, guide, session) { place ->
+        (recommend.state.value as? RecommendState.Success)
+            ?.candidates?.firstOrNull { it.place == place }
+    }
+    val handoff = HandoffController(scope, shellNavi)
 }
