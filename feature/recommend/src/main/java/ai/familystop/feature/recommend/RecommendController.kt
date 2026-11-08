@@ -76,7 +76,7 @@ class RecommendController(
                 if (e !is TimeoutCancellationException) throw e
                 RecommendState.Failed("시설 정보를 받지 못했어요. 다시 시도해 주세요.")
             } catch (e: Exception) {
-                onError(e)
+                runCatching { onError(e) } // 콜백 실패가 상태 게시를 막지 않게 한다
                 RecommendState.Failed("시설 정보를 불러오지 못했어요. 다시 시도해 주세요.", e)
             }
             publish(mine, result)
