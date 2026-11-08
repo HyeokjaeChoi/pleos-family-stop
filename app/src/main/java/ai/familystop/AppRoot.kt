@@ -35,7 +35,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -55,10 +54,9 @@ import kotlinx.coroutines.launch
 
 private fun StopCandidate.driveCard() = DriveCandidate(
     place,
-    "$reason\n+${extraMinutes}분 · ${"%.1f".format(detourKm)}km · ${
-        if (source == DataSource.VIRTUAL) "가상 데이터" else "실제 데이터"
-    }",
-    if (missed.isEmpty()) Status.Ok to "필요 조건 충족" else Status.Danger to "일부 미충족"
+    reason,
+    if (missed.isEmpty()) Status.Ok to "필요 조건 충족" else Status.Danger to "일부 미충족",
+    listOf("+${extraMinutes}분" to "도착 지연", "${"%.1f".format(detourKm)}km" to "우회 거리")
 )
 
 @Composable
@@ -148,16 +146,15 @@ fun AppRoot(graph: AppGraph) {
         requestLocation()
     }
 
-    Column(Modifier.fillMaxSize()) {
-        DriveScreen(
-            candidates = rec.driveCards().map { it.driveCard() },
-            navi = navi,
-            movement = movement,
-            modifier = Modifier.weight(1f)
-        ) {
-            Parked(graph, rec, soc, navi, ::submit, ::requestLocation, holder)
-        }
-        VoiceBar(graph.guide, Modifier.padding(App.space.lg))
+    val cards = rec.driveCards()
+    DriveScreen(
+        candidates = cards.map { it.driveCard() },
+        navi = navi,
+        movement = movement,
+        sourceLabel = if (cards.any { it.source == DataSource.VIRTUAL }) "가상 데이터(시연)" else null,
+        footer = { VoiceBar(graph.guide) }
+    ) {
+        Parked(graph, rec, soc, navi, ::submit, ::requestLocation, holder)
     }
 }
 
