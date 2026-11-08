@@ -32,4 +32,6 @@ jobs:
       - if: steps.changes.outputs.code == 'true'
         uses: gradle/actions/setup-gradle@v4
       - if: steps.changes.outputs.code == 'true'
+        run: scripts/check-design-tokens.sh
+      - if: steps.changes.outputs.code == 'true'
         run: ./gradlew ktlintCheck testDebugUnitTest assembleDebug

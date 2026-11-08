@@ -5,6 +5,8 @@ import ai.familystop.core.NaviGateway
 import ai.familystop.core.StopCandidate
 import ai.familystop.core.StopNeed
 import ai.familystop.core.StopRequest
+import ai.familystop.core.designsystem.App
+import ai.familystop.core.designsystem.AppButton
 import ai.familystop.feature.activity.ActivityCandidate
 import ai.familystop.feature.activity.ActivityKind
 import ai.familystop.feature.activity.ChargingActivityScreen
@@ -32,10 +34,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -49,7 +48,6 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import java.time.LocalDateTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -157,7 +155,7 @@ fun AppRoot(graph: AppGraph) {
         ) {
             Parked(graph, rec, soc, navi, ::submit, ::requestLocation, holder)
         }
-        VoiceBar(graph.guide, Modifier.padding(24.dp))
+        VoiceBar(graph.guide, Modifier.padding(App.space.lg))
     }
 }
 
@@ -179,15 +177,10 @@ private fun Parked(
             now = LocalDateTime.now()
         }
     }
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(App.space.lg)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(App.space.lg)) {
             Step.entries.filter { it != Step.ACTIVITY || s.charging }.forEach { step ->
-                val m = Modifier.heightIn(min = 76.dp)
-                if (s.step == step) {
-                    Button({ s.step = step }, m) { Text(step.label) }
-                } else {
-                    OutlinedButton({ s.step = step }, m) { Text(step.label) }
-                }
+                AppButton(step.label, { s.step = step }, primary = s.step == step)
             }
         }
         // Keeps each step's typed-in state while driving removes the parked UI from composition.
@@ -231,7 +224,7 @@ private fun Recommend(
     onRetry: () -> Unit
 ) {
     val s = graph.session
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(App.space.lg)) {
         val cause = s.fallback
         when {
             s.locating -> Text("현재 위치를 확인하는 중…")
