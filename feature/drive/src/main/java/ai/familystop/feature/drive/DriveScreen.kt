@@ -149,7 +149,7 @@ private fun CandidateCard(
             maxLines = 3,
             modifier = Modifier.weight(1f)
         )
-        AppButton("경유지로 추가", onPick, Modifier.fillMaxWidth(), enabled = enabled, large = true)
+        AppButton("경유지로 추가", null, Modifier.fillMaxWidth(), enabled = enabled, large = true)
     }
 }
 

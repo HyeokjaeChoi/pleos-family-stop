@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -88,11 +89,11 @@ fun AppCard(
     )
 }
 
-/** 큰 버튼: 높이 ≥ 76dp. [large]는 주행 중 글자(drive/body), 아니면 stop/body. */
+/** 큰 버튼: 높이 ≥ 76dp. [onClick]이 null이면 표시용(부모 카드가 탭을 받음, 포커스 대상 하나만 유지). [large]는 주행 중 글자(drive/body), 아니면 stop/body. */
 @Composable
 fun AppButton(
     label: String,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     primary: Boolean = true,
     enabled: Boolean = true,
@@ -110,7 +111,13 @@ fun AppButton(
             .heightIn(min = App.touchMin)
             .clip(RoundedCornerShape(App.radius.md))
             .background(bg)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+                } else {
+                    Modifier
+                }
+            )
             .padding(horizontal = App.space.lg),
         contentAlignment = Alignment.Center
     ) {
@@ -133,7 +140,13 @@ fun AppToggleChip(
             .heightIn(min = App.touchMin)
             .clip(RoundedCornerShape(App.radius.md))
             .background(if (selected) c.accentPrimary else c.bgRaised)
-            .toggleable(selected, role = role, onValueChange = { onClick() })
+            .then(
+                if (role == Role.RadioButton) {
+                    Modifier.selectable(selected, role = role, onClick = onClick)
+                } else {
+                    Modifier.toggleable(selected, role = role, onValueChange = { onClick() })
+                }
+            )
             .padding(horizontal = App.space.lg),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(App.space.sm)

@@ -32,7 +32,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -178,7 +178,10 @@ private fun Parked(
         }
     }
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(App.space.lg)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(App.space.lg)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(App.space.lg),
+            verticalArrangement = Arrangement.spacedBy(App.space.lg)
+        ) {
             Step.entries.filter { it != Step.ACTIVITY || s.charging }.forEach { step ->
                 AppButton(step.label, { s.step = step }, primary = s.step == step)
             }

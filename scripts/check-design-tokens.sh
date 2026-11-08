@@ -4,7 +4,9 @@
 set -u
 cd "$(dirname "$0")/.."
 pat='Color\(0x|[0-9]\.sp\b|[0-9]\.dp\b|fontSize *=|isSystemInDarkTheme|MaterialTheme|androidx\.compose\.material3\.(Button|OutlinedButton|FilterChip|OutlinedTextField|Card)\b'
-hits=$(grep -rnE "$pat" --include='*.kt' feature/*/src/main app/src/main || true)
+[ -d app/src/main ] || { echo "app/src/main missing: gate would scan nothing" >&2; exit 2; }
+hits=$(grep -rnE "$pat" --include='*.kt' feature/*/src/main app/src/main); rc=$?
+[ "$rc" -le 1 ] || { echo "grep failed (rc=$rc)" >&2; exit 2; }
 if [ -n "$hits" ]; then
   echo "Hardcoded design values found. Use App.colors / App.type / App.space / App.radius / App.icon and the designsystem components:"
   echo "$hits"
