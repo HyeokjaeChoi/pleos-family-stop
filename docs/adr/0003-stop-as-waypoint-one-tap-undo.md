@@ -13,4 +13,4 @@
 - 화면 탭으로는 운전자와 동승자를 구분할 수 없어 누가 눌러도 같게 반영된다.
 - 주행 중 화면은 AAOS `distractionOptimized` Activity여야 한다.
 - 취소 유예 10초는 시연하며 조정한다.
-- `addWaypoint` 후 원 목적지가 유지되는지는 에뮬레이터 실측으로 확정한다(#1).
+- 에뮬레이터 실측(#1, `docs/agents/emulator.md` §6): `addWaypoint` 후 원 목적지는 유지된다(경유지 1·2개). 다만 재탐색 5~9초 동안 `FREE_DRIVE`·목적지 빈 값으로 흔들리므로 `onWaypointChanged` 전의 목적지 값은 신뢰하지 않는다. 이미 찬 인덱스에 add하면 오류·이벤트 없이 무시된다. 따라서 `requestRouteWithWaypoints` 대체는 필요 없다. 실차 동작은 별도 확인이 필요하다.
