@@ -7,4 +7,5 @@ android { namespace = "ai.familystop.impl.platform" }
 
 dependencies {
     implementation(project(":core:domain"))
+    testImplementation("junit:junit:4.13.2")
 }
