@@ -45,9 +45,22 @@
 | 주행 UndoBar·실패·추가 중·빈 상태 | **검증됨** (#52) | fake `NaviGateway` Compose 스크린샷 테스트(`DriveScreenshotTest`) 7건, `shots/drive-states/` |
 | 정차 추천 | **일치** (#53) | `CompareRow` 목록 + 하단 단일 버튼, `RecommendScreenshotTest`, `shots/drive-states/parked-compare-{night,day}.png` |
 | 정차 입력 | **일치** (#54, #55) | 2열, 오류는 해당 칸 아래 `StatusChip`, `imePadding`. 에뮬레이터 `shots/after/parked-input-{night,day}.png` |
-| 충전 활동·폴백·동의 | **코드 반영, 캡처 미실시** (#54) | 폭 제한·위계·버튼 배치. 에뮬레이터 재캡처는 하지 않았다 |
+| 충전 활동·폴백·동의 | **캡처 완료, 불일치 3건**(#56, 승인 후 수정) | Night/Day 캡처 `shots/parked-states/`, Figma Day 프레임 추가(아래) |
 | 앱 셸 탭 | **일치** (#54, #55) | FlowRow 줄바꿈, "측정 동의"는 마지막 버튼 |
 | 음성 바 | **일치** (#52) | 주행 중 한 줄 `VoiceHint`, 정차에서는 숨김 |
-| 핸드오프 화면 | **미검증** | 스크린샷 테스트 없음(후속 필요) |
+| 핸드오프 화면 | **검증됨** (#56) | fake `NaviGateway` + 실제 `HandoffController` 기반 `HandoffScreenshotTest` 8건(전달 중·성공·실패·교체 선택 × Night/Day), `shots/handoff/` |
 
-한계: 충전/폴백/동의의 Day 모드, Figma Day 프레임((c) 화면)은 만들지 않았다.
+
+## #56 결과 (2026-11-08)
+
+'미검증' 0건. 충전 활동·폴백·동의 Night/Day와 핸드오프 4상태 Night/Day 모두 증거 확보.
+
+- Figma Day 프레임 신규(Night 프레임 복제 + `Color` 모드 Day): 충전 활동 `22:517`, 폴백 권한 `22:530`, 측정 동의 `22:543` (Night: `21:546`, `21:569`, `21:597`). Figma 캡처 `figma/v2/{activity,fallback,consent}-{night,day}.png`.
+- 에뮬레이터 캡처: `ParkedScreensScreenshotTest`(앱 셸 탭 제외, 1680×950dp 프레임에 화면만), `scripts/capture-drive-states.sh`로 추출.
+
+| 화면 | Figma | 구현 | 불일치(수정은 `figma-done` 승인 후) |
+|---|---|---|---|
+| 폴백 | 카드 폭 ≈ 화면 60%, 본문 2줄 | 폭 ≈ 70%, 데이터 사유 줄 1개 추가("지금은 현재 위치 기준 추천을 할 수 없어요.") | ① 사유 줄 Figma에 없음 ② 카드 폭 |
+| 충전 활동 | 안내문 큰 글자(32sp 굵게), 힌트 1줄, "충전 시작했어요" 버튼 하단 우측 고정 | 안내 2줄 일반 글자, 버튼이 필드 바로 아래 전폭 | ① 안내 위계 ② 버튼 위치·폭 |
+| 측정 동의 | "저는 운전자 본인이에요" 선택 시 accent, 하단 우측에 [기록하지 않을게요][동의하고 기록] | 버튼 3개가 본문 아래 인라인, 동의 버튼은 운전자 선택 전 비활성 회색 | ① 버튼 하단 고정·주/보조 구분 ② 운전자 칩 상태 표현 |
+| 핸드오프 | Figma 프레임 없음 | 4상태 구현, 칩+큰 버튼 | Figma 프레임 신규 필요(후속) |
