@@ -148,4 +148,4 @@ Figma(페이지 `Foundations`)에 있는 컴포넌트: StatusChip 4종, Icon 11�
 **주행 중(미확인 포함) 허용**: press, 칩/아이콘 크로스페이드, 카드 상태 크로스페이드, UndoBar 입장·퇴장, 성공 pulse(1회). 레이아웃 크기 변화·stagger·탭 이동·확장·스켈레톤 펄스는 **정차 중만**.
 **금지(항상)**: bounce·오버슈트 스프링, blur 전환, 흔들림(shake), 무한 반복, 250ms 초과, 터치 대상 크기 변화.
 **reduce-motion 폴백**: `ANIMATOR_DURATION_SCALE == 0` 또는 시스템 접근성 애니메이션 끔이면 모든 전환 duration 0(즉시 교체)·pulse/펄스 생략. 상태 정보(아이콘+문구+색)는 동일. 숫자는 항상 `tabular-nums`.
-Figma: 페이지 `Foundations`의 `Motion spec` 프레임.
+Figma: https://www.figma.com/design/So1tPxF3kWdBwk8WXf4Mfr?node-id=24-608 (`Motion spec (#59)`).
