@@ -44,6 +44,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.SaveableStateHolder
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -63,6 +65,7 @@ private fun StopCandidate.driveCard() = DriveCandidate(
 fun AppRoot(graph: AppGraph) {
     val context = LocalContext.current
     val s = graph.session
+    val holder = rememberSaveableStateHolder()
     val rec by graph.recommend.state.collectAsState()
     var soc by remember { mutableStateOf<Int?>(null) }
     val movement = remember { CarUxMovementSource(context) }
@@ -83,6 +86,9 @@ fun AppRoot(graph: AppGraph) {
     fun locate() {
         val trip = s.trip ?: return
         s.locateJob?.cancel()
+        // Old cards must not stay selectable while the new location is pending or failed.
+        graph.recommend.clear()
+        graph.guide.announce(emptyList())
         s.fallback = null
         s.locating = true
         var done = false
@@ -120,10 +126,9 @@ fun AppRoot(graph: AppGraph) {
         if (granted) locate() else s.fallback = FallbackCause.Permission(Capability.LOCATION)
     }
 
-    fun locationGranted() = listOf(
-        Manifest.permission.ACCESS_FINE_LOCATION,
-        Manifest.permission.ACCESS_COARSE_LOCATION
-    ).any { context.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
+    // FINE only: PlatformLocationSource uses GPS below API 31, which rejects coarse-only grants.
+    fun locationGranted() = context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
+        PackageManager.PERMISSION_GRANTED
 
     // Permissions are asked on first use of the feature that needs them (F-JUUGZR).
     fun requestLocation() {
@@ -137,6 +142,7 @@ fun AppRoot(graph: AppGraph) {
     }
 
     fun submit(trip: TripInput) {
+        s.newTrip()
         s.trip = trip
         s.step = Step.RECOMMEND
         requestLocation()
@@ -149,7 +155,7 @@ fun AppRoot(graph: AppGraph) {
             movement = movement,
             modifier = Modifier.weight(1f)
         ) {
-            Parked(graph, rec, soc, navi, ::submit, ::requestLocation)
+            Parked(graph, rec, soc, navi, ::submit, ::requestLocation, holder)
         }
         VoiceBar(graph.guide, Modifier.padding(24.dp))
     }
@@ -162,7 +168,8 @@ private fun Parked(
     soc: Int?,
     navi: NaviGateway,
     onSubmit: (TripInput) -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    holder: SaveableStateHolder
 ) {
     val s = graph.session
     var now by remember { mutableStateOf(LocalDateTime.now()) }
@@ -183,28 +190,35 @@ private fun Parked(
                 }
             }
         }
-        when (s.step) {
-            Step.INPUT -> TripInputScreen(parked = true, autoSocPercent = soc, onSubmit = onSubmit)
-            Step.RECOMMEND -> Recommend(graph, rec, navi, onRetry)
-            Step.ACTIVITY -> ChargingActivityScreen(
-                parked = true,
-                candidates = (rec as? RecommendState.Success)?.candidates.orEmpty()
-                    .mapNotNull(::activityOf),
-                chargeSessionId = s.tripId,
-                autoCharging = false, // no Pleos charging-state API; user confirms (PL-UJFQXQ)
-                autoChargeEndsAt = null,
-                now = now
-            )
-            Step.CONSENT -> ConsentScreen(
-                parked = true,
-                tripId = s.tripId,
-                consented = s.consented,
-                onResult = { yes ->
-                    if (yes) s.consented = graph.metrics.grantConsent(s.tripId, isDriver = true)
-                    s.step = Step.INPUT
-                },
-                onWithdraw = { if (graph.metrics.withdraw(s.tripId)) s.consented = false }
-            )
+        // Keeps each step's typed-in state while driving removes the parked UI from composition.
+        holder.SaveableStateProvider(s.step.name) {
+            when (s.step) {
+                Step.INPUT -> TripInputScreen(
+                    parked = true,
+                    autoSocPercent = soc,
+                    onSubmit = onSubmit
+                )
+                Step.RECOMMEND -> Recommend(graph, rec, navi, onRetry)
+                Step.ACTIVITY -> ChargingActivityScreen(
+                    parked = true,
+                    candidates = (rec as? RecommendState.Success)?.candidates.orEmpty()
+                        .mapNotNull(::activityOf),
+                    chargeSessionId = s.tripId,
+                    autoCharging = false, // no Pleos charging-state API; user confirms (PL-UJFQXQ)
+                    autoChargeEndsAt = null,
+                    now = now
+                )
+                Step.CONSENT -> ConsentScreen(
+                    parked = true,
+                    tripId = s.tripId,
+                    consented = s.consented,
+                    onResult = { yes ->
+                        if (yes) s.grantConsent()
+                        s.step = Step.INPUT
+                    },
+                    onWithdraw = s::withdraw
+                )
+            }
         }
     }
 }

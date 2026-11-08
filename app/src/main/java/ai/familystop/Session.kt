@@ -22,20 +22,44 @@ enum class Step(val label: String) {
 
 /** One trip's screen state. Held by [AppGraph] so it survives Activity recreation. */
 class Session(private val metrics: MetricsCollector) {
-    val tripId = metrics.startTrip()
+    var tripId by mutableStateOf(metrics.startTrip())
+        private set
     var step by mutableStateOf(Step.INPUT)
     var trip by mutableStateOf<TripInput?>(null)
     var locating by mutableStateOf(false)
     var fallback by mutableStateOf<FallbackCause?>(null)
     var consented by mutableStateOf(false)
+    private var lastPick: StopCandidate? = null
     var locateJob: Job? = null
     var announced: Any? = null // last recommendation read aloud
 
     val charging get() = trip?.chargeNeed == ChargeNeed.YES
 
+    /** New trip = new random id and a fresh consent question (PL-NGEOJQ: consent is per trip). */
+    fun newTrip() {
+        tripId = metrics.startTrip()
+        consented = false
+        lastPick = null
+    }
+
+    /** Driver consent; a stop already handed off in this trip is recorded right away. */
+    fun grantConsent(): Boolean {
+        consented = metrics.grantConsent(tripId, isDriver = true)
+        if (consented) lastPick?.let(::record)
+        return consented
+    }
+
+    fun withdraw() {
+        if (metrics.withdraw(tripId)) consented = false
+    }
+
     /** Waypoint accepted by the navigation app (from the handoff flow or the driving cards). */
     fun onWaypointAdded(c: StopCandidate) {
-        if (charging) step = Step.ACTIVITY
+        lastPick = c
+        record(c)
+    }
+
+    private fun record(c: StopCandidate) {
         metrics.record(
             TripMetrics(
                 tripId = tripId,
