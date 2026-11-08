@@ -59,6 +59,32 @@ class HandoffTest {
     }
 
     @Test
+    fun slotFreedAfterPromptSkipsRemoval() { // 교체 선택 뒤 주행 카드 취소로 자리가 났다
+        val navi = Manual()
+        val shared = mutableListOf(a, b)
+        val scope = CoroutineScope(Job() + Dispatchers.Unconfined)
+        val h = HandoffController(scope, navi, held = shared)
+        h.pick(c)
+        shared.remove(a)
+        h.replace(b)
+        assertTrue(navi.removes.isEmpty())
+        assertEquals(c, navi.adds.single().first)
+    }
+
+    @Test
+    fun doneAfterExternalUndoCanBeReAdded() {
+        val navi = Manual()
+        val shared = mutableListOf<StopPlace>()
+        val scope = CoroutineScope(Job() + Dispatchers.Unconfined)
+        val h = HandoffController(scope, navi, held = shared)
+        h.pick(a)
+        navi.adds[0].second(Result.success(Unit))
+        shared.remove(a) // 주행 카드 취소
+        h.pick(a)
+        assertEquals(2, navi.adds.size)
+    }
+
+    @Test
     fun failureCanRetryOrReturnAndLateResultIsIgnored() {
         val navi = Manual()
         val h = ctl(navi)

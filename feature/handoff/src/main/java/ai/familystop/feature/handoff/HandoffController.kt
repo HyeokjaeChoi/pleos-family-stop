@@ -64,7 +64,8 @@ class HandoffController(
         if (busy > 0) return
         when (val s = _state.value) {
             is HandoffState.Sending, is HandoffState.NeedReplace -> return
-            is HandoffState.Done -> if (s.place == place) return
+            // 주행 카드 취소로 빠졌다면 같은 장소여도 다시 보낸다
+            is HandoffState.Done -> if (s.place == place && place in held) return
             else -> Unit
         }
         if (place in held) { // 이미 들어가 있음: 새 요청도, 새 취소 유예도 없다
@@ -85,6 +86,10 @@ class HandoffController(
         if (busy > 0 || target !in s.options) return
         val mine = ++seq
         _state.value = HandoffState.Sending(s.place)
+        if (held.size < MAX_WAYPOINTS || target !in held) { // 선택 뒤 주행 카드 취소 등으로 자리가 이미 났다
+            addAs(mine, s.place, "길 안내에 전달하지 못했어요.")
+            return
+        }
         navi.removeWaypoint(
             target,
             settled { r ->
