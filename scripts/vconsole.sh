@@ -5,14 +5,18 @@ set -euo pipefail
 B=http://127.0.0.1:8088
 adb forward tcp:8088 tcp:8088 >/dev/null
 curl -s -m3 -X POST "$B/browser/session?client=cli" >/dev/null
-(while curl -s -m2 -X POST "$B/browser/session?client=cli" >/dev/null; do sleep 1; done) &
-HB=$!; trap 'kill $HB 2>/dev/null' EXIT
-put() { curl -s -X PUT "$B$1"; echo; }
+(while curl -s -m2 -X POST "$B/browser/session?client=cli" >/dev/null; do sleep 1; done) >/dev/null 2>&1 &
+HB=$!; trap 'pkill -P $HB 2>/dev/null; kill $HB 2>/dev/null' EXIT
+put() { # fail loudly: the console answers {"error":...} with a 200
+  local r; r=$(curl -s -X PUT "$B$1")
+  case "$r" in *'"error"'*) echo "console error: $r" >&2; exit 1;; esac
+}
+num() { [[ "${2:-}" =~ ^[0-9]+$ ]] && (( $2 <= $1 )) || { echo "value must be an integer 0..$1" >&2; exit 2; }; }
 case "${1:-state}" in
-  gear) case "$2" in P) g=Park;; R) g=Reverse;; N) g=Neutral;; D) g=Drive;; *) echo "gear P|R|N|D"; exit 2;; esac
-        put "/vehicle/gear?gear=$g" >/dev/null ;;
-  soc) put "/vehicle/ev-battery?field=soc&value=$2" >/dev/null ;;
-  speed) put "/vehicle/controls?speed_kph=$2" >/dev/null ;;
+  gear) case "${2:-}" in P) g=Park;; R) g=Reverse;; N) g=Neutral;; D) g=Drive;; *) echo "gear P|R|N|D"; exit 2;; esac
+        put "/vehicle/gear?gear=$g" ;;
+  soc) num 100 "${2:-}"; put "/vehicle/ev-battery?field=soc&value=$2" ;;
+  speed) num 240 "${2:-}"; put "/vehicle/controls?speed_kph=$2" ;;
   state) ;;
   *) echo "usage: $0 gear P|R|N|D | soc 0-100 | speed kph | state"; exit 2 ;;
 esac
