@@ -13,6 +13,6 @@ rootProject.name = "pleos-family-stop"
 include(
     ":app",
     ":core:model", ":core:domain", ":core:testing", ":core:designsystem",
-    ":feature:drive", ":feature:input", ":feature:metrics",
+    ":feature:activity", ":feature:drive", ":feature:input", ":feature:metrics",
     ":impl:pleos", ":impl:platform",
 )
