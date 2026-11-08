@@ -5,6 +5,7 @@ import ai.familystop.core.designsystem.AppButton
 import ai.familystop.core.designsystem.AppTextField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -55,11 +56,13 @@ fun ChargingActivityScreen(
         }
 
     Column(
-        modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(App.space.lg),
+        // 줄 길이 제한(0.6f): 넓은 화면에서 한 줄이 끝없이 늘어나지 않게
+        modifier.fillMaxHeight().fillMaxWidth(0.6f)
+            .verticalScroll(rememberScrollState()).padding(App.space.lg),
         verticalArrangement = Gap
     ) {
         if (autoChargeEndsAt == null) {
-            Text("충전 정보를 차량에서 받지 못했어요(자동 확인 아님). 충전이 끝나기까지 남은 시간을 직접 입력해 주세요.")
+            Text("충전 정보를 차량에서 받지 못했어요(자동 확인 아님). 남은 충전 시간을 직접 입력해 주세요.")
             AppTextField(
                 minutesText,
                 {
