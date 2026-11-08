@@ -33,12 +33,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import kotlinx.coroutines.delay
 
-/** A stop candidate shown as one large card; [summary] is 1~3 short lines (DESIGN.md 8절). */
+/** [chip]은 상태를 항상 아이콘+문구 한 쌍으로만 받는다. A stop candidate shown as one large card; [summary] is 1~3 short lines (DESIGN.md 8절). */
 data class DriveCandidate(
     val place: StopPlace,
     val summary: String,
-    val status: Status? = null,
-    val statusText: String = ""
+    val chip: Pair<Status, String>? = null
 )
 
 /** Input draft that survives driving <-> parked switches and Activity recreation (F-OAXFEH). */
@@ -149,7 +148,7 @@ private fun CandidateCard(
             color = App.colors.textSecondary,
             maxLines = 3
         )
-        c.status?.let { StatusChip(it, c.statusText) }
+        c.chip?.let { (status, text) -> StatusChip(status, text) }
         Spacer(Modifier.weight(1f))
         AppButton("경유지로 추가", null, Modifier.fillMaxWidth(), enabled = enabled, large = true)
     }

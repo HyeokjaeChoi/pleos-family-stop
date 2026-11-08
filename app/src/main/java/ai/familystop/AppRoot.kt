@@ -58,8 +58,7 @@ private fun StopCandidate.driveCard() = DriveCandidate(
     "$reason\n+${extraMinutes}분 · ${"%.1f".format(detourKm)}km · ${
         if (source == DataSource.VIRTUAL) "가상 데이터" else "실제 데이터"
     }",
-    if (missed.isEmpty()) Status.Ok else Status.Warn,
-    if (missed.isEmpty()) "필요 조건 충족" else "일부 미충족"
+    if (missed.isEmpty()) Status.Ok to "필요 조건 충족" else Status.Danger to "일부 미충족"
 )
 
 @Composable
