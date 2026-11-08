@@ -40,8 +40,8 @@ class AppGraph(context: Context) {
     }
 
     // Process-lifetime state so Activity recreation (day/night) keeps results and voice status.
-    val recommend =
-        RecommendController(CoroutineScope(SupervisorJob() + Dispatchers.Main), facilities)
+    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    val recommend = RecommendController(scope, facilities)
     val guide = VoiceGuide(voice)
     val session = Session(metrics)
 }

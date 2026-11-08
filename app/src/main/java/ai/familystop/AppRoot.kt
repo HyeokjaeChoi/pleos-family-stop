@@ -102,9 +102,10 @@ fun AppRoot(graph: AppGraph) {
     }
     LaunchedEffect(rec) {
         // Once per result: Activity recreation must not read the same candidates again.
-        if (s.announced !== rec && rec is RecommendState.Success) {
-            s.announced = rec
-            graph.guide.announce(rec.candidates)
+        val success = rec as? RecommendState.Success
+        if (success != null && s.announced !== success) {
+            s.announced = success
+            graph.guide.announce(success.candidates)
         }
     }
 
