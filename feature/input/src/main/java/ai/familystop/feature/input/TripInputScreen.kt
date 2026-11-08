@@ -4,11 +4,15 @@ import ai.familystop.core.designsystem.App
 import ai.familystop.core.designsystem.AppButton
 import ai.familystop.core.designsystem.AppTextField
 import ai.familystop.core.designsystem.AppToggleChip
+import ai.familystop.core.designsystem.Status
+import ai.familystop.core.designsystem.StatusChip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -18,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import java.time.LocalDateTime
@@ -65,54 +70,63 @@ fun TripInputScreen(
             emptyList()
         }
     Column(
-        modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(App.space.lg),
+        modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState())
+            .padding(App.space.lg),
         verticalArrangement = Gap
     ) {
-        AppTextField(d.destination, { d = d.copy(destination = it) }, "목적지")
-        AppTextField(d.timeText, { d = d.copy(timeText = it) }, "도착 희망 시간 (예: 13:30)")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Gap) {
+            Column(Modifier.weight(1f), verticalArrangement = Gap) {
+                AppTextField(d.destination, { d = d.copy(destination = it) }, "목적지")
+                AppTextField(d.timeText, { d = d.copy(timeText = it) }, "도착 희망 시간 (예: 13:30)")
+                // 오류는 입력칸 바로 아래에 상태 칩으로(아이콘+문구, 색만으로 구분하지 않음).
+                errors.forEach { StatusChip(Status.Danger, it.message) }
 
-        Text("정차에서 필요한 것", style = App.type.stopTitle)
-        FlowRow(horizontalArrangement = Gap, verticalArrangement = Gap) {
-            StopNeed.entries.forEach { n ->
-                AppToggleChip(n in d.needs, n.label) {
-                    d = d.copy(needs = if (n in d.needs) d.needs - n else d.needs + n)
+                Text("정차에서 필요한 것", style = App.type.stopTitle)
+                FlowRow(horizontalArrangement = Gap, verticalArrangement = Gap) {
+                    StopNeed.entries.forEach { n ->
+                        AppToggleChip(n in d.needs, n.label) {
+                            d = d.copy(needs = if (n in d.needs) d.needs - n else d.needs + n)
+                        }
+                    }
+                    AppToggleChip(d.urgent, "급해요") { d = d.copy(urgent = !d.urgent) }
                 }
             }
-            AppToggleChip(d.urgent, "급해요") { d = d.copy(urgent = !d.urgent) }
-        }
+            Column(Modifier.weight(1f), verticalArrangement = Gap) {
+                Text("충전", style = App.type.stopTitle)
+                FlowRow(horizontalArrangement = Gap, verticalArrangement = Gap) {
+                    ChargeNeed.entries.forEach { c ->
+                        AppToggleChip(d.chargeNeed == c, c.label, role = Role.RadioButton) {
+                            d = d.copy(chargeNeed = c)
+                        }
+                    }
+                }
 
-        Text("충전", style = App.type.stopTitle)
-        FlowRow(horizontalArrangement = Gap, verticalArrangement = Gap) {
-            ChargeNeed.entries.forEach { c ->
-                AppToggleChip(d.chargeNeed == c, c.label, role = Role.RadioButton) {
-                    d = d.copy(chargeNeed = c)
+                // 범위 밖 값은 상태로 표시하지 않는다
+                val manual = d.manualSocText.toIntOrNull()?.takeIf { it in 0..100 }
+                if (autoSocPercent == null) {
+                    Text(
+                        "배터리 잔량을 차량에서 받지 못했어요. 직접 입력하면 '직접 입력(자동 아님)'으로 표시돼요.",
+                        color = App.colors.textSecondary
+                    )
+                    AppTextField(
+                        d.manualSocText,
+                        { d = d.copy(manualSocText = it.filter(Char::isDigit).take(3)) },
+                        "배터리 잔량 % (직접 입력)"
+                    )
+                }
+                Text(
+                    when (val soc = resolveSoc(autoSocPercent, manual)) {
+                        is Soc.Auto -> "배터리 ${soc.percent}% · 차량에서 자동 확인"
+                        is Soc.Manual -> "배터리 ${soc.percent}% · 직접 입력(자동 아님)"
+                        Soc.Unknown -> "잔량 미확인 · 도달 가능 여부는 알 수 없어요"
+                    }
+                )
+                // 차량값이 나중에 도착해 수동 입력과 다를 때(자동값이 우선 적용됨).
+                if (socMismatch(autoSocPercent, manual)) {
+                    Text("직접 입력한 값($manual%)과 차량 데이터가 달라요. 차량 값을 사용해요.")
                 }
             }
         }
-
-        // 범위 밖 값은 상태로 표시하지 않는다
-        val manual = d.manualSocText.toIntOrNull()?.takeIf { it in 0..100 }
-        if (autoSocPercent == null) {
-            Text("배터리 잔량을 차량에서 받지 못했어요. 직접 입력하면 '직접 입력(자동 아님)'으로 표시돼요.")
-            AppTextField(
-                d.manualSocText,
-                { d = d.copy(manualSocText = it.filter(Char::isDigit).take(3)) },
-                "배터리 잔량 % (직접 입력)"
-            )
-        }
-        Text(
-            when (val soc = resolveSoc(autoSocPercent, manual)) {
-                is Soc.Auto -> "배터리 ${soc.percent}% · 차량에서 자동 확인"
-                is Soc.Manual -> "배터리 ${soc.percent}% · 직접 입력(자동 아님)"
-                Soc.Unknown -> "잔량 미확인 · 도달 가능 여부는 알 수 없어요"
-            }
-        )
-        // 차량값이 나중에 도착해 수동 입력과 다를 때(자동값이 우선 적용됨).
-        if (socMismatch(autoSocPercent, manual)) {
-            Text("직접 입력한 값($manual%)과 차량 데이터가 달라요. 차량 값을 사용해요.")
-        }
-
-        errors.forEach { Text(it.message, color = App.colors.statusDanger) }
 
         AppButton(
             "정차 추천 받기",
@@ -122,7 +136,7 @@ fun TripInputScreen(
                     onSubmit(it.input)
                 }
             },
-            Modifier.fillMaxWidth()
+            Modifier.fillMaxWidth(0.5f).align(Alignment.End)
         )
     }
 }

@@ -5,6 +5,8 @@ import ai.familystop.core.designsystem.AppButton
 import ai.familystop.core.designsystem.AppToggleChip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -47,7 +49,8 @@ fun ConsentScreen(
         return
     }
     Column(
-        modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(App.space.lg),
+        modifier.fillMaxHeight().fillMaxWidth(0.6f)
+            .verticalScroll(rememberScrollState()).padding(App.space.lg),
         verticalArrangement = Arrangement.spacedBy(App.space.lg)
     ) {
         if (consented) {
@@ -55,14 +58,17 @@ fun ConsentScreen(
             AppButton("동의 철회하고 기록 삭제", onWithdraw, Modifier.fillMaxWidth(), primary = false)
             return@Column
         }
-        Text("이번 여행의 정차 도움 정도를 기록해도 될까요?")
+        Text("이번 여행의 정차 도움 정도를 기록해도 될까요?", style = App.type.stopTitle)
         Text(
             "계획 시간·선택 이유·남은 필요를 이 기기에만 저장해요. " +
                 "이름·계정과 연결하지 않고, 철회하면 이번 여행 기록이 지워져요. " +
-                "동의하지 않아도 모든 기능을 쓸 수 있어요."
+                "동의하지 않아도 모든 기능을 쓸 수 있어요.",
+            color = App.colors.textSecondary
         )
         AppToggleChip(isDriver, "저는 운전자 본인이에요") { isDriver = !isDriver }
-        AppButton("동의하고 기록", { onResult(true) }, Modifier.fillMaxWidth(), enabled = isDriver)
-        AppButton("기록하지 않을게요", { onResult(false) }, Modifier.fillMaxWidth(), primary = false)
+        Row(horizontalArrangement = Arrangement.spacedBy(App.space.lg)) {
+            AppButton("동의하고 기록", { onResult(true) }, Modifier.weight(1f), enabled = isDriver)
+            AppButton("기록하지 않을게요", { onResult(false) }, Modifier.weight(1f), primary = false)
+        }
     }
 }

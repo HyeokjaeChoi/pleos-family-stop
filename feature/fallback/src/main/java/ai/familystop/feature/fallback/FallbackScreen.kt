@@ -67,10 +67,16 @@ private fun CardContent(
     onSecondary: () -> Unit,
     modifier: Modifier
 ) {
-    AppCard(modifier.fillMaxWidth()) {
+    AppCard(modifier.fillMaxWidth(0.7f)) {
         StatusChip(status, statusText)
         Text(title, style = App.type.stopTitle, color = App.colors.textPrimary)
-        lines.forEach { Text(it, color = App.colors.textSecondary) }
+        lines.forEachIndexed { i, line ->
+            if (i == 0) {
+                Text(line, style = App.type.stopBody, color = App.colors.textPrimary)
+            } else {
+                Text(line, color = App.colors.textSecondary)
+            }
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(App.space.lg)) {
             AppButton(primaryLabel, onPrimary, Modifier.weight(1f))
             AppButton(secondaryLabel, onSecondary, Modifier.weight(1f), primary = false)
