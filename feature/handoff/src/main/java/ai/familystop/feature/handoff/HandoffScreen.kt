@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 
 /**
  * 단일 공개 화면. 주행 중에도 쓰므로 스크롤·펼치기 없이 큰 버튼만 둔다(ADR-0003).
@@ -34,7 +37,7 @@ fun HandoffScreen(
 ) {
     if (state is HandoffState.Idle) return
     val reduce = AppMotion.reduce
-    AppCard(modifier.fillMaxWidth()) {
+    AppCard(modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }) {
         // 4상태 전환: 150ms 크로스페이드(DESIGN.md 11절). 같은 상태 안의 값 변화는 재전환하지 않는다.
         AnimatedContent(
             state,
