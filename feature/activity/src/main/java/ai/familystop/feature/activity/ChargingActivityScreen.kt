@@ -32,6 +32,7 @@ private val Gap = Arrangement.spacedBy(24.dp)
  * 충전 중 가족 활동 안내 (F-LFACHH). 정차(충전) 중에만 후보를 보인다. 주행 중·미확인은 안내만(ADR-0003, 0004).
  *
  * @param parked 정차 확인됨. 미확인이면 false.
+ * @param chargeSessionId 충전 세션 식별자. 바뀌면 이전 시작 확인·직접 입력값을 버린다.
  * @param autoCharging 차량이 충전 시작을 확인함. false면 사용자가 직접 확인한다(자동 아님).
  * @param autoChargeEndsAt 차량이 준 충전 종료 예상. null이면 사용자 입력(자동 아님).
  * @param now 현재 시각. 호출자가 갱신해 넘기면 재계산된다.
@@ -40,21 +41,26 @@ private val Gap = Arrangement.spacedBy(24.dp)
 fun ChargingActivityScreen(
     parked: Boolean,
     candidates: List<ActivityCandidate>,
+    chargeSessionId: String,
     autoCharging: Boolean,
     autoChargeEndsAt: LocalDateTime?,
     now: LocalDateTime,
     modifier: Modifier = Modifier
 ) {
-    var started by rememberSaveable { mutableStateOf(false) }
-    var manualEndsAt by rememberSaveable { mutableStateOf<LocalDateTime?>(null) }
-    var minutesText by rememberSaveable { mutableStateOf("") }
+    var started by rememberSaveable(chargeSessionId) { mutableStateOf(false) }
+    var manualEndsAt by rememberSaveable(chargeSessionId) { mutableStateOf<LocalDateTime?>(null) }
+    var minutesText by rememberSaveable(chargeSessionId) { mutableStateOf("") }
 
     ProvideTextStyle(MaterialTheme.typography.bodyLarge.copy(fontSize = Body, lineHeight = 34.sp)) {
         if (!parked) {
             Text("정차 후 이용할 수 있어요.", modifier.fillMaxSize().padding(24.dp))
             return@ProvideTextStyle
         }
-        val charge = resolveCharge(autoChargeEndsAt, manualEndsAt)
+        // 충전 시작이 자동 확인이 아니면 종료 예상도 보장하지 않는다.
+        val charge =
+            resolveCharge(autoChargeEndsAt, manualEndsAt).let {
+                if (!autoCharging && it is ChargeInfo.Auto) ChargeInfo.Manual(it.endsAt) else it
+            }
 
         Column(
             modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
