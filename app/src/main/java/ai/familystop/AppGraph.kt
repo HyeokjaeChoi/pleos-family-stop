@@ -1,18 +1,47 @@
 package ai.familystop
 
+import ai.familystop.core.FacilitySource
 import ai.familystop.core.LocationSource
 import ai.familystop.core.NaviGateway
 import ai.familystop.core.VehicleEnergySource
 import ai.familystop.core.VoiceOutput
-import ai.familystop.fake.FakeLocationSource
-import ai.familystop.fake.FakeNaviGateway
-import ai.familystop.fake.FakeVehicleEnergySource
-import ai.familystop.fake.FakeVoiceOutput
+import ai.familystop.feature.metrics.FileMetricsStore
+import ai.familystop.feature.metrics.MetricsCollector
+import ai.familystop.feature.recommend.RecommendController
+import ai.familystop.feature.recommend.parseFacilities
+import ai.familystop.feature.voice.VoiceGuide
+import ai.familystop.impl.platform.PlatformLocationSource
+import ai.familystop.impl.platform.PlatformVoiceOutput
+import ai.familystop.impl.pleos.PleosNaviGateway
+import ai.familystop.impl.pleos.PleosVehicleEnergySource
+import android.content.Context
+import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
-/** Single wiring point: swap an implementation here, nowhere else. */
-object AppGraph {
-    var location: LocationSource = FakeLocationSource()
-    var voice: VoiceOutput = FakeVoiceOutput()
-    var navi: NaviGateway = FakeNaviGateway()
-    var energy: VehicleEnergySource = FakeVehicleEnergySource()
+/** Single wiring point: swap an implementation here, nowhere else (ADR-0006). */
+class AppGraph(context: Context) {
+    private val app = context.applicationContext
+
+    val location: LocationSource = PlatformLocationSource(app)
+    val voice: VoiceOutput = PlatformVoiceOutput(app)
+    val navi: NaviGateway = PleosNaviGateway(app)
+    val energy: VehicleEnergySource = PleosVehicleEnergySource(app)
+    val metrics = MetricsCollector(FileMetricsStore(File(app.filesDir, "metrics")))
+
+    /** 시연 구간 시설 JSON (ADR-0001: 가상 데이터는 시연 한정, 화면에 출처 표시). */
+    val facilities = FacilitySource {
+        parseFacilities(
+            app.assets.open("demo/facilities.json").bufferedReader().use {
+                it.readText()
+            }
+        )
+    }
+
+    // Process-lifetime state so Activity recreation (day/night) keeps results and voice status.
+    val recommend =
+        RecommendController(CoroutineScope(SupervisorJob() + Dispatchers.Main), facilities)
+    val guide = VoiceGuide(voice)
+    val session = Session(metrics)
 }

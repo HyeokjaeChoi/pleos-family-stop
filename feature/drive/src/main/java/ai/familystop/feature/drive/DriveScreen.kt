@@ -109,6 +109,9 @@ fun DriveScreen(
             if (reading.state == MovementState.UNKNOWN) {
                 Text("이동 상태 미확인 · 주행 중 제한 적용", style = DriveBody, color = p.textSub)
             }
+            if (candidates.isEmpty()) {
+                Text("정차 후 입력하면 추천 후보가 여기에 나타나요", style = DriveBody, color = p.textSub)
+            }
             val locked = picker.state !is PickState.Idle && picker.state !is PickState.Failed
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 candidates.take(2).forEach { c ->
