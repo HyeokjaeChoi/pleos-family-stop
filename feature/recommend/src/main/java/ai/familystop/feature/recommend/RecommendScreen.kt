@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -70,7 +71,7 @@ private fun ColumnScope.CompareList(candidates: List<StopCandidate>, onPick: (St
         Text("출처: $source", style = App.type.stopBody, color = App.colors.textSecondary)
     }
     LazyColumn(
-        Modifier.weight(1f),
+        Modifier.weight(1f).selectableGroup(),
         verticalArrangement = Arrangement.spacedBy(App.space.md)
     ) {
         items(candidates, key = { it.key() }) { c ->

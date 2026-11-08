@@ -25,7 +25,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** Captures the parked recommend list (Figma 20:402 / 20:463) with fixed demo candidates. */
+/** Captures (PNG → app filesDir; `scripts/capture-drive-states.sh` pulls them into docs/design-qa/shots/drive-states).
+ * Captures the parked recommend list (Figma 20:402 / 20:463) with fixed demo candidates. */
 class RecommendScreenshotTest {
     @get:Rule val rule = createComposeRule()
 
@@ -55,6 +56,9 @@ class RecommendScreenshotTest {
         rule.onNodeWithText("가상 휴게소 B").performClick()
         rule.waitForIdle()
         rule.onNodeWithText("선택: 가상 휴게소 B").assertIsDisplayed()
+        rule.onNodeWithText("선택됨").assertIsDisplayed()
+        rule.onNodeWithText("경유지로 추가").assertIsDisplayed()
+        rule.onNodeWithText("일부 미충족").assertIsDisplayed()
         val bmp = rule.onNodeWithTag("shot").captureToImage().asAndroidBitmap()
         val dir = File(InstrumentationRegistry.getInstrumentation().targetContext.filesDir, "shots")
             .apply { mkdirs() }
