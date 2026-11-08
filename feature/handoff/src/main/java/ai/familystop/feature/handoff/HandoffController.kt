@@ -69,8 +69,9 @@ class HandoffController(
         _state.value = HandoffState.Sending(s.place)
         navi.removeWaypoint(target) { r ->
             r.onSuccess { held.remove(target) }
+            if (mine != seq) return@removeWaypoint // 그사이 취소됨: 새 경유지는 넣지 않는다
             if (r.isSuccess) {
-                addAs(mine, s.place)
+                addAs(mine, s.place, "기존 경유지는 이미 지워졌어요. 다시 시도해 주세요.")
             } else {
                 fail(mine, s.place, "기존 경유지를 바꾸지 못했어요.")
             }
@@ -108,7 +109,7 @@ class HandoffController(
         addAs(mine, place)
     }
 
-    private fun addAs(mine: Int, place: StopPlace) {
+    private fun addAs(mine: Int, place: StopPlace, failReason: String = "길 안내에 전달하지 못했어요.") {
         navi.addWaypoint(place) { r ->
             // 늦은 성공이어도 경유지는 이미 들어갔으니 기록은 남긴다.
             r.onSuccess { if (place !in held) held += place }
@@ -116,7 +117,7 @@ class HandoffController(
             if (r.isSuccess) {
                 done(place)
             } else {
-                fail(mine, place, "길 안내에 전달하지 못했어요.")
+                fail(mine, place, failReason)
             }
         }
     }

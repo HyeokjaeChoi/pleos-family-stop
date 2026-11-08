@@ -65,13 +65,17 @@ fun HandoffScreen(
             }
             is HandoffState.NeedReplace -> {
                 Text("경유지가 가득 찼어요", style = Title, color = c.text)
-                Text("${state.place.name}으로 바꿀 경유지를 골라 주세요.", style = Body, color = c.textSub)
+                Text("새 경유지: ${state.place.name}. 바꿀 경유지를 골라 주세요.", style = Body, color = c.textSub)
                 state.options.forEach { Btn("${it.name} 대신", c.raised, c.text, { onReplace(it) }) }
                 Btn("취소", c.raised, c.text, onBack)
             }
             is HandoffState.Done -> {
-                Text("✓ ${state.place.name}을 경유지로 추가했어요", style = Title, color = c.text)
-                Text("길 안내에 전달됐어요. 도착 여부와는 별개예요.", style = Body, color = c.textSub)
+                Text("✓ 경유지로 추가했어요", style = Title, color = c.text)
+                Text(
+                    "${state.place.name}이(가) 길 안내에 전달됐어요. 도착 여부와는 별개예요.",
+                    style = Body,
+                    color = c.textSub
+                )
                 if (state.undoFailed) Text("되돌리지 못했어요.", style = Body, color = c.danger)
                 if (state.undoable) Btn("취소", c.accent, c.onAccent, onUndo)
             }

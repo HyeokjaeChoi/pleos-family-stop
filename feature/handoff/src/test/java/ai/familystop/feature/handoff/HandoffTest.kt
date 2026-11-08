@@ -83,9 +83,44 @@ class HandoffTest {
 
         val expired = ctl(navi, grace = 0)
         expired.pick(a)
-        Thread.sleep(50)
         assertEquals(HandoffState.Done(a, undoable = false), expired.state.value)
         expired.undo()
         assertEquals(listOf(a), navi.waypoints)
+    }
+
+    @Test
+    fun cancelDuringReplaceDoesNotAddAndFailedSwapSaysSo() {
+        val navi = Manual()
+        val h = ctl(navi)
+        h.pick(a)
+        navi.adds[0].second(Result.success(Unit))
+        h.backToCompare()
+        h.pick(b)
+        navi.adds[1].second(Result.success(Unit))
+        h.backToCompare()
+        h.pick(c)
+        h.replace(a)
+        h.backToCompare()
+        navi.removes[0].second(Result.success(Unit))
+        assertEquals(2, navi.adds.size) // C는 추가 요청되지 않음
+        h.pick(a)
+        navi.adds[2].second(Result.success(Unit))
+        h.backToCompare()
+        h.pick(c)
+        h.replace(b)
+        navi.removes[1].second(Result.success(Unit))
+        navi.adds[3].second(Result.failure(IllegalStateException("x")))
+        assertTrue((h.state.value as HandoffState.Failed).reason.contains("지워졌"))
+    }
+
+    @Test
+    fun undoFailureKeepsButtonAndFlagsIt() {
+        val navi = Manual()
+        val h = ctl(navi)
+        h.pick(a)
+        navi.adds[0].second(Result.success(Unit))
+        h.undo()
+        navi.removes[0].second(Result.failure(IllegalStateException("x")))
+        assertEquals(HandoffState.Done(a, undoable = true, undoFailed = true), h.state.value)
     }
 }
