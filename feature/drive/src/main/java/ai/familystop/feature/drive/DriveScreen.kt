@@ -65,13 +65,14 @@ private val DriveBody =
 
 private fun nowMs() = System.nanoTime() / 1_000_000
 
+// Off by default; E2E timing: adb shell setprop log.tag.FamilyStopMove DEBUG
+private const val TAG = "FamilyStopMove"
+
 /**
  * Driving/unknown: at most 2 big cards, tap = `addWaypoint` + 10 s undo. Parked: [parkedContent]
  * (detail screens belong to other issues). Scrolling, expanding and comparing are absent while
  * restricted (ADR-0003, ADR-0004).
  */
-private const val TAG = "FamilyStopMove"
-
 @Composable
 fun DriveScreen(
     candidates: List<DriveCandidate>,
@@ -92,13 +93,15 @@ fun DriveScreen(
 
     DisposableEffect(movement) {
         movement.start { state, reason ->
-            Log.i(TAG, "signal $state ($reason)")
+            if (Log.isLoggable(TAG, Log.DEBUG)) Log.d(TAG, "signal $state ($reason)")
             reading = tracker.onSignal(state, reason, nowMs())
         }
         onDispose { movement.stop() }
     }
     // Logged for E2E timing of the 2 s hold (docs/e2e).
-    LaunchedEffect(reading.state) { Log.i(TAG, "confirmed ${reading.state}") }
+    LaunchedEffect(reading.state) {
+        if (Log.isLoggable(TAG, Log.DEBUG)) Log.d(TAG, "confirmed ${reading.state}")
+    }
     LaunchedEffect(picker) {
         while (true) {
             delay(250)

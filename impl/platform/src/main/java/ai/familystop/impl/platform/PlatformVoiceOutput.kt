@@ -72,7 +72,7 @@ class PlatformVoiceOutput(context: Context) : VoiceOutput {
             override fun onError(utteranceId: String?) = onError(utteranceId, -1)
 
             override fun onError(utteranceId: String?, errorCode: Int) {
-                Log.w(TAG, "utterance error code=$errorCode (TextToSpeech.ERROR_*)")
+                if (Log.isLoggable(TAG, Log.DEBUG)) Log.d(TAG, "utterance error code=$errorCode")
                 fail(utteranceId?.removePrefix(ID_PREFIX)?.toIntOrNull(), "음성 안내를 재생하지 못했습니다")
             }
         })
@@ -88,7 +88,16 @@ class PlatformVoiceOutput(context: Context) : VoiceOutput {
             TextToSpeech.ERROR
         }
         val error = ttsInitError(status, lang)
-        Log.i(TAG, "init status=$status lang=$lang engine=${engine.defaultEngine} error=$error")
+        if (Log.isLoggable(
+                TAG,
+                Log.DEBUG
+            )
+        ) {
+            Log.d(
+                TAG,
+                "init status=$status lang=$lang engine=${engine.defaultEngine} error=$error"
+            )
+        }
         if (error != null) {
             val g = gen
             val wanted = pending != null
@@ -116,6 +125,7 @@ class PlatformVoiceOutput(context: Context) : VoiceOutput {
     }
 
     private companion object {
+        // Off by default: adb shell setprop log.tag.FamilyStopTts DEBUG
         const val TAG = "FamilyStopTts"
         const val ID_PREFIX = "stop-notice-"
     }
