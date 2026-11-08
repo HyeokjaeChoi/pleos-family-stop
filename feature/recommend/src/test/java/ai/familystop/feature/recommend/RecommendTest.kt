@@ -18,12 +18,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RecommendTest {
+    // 앱이 싣는 실제 시연 JSON을 그대로 파싱해 형식이 깨지면 여기서 실패한다.
+    private val demo =
+        parseFacilities(java.io.File("../../app/src/main/assets/demo/facilities.json").readText())
     private val here = GeoPoint(37.28, 127.05, 0)
     private val all = setOf(StopNeed.MEAL, StopNeed.RESTROOM, StopNeed.KIDS_REST)
 
     @Test
     fun ranksByMetNeedsThenDelayAndCapsAtThree() {
-        val r = recommend(StopRequest(here, all), DemoFacilities)
+        val r = recommend(StopRequest(here, all), demo)
         assertEquals(
             listOf("가상 휴게소 C", "가상 가족식당 A", "가상 키즈카페 B"),
             r.map { it.place.name }
@@ -31,7 +34,7 @@ class RecommendTest {
         assertEquals("가상 휴게소 C", r[0].place.name)
         assertTrue(r[0].missed.isEmpty())
         val partial =
-            recommend(StopRequest(here, setOf(StopNeed.MEAL, StopNeed.KIDS_REST)), DemoFacilities)
+            recommend(StopRequest(here, setOf(StopNeed.MEAL, StopNeed.KIDS_REST)), demo)
         assertEquals(
             setOf(StopNeed.KIDS_REST),
             partial.first {
@@ -42,8 +45,8 @@ class RecommendTest {
 
     @Test
     fun emptyWhenNothingNearbyOrNoNeed() {
-        assertTrue(recommend(StopRequest(GeoPoint(35.0, 129.0, 0), all), DemoFacilities).isEmpty())
-        assertTrue(recommend(StopRequest(here, emptySet()), DemoFacilities).isEmpty())
+        assertTrue(recommend(StopRequest(GeoPoint(35.0, 129.0, 0), all), demo).isEmpty())
+        assertTrue(recommend(StopRequest(here, emptySet()), demo).isEmpty())
     }
 
     @Test
@@ -58,7 +61,7 @@ class RecommendTest {
                 withContext(NonCancellable) { gate.await() } // 취소를 무시하는 느린 첫 응답
                 finished.complete(Unit)
             }
-            DemoFacilities
+            demo
         }
         val c = RecommendController(CoroutineScope(Dispatchers.Default), source)
         c.request(StopRequest(here, setOf(StopNeed.RESTROOM)))
