@@ -14,6 +14,7 @@ include(
     ":app",
     ":core:model", ":core:domain", ":core:testing", ":core:designsystem",
     ":feature:activity", ":feature:drive", ":feature:input", ":feature:recommend",
+    ":feature:fallback",
     ":feature:metrics",
     ":impl:pleos", ":impl:platform",
 )
