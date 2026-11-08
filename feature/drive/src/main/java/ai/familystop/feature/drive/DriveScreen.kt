@@ -6,9 +6,16 @@ import ai.familystop.core.designsystem.App
 import ai.familystop.core.designsystem.AppButton
 import ai.familystop.core.designsystem.AppCard
 import ai.familystop.core.designsystem.AppIcons
+import ai.familystop.core.designsystem.AppMotion
 import ai.familystop.core.designsystem.EmptyState
 import ai.familystop.core.designsystem.Status
 import ai.familystop.core.designsystem.StatusChip
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,6 +46,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
 /**
@@ -216,17 +225,39 @@ private fun CandidateCard(
 /** Fixed-height slot so showing/hiding a status never moves the cards (#50 D6). */
 @Composable
 private fun StatusSlot(state: PickState, now: Long, onUndo: () -> Unit) {
+    val reduce = AppMotion.reduce
+    val risePx = with(LocalDensity.current) { AppMotion.RISE_DP.dp.roundToPx() }
     Box(Modifier.fillMaxWidth().height(App.statusSlot), contentAlignment = Alignment.CenterStart) {
-        when (state) {
-            is PickState.Undoable -> UndoBar(state, now, onUndo)
-            is PickState.Failed -> StatusBar(Status.Danger, "추가 실패", state.message)
-            is PickState.Done ->
-                if (state.note != null) {
-                    StatusBar(Status.Danger, "확인 필요", state.note)
-                } else {
-                    StatusChip(Status.Ok, "${state.place.name} 경유지 추가됨")
-                }
-            else -> Unit
+        // 입장 200ms ease-out(+12dp 상승), 퇴장 160ms. 카운트다운은 같은 클래스라 재전환 없음.
+        AnimatedContent(
+            state,
+            contentKey = { it::class },
+            transitionSpec = {
+                (
+                    (
+                        fadeIn(AppMotion.spec(reduce, AppMotion.ENTER_MS)) +
+                            slideInVertically(AppMotion.spec(reduce, AppMotion.ENTER_MS)) { risePx }
+                        ) togetherWith
+                        fadeOut(AppMotion.spec(reduce, AppMotion.EXIT_MS, AppMotion.EaseExit))
+                    ).using(
+                    SizeTransform(clip = false) { _, _ ->
+                        AppMotion.spec(reduce, AppMotion.ENTER_MS)
+                    }
+                )
+            },
+            label = "statusSlot"
+        ) { st ->
+            when (st) {
+                is PickState.Undoable -> UndoBar(st, now, onUndo)
+                is PickState.Failed -> StatusBar(Status.Danger, "추가 실패", st.message)
+                is PickState.Done ->
+                    if (st.note != null) {
+                        StatusBar(Status.Danger, "확인 필요", st.note)
+                    } else {
+                        StatusChip(Status.Ok, "${st.place.name} 경유지 추가됨")
+                    }
+                else -> Unit
+            }
         }
     }
 }

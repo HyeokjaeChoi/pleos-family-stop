@@ -1,7 +1,17 @@
 package ai.familystop.core.designsystem
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,11 +33,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.semantics.Role
@@ -42,27 +56,66 @@ enum class Status { Ok, Warn, Danger, Unknown }
 @Composable
 fun StatusChip(status: Status, text: String, modifier: Modifier = Modifier) {
     val c = App.colors
-    val (icon, tint) = when (status) {
-        Status.Ok -> Icons.Rounded.CheckCircle to c.statusOk
-        Status.Warn -> Icons.Rounded.Warning to c.statusWarn
-        Status.Danger -> CancelIcon to c.statusDanger
-        Status.Unknown -> HelpIcon to c.statusUnknown
+    // 성공으로 바뀔 때만 1회 pulse(1.0→1.02→1.0). 처음 표시·reduce-motion에서는 생략.
+    val pulse = remember { Animatable(1f) }
+    val reduce = AppMotion.reduce
+    val last = remember { arrayOf(status) } // 상태 아님: 쓰기가 재구성을 부르지 않게
+    LaunchedEffect(status) {
+        if (status == Status.Ok && last[0] != Status.Ok && !reduce) {
+            pulse.animateTo(
+                AppMotion.PULSE_SCALE,
+                tween(AppMotion.ENTER_MS / 2, easing = AppMotion.EaseEnter)
+            )
+            pulse.animateTo(1f, tween(AppMotion.ENTER_MS / 2, easing = AppMotion.EaseMove))
+        }
+        last[0] = status
     }
     Row(
         modifier
+            .graphicsLayer {
+                scaleX = pulse.value
+                scaleY = pulse.value
+            }
             .clip(RoundedCornerShape(App.radius.md))
             .background(c.bgRaised)
             .padding(horizontal = App.space.md, vertical = App.space.sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(App.space.sm)
     ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(App.icon.tertiary)
-        )
-        Text(text, style = App.type.stopBody, color = c.textPrimary)
+        // 아이콘+문구를 한 덩어리로 150ms 크로스페이드(DESIGN.md 11절). 크기는 칩이 맞춘다.
+        AnimatedContent(
+            status to text,
+            transitionSpec = {
+                (
+                    fadeIn(AppMotion.spec(reduce, AppMotion.FADE_MS)) togetherWith
+                        fadeOut(AppMotion.spec(reduce, AppMotion.FADE_MS))
+                    ).using(
+                    SizeTransform(clip = false) { _, _ ->
+                        AppMotion.spec(reduce, AppMotion.FADE_MS)
+                    }
+                )
+            },
+            label = "chip"
+        ) { (s, label) ->
+            val (icon, tint) = when (s) {
+                Status.Ok -> Icons.Rounded.CheckCircle to c.statusOk
+                Status.Warn -> Icons.Rounded.Warning to c.statusWarn
+                Status.Danger -> CancelIcon to c.statusDanger
+                Status.Unknown -> HelpIcon to c.statusUnknown
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(App.space.sm)
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = tint,
+                    modifier = Modifier.size(App.icon.tertiary)
+                )
+                Text(label, style = App.type.stopBody, color = c.textPrimary)
+            }
+        }
     }
 }
 
@@ -75,13 +128,21 @@ fun AppCard(
     spacing: Dp = App.space.md,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val source = remember { MutableInteractionSource() }
     Column(
         modifier
+            .then(if (onClick != null && enabled) Modifier.pressScale(source) else Modifier)
             .clip(RoundedCornerShape(App.radius.lg))
             .background(App.colors.bgSurface)
             .then(
                 if (onClick != null) {
-                    Modifier.clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+                    Modifier.clickable(
+                        source,
+                        LocalIndication.current,
+                        enabled = enabled,
+                        role = Role.Button,
+                        onClick = onClick
+                    )
                 } else {
                     Modifier
                 }
@@ -108,20 +169,33 @@ fun AppButton(
     background: Color? = null
 ) {
     val c = App.colors
-    val bg = background ?: if (primary && enabled) c.accentPrimary else c.bgRaised
+    val reduce = AppMotion.reduce
+    val bg by animateColorAsState(
+        background ?: if (primary && enabled) c.accentPrimary else c.bgRaised,
+        AppMotion.spec(reduce, AppMotion.MOVE_MS, AppMotion.EaseMove),
+        label = "btnBg"
+    )
     val fg = when {
         !enabled -> c.textSecondary
         primary -> c.accentOn
         else -> c.textPrimary
     }
+    val source = remember { MutableInteractionSource() }
     Row(
         modifier
             .heightIn(min = App.touchMin)
+            .then(if (onClick != null && enabled) Modifier.pressScale(source) else Modifier)
             .clip(RoundedCornerShape(App.radius.md))
             .background(bg)
             .then(
                 if (onClick != null) {
-                    Modifier.clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+                    Modifier.clickable(
+                        source,
+                        LocalIndication.current,
+                        enabled = enabled,
+                        role = Role.Button,
+                        onClick = onClick
+                    )
                 } else {
                     Modifier
                 }
@@ -313,11 +387,17 @@ fun CompareRow(
     val c = App.colors
     val fg = if (selected) c.accentOn else c.textPrimary
     val sub = if (selected) c.accentOn else c.textSecondary
+    val reduce = AppMotion.reduce
+    val rowBg by animateColorAsState(
+        if (selected) c.accentPrimary else c.bgSurface,
+        AppMotion.spec(reduce, AppMotion.MOVE_MS, AppMotion.EaseMove),
+        label = "rowBg"
+    )
     Row(
         modifier
             .heightIn(min = App.touchMin)
             .clip(RoundedCornerShape(App.radius.md))
-            .background(if (selected) c.accentPrimary else c.bgSurface)
+            .background(rowBg)
             .selectable(selected, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = App.space.xl, vertical = App.space.md),
         verticalAlignment = Alignment.CenterVertically,
