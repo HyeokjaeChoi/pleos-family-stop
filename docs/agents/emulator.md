@@ -5,8 +5,8 @@
 ## 결론
 
 - **Pleos Connect v2.1.0 arm64 이미지는 Apple Silicon에서 부팅·렌더링된다.** `-gpu host`(Metal/MoltenVK)로 동작하며 문서의 외장 GPU(RTX/RX) 요구는 Mac에 적용되지 않았다.
-- 이 저장소 APK(`ai.familystop.app`)는 설치·실행되고 Pleos Vehicle SDK로 배터리 SOC를 읽는다(화면에 `배터리 62%`).
-- 에뮬레이터는 **`-crash-report-mode disabled` 없이는 부팅 15초 뒤 스스로 죽는다**(아래 함정 1). 이 플래그 필수.
+- 이 저장소 APK(`ai.familystop.app`, 멀티 모듈 전환 후 main 기준)는 `./gradlew :app:assembleDebug`로 빌드되어 설치·실행된다. 화면의 `배터리 62%`는 `AppGraph`가 아직 `FakeVehicleEnergySource`(기본 62)를 쓰기 때문이며 **Pleos Vehicle SDK 값이 아니다**. 실제 SDK 경로(`impl:pleos`)는 `AppGraph` 배선 전이라 이번에 검증하지 못했다.
+- 에뮬레이터는 `-crash-report-mode disabled` 없이는 부팅 직후 스스로 죽었다(아래 함정 1). 이 플래그를 붙인 실행은 1회 재현 성공(원인 추정은 hang detector, 이중 확인은 안 함).
 - E2E 조합: **`adb` + `android` CLI**(스크린샷·UI 덤프)로 결정적 테스트. `google/artemis`는 실재하며(아래) LLM 키가 필요한 자연어 탐색 테스트용 선택지.
 - Virtual Console REST는 떠 있지만 `emulator_inactive`라 기어/SOC를 아직 못 바꾼다 → #1·#2 실측 보류(아래 "미해결").
 
@@ -82,5 +82,5 @@ adb shell am start -n ai.familystop.app/ai.familystop.MainActivity
 ## 6. 미해결
 
 - **Virtual Console 제어**: 포트 8088 `/health`는 정상(`vehicle_api_dds_emulator`)이나 `/vehicle/state`가 `emulator_active:false`·`bridge_ready:false`이고 `PUT /vehicle/gear`, `/vehicle/ev-battery?soc=`가 `{"error":"emulator_inactive"}`를 반환한다. 원인 미확인(DDS 브리지 미연결 추정). 풀기 전에는 기어·SOC·속도 조작이 안 된다. Pleos에 문의하거나 Android Studio 에뮬 경로에서 같은지 비교 필요.
-- **#1 addWaypoint 후 원 목적지 유지, #2 주행/정차 판별 근거**: 위 조작 불가와, 현재 `main`의 앱이 NaviHelper/주행 상태 화면을 아직 호출하지 않아 이번에 실측하지 못했다.
+- **#1 addWaypoint 후 원 목적지 유지, #2 주행/정차 판별 근거**: 위 조작 불가와, `AppGraph`가 아직 Fake 구현을 쓰고 있어 NaviHelper(`impl:pleos`)가 앱에서 호출되지 않아 이번에 실측하지 못했다.
 - 에뮬 주행 상태(UX restrictions)와 FusedLocation/STT/TTS 동작은 미확인(SDK "Coming Soon").
