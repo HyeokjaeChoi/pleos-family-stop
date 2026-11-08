@@ -155,10 +155,7 @@ fun AppRoot(graph: AppGraph) {
     ).any { context.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
 
     // Permissions are asked on first use of the feature that needs them (F-JUUGZR).
-    fun submit(trip: TripInput) {
-        s.trip = trip
-        s.picked = null
-        s.step = Step.RECOMMEND
+    fun requestLocation() {
         if (locationGranted()) {
             locate()
         } else {
@@ -168,6 +165,13 @@ fun AppRoot(graph: AppGraph) {
         }
     }
 
+    fun submit(trip: TripInput) {
+        s.trip = trip
+        s.picked = null
+        s.step = Step.RECOMMEND
+        requestLocation()
+    }
+
     Column(Modifier.fillMaxSize()) {
         DriveScreen(
             candidates = rec.driveCards().map { it.driveCard() },
@@ -175,15 +179,7 @@ fun AppRoot(graph: AppGraph) {
             movement = movement,
             modifier = Modifier.weight(1f)
         ) {
-            Parked(graph, rec, soc, navi, ::submit, {
-                if (locationGranted()) {
-                    locate()
-                } else {
-                    permission.launch(
-                        Manifest.permission.ACCESS_FINE_LOCATION
-                    )
-                }
-            })
+            Parked(graph, rec, soc, navi, ::submit, ::requestLocation)
         }
         VoiceBar(graph.guide, Modifier.padding(24.dp))
     }
