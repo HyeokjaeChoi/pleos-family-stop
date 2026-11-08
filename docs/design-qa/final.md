@@ -17,7 +17,7 @@
 | 2 | 소프트 키보드가 "정차 추천 받기" 버튼을 가리지 않음 | **PASS** | 키보드 상단 y≈676 vs 버튼 y≈511(표시 기준). 목적지·시간 필드 모두, Night/Day: `keyboard-dest-night`, `keyboard-eta-night`, `keyboard-eta-day` |
 | 3a | 큰 글자 1.3 / 2.0 | **PASS** | 입력·추천·주행 모두 잘림·겹침 없음: `font1.3-*`, `font2.0-*`. 2.0에서도 카드·버튼이 레이아웃 안에 들어감 |
 | 3b | 긴 문구·긴 장소명 | **PASS(부분)** | 입력 필드는 단일 행(긴 목적지는 끝부분 표시·가로 스크롤)이라 깨지지 않음(`long-dest-font2.0-day`, 2.0배). 추천 목록·주행 카드의 **긴 장소명 줄바꿈은 데모 시설 이름이 짧아 라이브로 못 만듦** → 한계 |
-| 3c | TalkBack 읽기 순서·역할·상태 안내 | **FAIL → 수정 대기** | 에뮬레이터 이미지에 TalkBack 패키지가 없어 **실제 TalkBack은 구동 못 함**(실기기 한정). 코드 점검: 역할은 `AppToggleChip`(Checkbox/RadioButton)·`AppButton`(Button)·`selectable` 행에 있음. **결함**: 주행 `StatusSlot`과 `HandoffScreen`이 `liveRegion`이 아니어서 추가 중/성공/실패/교체 안내가 스크린리더에 읽히지 않음. 수정은 `liveRegion=Polite` 한 줄씩(시각 변화 0) — UI 경로라 `figma-done` 승인 대기 중 |
+| 3c | TalkBack 읽기 순서·역할·상태 안내 | **PASS (코드, 실TalkBack은 실기기 한정)** | 에뮬레이터 이미지에 TalkBack 패키지가 없어 **실제 TalkBack은 구동 못 함**(실기기 한정). 코드 점검: 역할은 `AppToggleChip`(Checkbox/RadioButton)·`AppButton`(Button)·`selectable` 행에 있음. **결함**: 주행 `StatusSlot`과 `HandoffScreen`이 `liveRegion`이 아니어서 추가 중/성공/실패/교체 안내가 스크린리더에 읽히지 않음. 수정 완료: 두 곳에 `liveRegion=Polite` 추가(시각 변화 0, Figma 23:546 변경 없음) |
 | 4 | #42 슬롯 공유 | **PASS(수정)** | 아래 |
 | — | Day 모드 전환 시 앱 상태 유지 | **PASS** | `uimode night no` 후 입력·추천 선택 유지(Activity 재생성 후에도 `PickController` Saver 동작) |
 

@@ -47,6 +47,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
@@ -227,7 +230,13 @@ private fun CandidateCard(
 private fun StatusSlot(state: PickState, now: Long, onUndo: () -> Unit) {
     val reduce = AppMotion.reduce
     val risePx = with(LocalDensity.current) { AppMotion.RISE_DP.dp.roundToPx() }
-    Box(Modifier.fillMaxWidth().height(App.statusSlot), contentAlignment = Alignment.CenterStart) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(App.statusSlot)
+            .semantics { liveRegion = LiveRegionMode.Polite },
+        contentAlignment = Alignment.CenterStart
+    ) {
         // 입장 200ms ease-out(+12dp 상승), 퇴장 160ms. 카운트다운은 같은 클래스라 재전환 없음.
         AnimatedContent(
             state,
