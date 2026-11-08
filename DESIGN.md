@@ -126,3 +126,26 @@ Figma(페이지 `Foundations`)에 있는 컴포넌트: StatusChip 4종, Icon 11�
 1. 에뮬레이터에서 화면 크기·DPI, 낮/밤 전환 트리거(`cmd uimode night`와 터널형 조도 변화 반응) 확인(#3).
 2. Pleos 가이드의 이미지 값(color 역할 hex, 타입 스케일, 버튼 크기)을 사람이 열어 확인해 3·4절과 대조.
 3. Day 모드 실제 눈부심 조건에서 `bg/raised` 단계 시인성 확인.
+
+## 11. 모션 (이슈 #59, 근거·채택표: `docs/design-qa/motion.md`)
+
+모션은 상태 변화를 알리는 용도만. 장식·반복·bounce 금지. 값은 전부 토큰으로 두고 하드코딩하지 않는다(`:core:designsystem`의 `App.motion`).
+
+| 토큰 | 값 | 용도 |
+|---|---|---|
+| motion/dur/press | 100ms (복귀 150ms) | 누름 scale 0.97 |
+| motion/dur/fade | 150ms | StatusChip·아이콘·문구 크로스페이드 |
+| motion/dur/enter | 200ms (상한 250ms) | UndoBar·카드 상태 전환·성공 pulse |
+| motion/dur/exit | 160ms (= enter×0.8) | UndoBar 퇴장 |
+| motion/dur/move | 250ms | 탭 인디케이터·CompareRow 확장 (정차) |
+| motion/stagger | 30ms (최대 5행) | 정차 리스트 입장 |
+| motion/ease/enter | cubic-bezier(0.22, 1, 0.36, 1) | 입장·크로스페이드 (`Easing` decelerate) |
+| motion/ease/exit | cubic-bezier(0.4, 0, 1, 1) | 퇴장 (accelerate) |
+| motion/ease/move | cubic-bezier(0.4, 0, 0.2, 1) | 이동·확장 (ease-in-out) |
+| motion/scale/press | 0.97 | 누름 |
+| motion/scale/pulse | 1.02 (1회, 오버슈트 없음) | 성공 확인 |
+
+**주행 중(미확인 포함) 허용**: press, 칩/아이콘 크로스페이드, 카드 상태 크로스페이드, UndoBar 입장·퇴장, 성공 pulse(1회). 레이아웃 크기 변화·stagger·탭 이동·확장·스켈레톤 펄스는 **정차 중만**.
+**금지(항상)**: bounce·오버슈트 스프링, blur 전환, 흔들림(shake), 무한 반복, 250ms 초과, 터치 대상 크기 변화.
+**reduce-motion 폴백**: `ANIMATOR_DURATION_SCALE == 0` 또는 시스템 접근성 애니메이션 끔이면 모든 전환 duration 0(즉시 교체)·pulse/펄스 생략. 상태 정보(아이콘+문구+색)는 동일. 숫자는 항상 `tabular-nums`.
+Figma: 페이지 `Foundations`의 `Motion spec` 프레임.
