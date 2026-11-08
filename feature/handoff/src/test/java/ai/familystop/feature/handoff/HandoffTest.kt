@@ -45,6 +45,20 @@ class HandoffTest {
     }
 
     @Test
+    fun waypointsAddedElsewhereAreKnown() { // #42: 주행 카드가 이미 2개를 채웠다
+        val navi = Manual()
+        val shared = mutableListOf(a, b)
+        val scope = CoroutineScope(Job() + Dispatchers.Unconfined)
+        val h = HandoffController(scope, navi, held = shared)
+        h.pick(c)
+        assertEquals(HandoffState.NeedReplace(c, listOf(a, b)), h.state.value)
+        h.backToCompare()
+        h.pick(a) // 이미 들어간 후보: 게이트웨이 호출 없이 완료
+        assertEquals(HandoffState.Done(a, undoable = false), h.state.value)
+        assertTrue(navi.adds.isEmpty())
+    }
+
+    @Test
     fun failureCanRetryOrReturnAndLateResultIsIgnored() {
         val navi = Manual()
         val h = ctl(navi)
