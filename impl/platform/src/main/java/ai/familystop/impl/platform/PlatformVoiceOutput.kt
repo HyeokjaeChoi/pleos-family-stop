@@ -6,6 +6,7 @@ import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import android.util.Log
 import java.util.Locale
 
 /** Error text for a failed TTS init/language setup, null = ready. */
@@ -68,8 +69,12 @@ class PlatformVoiceOutput(context: Context) : VoiceOutput {
             override fun onDone(utteranceId: String?) = Unit
 
             @Deprecated("Deprecated in Java")
-            override fun onError(utteranceId: String?) =
+            override fun onError(utteranceId: String?) = onError(utteranceId, -1)
+
+            override fun onError(utteranceId: String?, errorCode: Int) {
+                Log.w(TAG, "utterance error code=$errorCode (TextToSpeech.ERROR_*)")
                 fail(utteranceId?.removePrefix(ID_PREFIX)?.toIntOrNull(), "음성 안내를 재생하지 못했습니다")
+            }
         })
     }
 
@@ -83,6 +88,7 @@ class PlatformVoiceOutput(context: Context) : VoiceOutput {
             TextToSpeech.ERROR
         }
         val error = ttsInitError(status, lang)
+        Log.i(TAG, "init status=$status lang=$lang engine=${engine.defaultEngine} error=$error")
         if (error != null) {
             val g = gen
             val wanted = pending != null
@@ -110,6 +116,7 @@ class PlatformVoiceOutput(context: Context) : VoiceOutput {
     }
 
     private companion object {
+        const val TAG = "FamilyStopTts"
         const val ID_PREFIX = "stop-notice-"
     }
 }

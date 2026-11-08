@@ -2,6 +2,7 @@ package ai.familystop.feature.drive
 
 import ai.familystop.core.NaviGateway
 import ai.familystop.core.StopPlace
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -69,6 +70,8 @@ private fun nowMs() = System.nanoTime() / 1_000_000
  * (detail screens belong to other issues). Scrolling, expanding and comparing are absent while
  * restricted (ADR-0003, ADR-0004).
  */
+private const val TAG = "FamilyStopMove"
+
 @Composable
 fun DriveScreen(
     candidates: List<DriveCandidate>,
@@ -88,9 +91,14 @@ fun DriveScreen(
     var now by remember { mutableLongStateOf(nowMs()) }
 
     DisposableEffect(movement) {
-        movement.start { state, reason -> reading = tracker.onSignal(state, reason, nowMs()) }
+        movement.start { state, reason ->
+            Log.i(TAG, "signal $state ($reason)")
+            reading = tracker.onSignal(state, reason, nowMs())
+        }
         onDispose { movement.stop() }
     }
+    // Logged for E2E timing of the 2 s hold (docs/e2e).
+    LaunchedEffect(reading.state) { Log.i(TAG, "confirmed ${reading.state}") }
     LaunchedEffect(picker) {
         while (true) {
             delay(250)
