@@ -23,6 +23,7 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":feature:drive"))
     implementation(project(":feature:input"))
+    implementation(project(":feature:metrics"))
     implementation(project(":impl:pleos"))
     implementation(project(":impl:platform"))
     implementation(platform("androidx.compose:compose-bom:2025.10.00"))
