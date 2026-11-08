@@ -5,11 +5,14 @@ import ai.familystop.core.StopPlace
 import ai.familystop.core.designsystem.App
 import ai.familystop.core.designsystem.AppButton
 import ai.familystop.core.designsystem.AppCard
+import ai.familystop.core.designsystem.Status
+import ai.familystop.core.designsystem.StatusChip
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -30,8 +33,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import kotlinx.coroutines.delay
 
-/** A stop candidate shown as one large card; [summary] is 1~3 short lines (DESIGN.md 8절). */
-data class DriveCandidate(val place: StopPlace, val summary: String)
+/** [chip]은 상태를 항상 아이콘+문구 한 쌍으로만 받는다. A stop candidate shown as one large card; [summary] is 1~3 short lines (DESIGN.md 8절). */
+data class DriveCandidate(
+    val place: StopPlace,
+    val summary: String,
+    val chip: Pair<Status, String>? = null
+)
 
 /** Input draft that survives driving <-> parked switches and Activity recreation (F-OAXFEH). */
 class InputDraft(initial: String = "") {
@@ -111,16 +118,9 @@ fun DriveScreen(
                     style = App.type.driveBody,
                     color = App.colors.statusDanger
                 )
-                is PickState.Done -> Text(
-                    s.note ?: "${s.place.name} 경유지 추가됨",
-                    style = App.type.driveBody,
-                    color = if (s.note !=
-                        null
-                    ) {
-                        App.colors.statusDanger
-                    } else {
-                        App.colors.textSecondary
-                    }
+                is PickState.Done -> StatusChip(
+                    if (s.note != null) Status.Danger else Status.Ok,
+                    s.note ?: "${s.place.name} 경유지 추가됨"
                 )
                 else -> Unit
             }
@@ -146,9 +146,10 @@ private fun CandidateCard(
             c.summary,
             style = App.type.driveBody,
             color = App.colors.textSecondary,
-            maxLines = 3,
-            modifier = Modifier.weight(1f)
+            maxLines = 3
         )
+        c.chip?.let { (status, text) -> StatusChip(status, text) }
+        Spacer(Modifier.weight(1f))
         AppButton("경유지로 추가", null, Modifier.fillMaxWidth(), enabled = enabled, large = true)
     }
 }
