@@ -158,9 +158,11 @@ class PleosNaviGateway(context: Context) : NaviGateway {
                 slots.release(info.index.ordinal)
             }
         }
+        // Navi may report an ADD under another index than requested (E2E: 2nd add arrived as FIRST), and only one
+        // request is in flight, so any ADD completes it. REMOVE keeps the index match (ALL/other removals differ).
         if (op != null &&
-            op.index == info.index &&
-            op.cmd == info.cmdType
+            op.cmd == info.cmdType &&
+            (info.cmdType == WaypointCmdType.ADD || op.index == info.index)
         ) {
             finish(op, Result.success(Unit))
         }
