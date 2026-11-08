@@ -2,6 +2,7 @@ package ai.familystop
 
 import ai.familystop.core.DataSource
 import ai.familystop.core.StopCandidate
+import ai.familystop.core.StopPlace
 import ai.familystop.feature.fallback.FallbackCause
 import ai.familystop.feature.input.ChargeNeed
 import ai.familystop.feature.input.TripInput
@@ -57,6 +58,11 @@ class Session(private val metrics: MetricsCollector) {
     fun onWaypointAdded(c: StopCandidate) {
         lastPick = c
         record(c)
+    }
+
+    /** A cancelled stop must not be recorded later by a consent given after the undo. */
+    fun onWaypointRemoved(place: StopPlace) {
+        if (lastPick?.place == place) lastPick = null
     }
 
     private fun record(c: StopCandidate) {
