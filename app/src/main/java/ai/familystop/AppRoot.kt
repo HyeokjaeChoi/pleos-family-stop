@@ -31,10 +31,12 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -177,10 +179,11 @@ private fun Parked(
         }
     }
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(App.space.lg)) {
-        // 좁은 폭·큰 글자에서도 잘리지 않게 줄바꿈. 동의는 설정성 항목이라 마지막 보조 버튼.
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(App.space.lg),
-            verticalArrangement = Arrangement.spacedBy(App.space.lg)
+        // 한 줄 고정 + 가로 스크롤: 좁은 폭·큰 글자에서도 모든 탭에 닿고 폼 높이를 뺏지 않는다.
+        // 동의는 설정성 항목이라 마지막 보조 버튼.
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(App.space.lg)
         ) {
             Step.entries.filter { it != Step.CONSENT && (it != Step.ACTIVITY || s.charging) }
                 .forEach { step ->
