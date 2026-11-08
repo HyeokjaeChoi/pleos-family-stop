@@ -26,7 +26,6 @@ object AppMotion {
     const val ENTER_MS = 200
     const val EXIT_MS = 160
     const val MOVE_MS = 250
-    const val STAGGER_MS = 30
     const val PRESS_SCALE = 0.97f
     const val PULSE_SCALE = 1.02f
     const val RISE_DP = 12

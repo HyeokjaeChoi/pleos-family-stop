@@ -33,9 +33,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,16 +57,16 @@ fun StatusChip(status: Status, text: String, modifier: Modifier = Modifier) {
     // 성공으로 바뀔 때만 1회 pulse(1.0→1.02→1.0). 처음 표시·reduce-motion에서는 생략.
     val pulse = remember { Animatable(1f) }
     val reduce = AppMotion.reduce
-    var last by remember { mutableStateOf(status) }
+    val last = remember { arrayOf(status) } // 상태 아님: 쓰기가 재구성을 부르지 않게
     LaunchedEffect(status) {
-        if (status == Status.Ok && last != Status.Ok && !reduce) {
+        if (status == Status.Ok && last[0] != Status.Ok && !reduce) {
             pulse.animateTo(
                 AppMotion.PULSE_SCALE,
                 tween(AppMotion.ENTER_MS / 2, easing = AppMotion.EaseEnter)
             )
             pulse.animateTo(1f, tween(AppMotion.ENTER_MS / 2, easing = AppMotion.EaseMove))
         }
-        last = status
+        last[0] = status
     }
     Row(
         modifier
