@@ -7,9 +7,7 @@ import ai.pleos.playground.navi.constants.WaypointCmdType
 import ai.pleos.playground.navi.constants.WaypointIndex
 import ai.pleos.playground.navi.data.RequestWaypointInfo
 import ai.pleos.playground.navi.data.WaypointChangedInfo
-import ai.pleos.playground.navi.helper.NaviHelper
 import ai.pleos.playground.navi.helper.listener.NaviHelperEventListener
-import android.content.Context
 import android.os.Handler
 import android.os.Looper
 
@@ -17,9 +15,9 @@ import android.os.Looper
  * [NaviGateway] on Pleos NaviHelper (ADR-0001, ADR-0003).
  * Main thread only: SDK callbacks are re-posted to main, so `onResult` callbacks run there too.
  * Requests run one at a time (queued until connected), so slot state never races.
- * App-scoped; call [close] to release the service binding.
+ * App-scoped; the Navi connection belongs to the shared [NaviSession].
  */
-class PleosNaviGateway(context: Context) : NaviGateway {
+class PleosNaviGateway(private val session: NaviSession) : NaviGateway {
     private class Op(
         val place: StopPlace,
         val cmd: WaypointCmdType,
@@ -30,13 +28,12 @@ class PleosNaviGateway(context: Context) : NaviGateway {
     }
 
     private val main = Handler(Looper.getMainLooper())
-    private val helper = NaviHelper(context.applicationContext)
+    private val helper get() = session.helper
     private val slots = WaypointSlots()
     private val queue = ArrayDeque<Op>()
     private var inFlight: Op? = null
-    private var connected = false
+    private var ready = false
     private var connecting = false
-    private var closed = false
 
     private val listener = object : NaviHelperEventListener {
         override fun onWaypointChanged(info: WaypointChangedInfo) {
@@ -53,43 +50,22 @@ class PleosNaviGateway(context: Context) : NaviGateway {
         }
     }
 
-    init {
-        connect()
-    }
-
     // ponytail: no sync with waypoints set in the Navi UI (getWaypointInfo); reconcile if the demo needs it.
-    private fun connect() {
+    private fun ensureReady() {
+        if (ready || connecting) return
         connecting = true
-        helper.initialize(
+        session.whenReady(
             {
-                main.post {
-                    if (closed) return@post
-                    connecting = false
-                    connected = true
-                    helper.addListener(listener)
-                    drain()
-                }
+                connecting = false
+                ready = true
+                helper.addListener(listener)
+                drain()
             },
             {
-                main.post {
-                    if (closed) return@post
-                    connecting = false
-                    connected = false
-                    failQueued(IllegalStateException("navi init failed: ${it.message}"))
-                }
+                connecting = false
+                failQueued(it)
             }
         )
-    }
-
-    fun close() {
-        if (closed) return
-        closed = true
-        connected = false
-        helper.removeListener(listener)
-        helper.release()
-        val error = IllegalStateException("navi closed")
-        inFlight?.let { finish(it, Result.failure(error)) }
-        failQueued(error)
     }
 
     override fun addWaypoint(place: StopPlace, onResult: (Result<Unit>) -> Unit) =
@@ -99,15 +75,14 @@ class PleosNaviGateway(context: Context) : NaviGateway {
         enqueue(Op(place, WaypointCmdType.REMOVE, onResult))
 
     private fun enqueue(op: Op) {
-        if (closed) return op.onResult(Result.failure(IllegalStateException("navi closed")))
         queue += op
         // A failed init retries on the next request.
-        if (!connected && !connecting) connect()
+        ensureReady()
         drain()
     }
 
     private fun drain() {
-        while (connected && inFlight == null) {
+        while (ready && inFlight == null) {
             val op = queue.removeFirstOrNull() ?: return
             if (op.cmd == WaypointCmdType.ADD) send(op) else sendRemove(op)
         }

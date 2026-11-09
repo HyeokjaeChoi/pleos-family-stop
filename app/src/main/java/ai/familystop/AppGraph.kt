@@ -15,6 +15,7 @@ import ai.familystop.feature.recommend.parseFacilities
 import ai.familystop.feature.voice.VoiceGuide
 import ai.familystop.impl.platform.PlatformLocationSource
 import ai.familystop.impl.platform.PlatformVoiceOutput
+import ai.familystop.impl.pleos.NaviSession
 import ai.familystop.impl.pleos.PleosDestinationSource
 import ai.familystop.impl.pleos.PleosNaviGateway
 import ai.familystop.impl.pleos.PleosVehicleEnergySource
@@ -30,8 +31,9 @@ class AppGraph(context: Context) {
 
     val location: LocationSource = PlatformLocationSource(app)
     val voice: VoiceOutput = PlatformVoiceOutput(app)
-    val navi: NaviGateway = PleosNaviGateway(app)
-    val destinations: DestinationSource = PleosDestinationSource(app)
+    private val naviSession = NaviSession(app)
+    val navi: NaviGateway = PleosNaviGateway(naviSession)
+    val destinations: DestinationSource = PleosDestinationSource(naviSession)
     val energy: VehicleEnergySource = PleosVehicleEnergySource(app)
     val metrics = MetricsCollector(FileMetricsStore(File(app.filesDir, "metrics")))
 

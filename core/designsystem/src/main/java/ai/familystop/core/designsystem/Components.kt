@@ -306,7 +306,7 @@ fun AppToggleTile(
                     modifier = Modifier.size(App.icon.tertiary)
                 )
             }
-            Text(label, style = App.type.stopBody, color = fg)
+            Text(label, style = App.type.stopBody, color = fg, maxLines = 1, softWrap = false)
         }
     }
 }
