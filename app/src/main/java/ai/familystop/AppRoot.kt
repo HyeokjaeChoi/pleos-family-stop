@@ -6,11 +6,10 @@ import ai.familystop.core.StopCandidate
 import ai.familystop.core.StopNeed
 import ai.familystop.core.StopRequest
 import ai.familystop.core.designsystem.App
-import ai.familystop.core.designsystem.AppButton
 import ai.familystop.core.designsystem.Status
-import ai.familystop.feature.activity.ActivityCandidate
-import ai.familystop.feature.activity.ActivityKind
+import ai.familystop.core.designsystem.StatusChip
 import ai.familystop.feature.activity.ChargingActivityScreen
+import ai.familystop.feature.activity.Journey
 import ai.familystop.feature.drive.CarUxMovementSource
 import ai.familystop.feature.drive.DriveCandidate
 import ai.familystop.feature.drive.DriveScreen
@@ -19,9 +18,11 @@ import ai.familystop.feature.fallback.DataFailure
 import ai.familystop.feature.fallback.FallbackCard
 import ai.familystop.feature.fallback.FallbackCause
 import ai.familystop.feature.handoff.HandoffScreen
-import ai.familystop.feature.input.TripInput
-import ai.familystop.feature.input.TripInputScreen
-import ai.familystop.feature.metrics.ConsentScreen
+import ai.familystop.feature.input.DestinationsState
+import ai.familystop.feature.input.TripInputPane
+import ai.familystop.feature.input.ValidationResult
+import ai.familystop.feature.input.mergeCurrent
+import ai.familystop.feature.input.validate
 import ai.familystop.feature.recommend.FETCH_TIMEOUT_MS
 import ai.familystop.feature.recommend.RecommendScreen
 import ai.familystop.feature.recommend.RecommendState
@@ -31,12 +32,13 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -45,7 +47,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.SaveableStateHolder
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -141,12 +142,60 @@ fun AppRoot(graph: AppGraph) {
         }
     }
 
-    fun submit(trip: TripInput) {
+    // Input changed: new trip + fresh recommendation for the current needs (right pane refreshes at once).
+    fun refetch() {
         s.newTrip()
-        s.trip = trip
-        s.step = Step.RECOMMEND
         requestLocation()
     }
+
+    LaunchedEffect(Unit) {
+        // Destination list + current route ETA from Navi (#65). Once per process, retried on Unavailable.
+        if (s.destinations is DestinationsState.Loading) {
+            graph.destinations.load { r ->
+                val list = r.getOrNull().orEmpty()
+                s.destinations =
+                    if (list.isEmpty()) {
+                        DestinationsState.Unavailable
+                    } else {
+                        DestinationsState.Ready(
+                            list
+                        )
+                    }
+            }
+        }
+        graph.destinations.currentEta { r ->
+            s.eta = r.getOrNull()
+            s.etaFailed = r.isFailure || r.getOrNull() == null
+            s.etaLoadedAt = LocalDateTime.now()
+            // 내비에 설정된 목적지는 기본 선택(#65).
+            val ready = (s.destinations as? DestinationsState.Ready)?.list.orEmpty()
+            s.eta?.let { e ->
+                val merged = mergeCurrent(ready, e)
+                s.destinations = DestinationsState.Ready(merged)
+                if (s.draft.destinationKey == null) {
+                    s.draft =
+                        s.draft.copy(
+                            destinationKey = ai.familystop.feature.input.destinationKey(
+                                merged.first()
+                            )
+                        )
+                }
+            }
+        }
+    }
+
+    val destList = (s.destinations as? DestinationsState.Ready)?.list.orEmpty()
+    val valid = (
+        validate(
+            s.draft,
+            destList,
+            soc,
+            LocalDateTime.now()
+        ) as? ValidationResult.Ok
+        )?.input
+    LaunchedEffect(valid) { s.trip = valid }
+    // Refetch only when validity or needs change (not on every wheel tick).
+    LaunchedEffect(valid != null, valid?.needs) { if (valid != null) refetch() }
 
     val cards = rec.driveCards()
     DriveScreen(
@@ -156,7 +205,7 @@ fun AppRoot(graph: AppGraph) {
         sourceLabel = if (cards.any { it.source == DataSource.VIRTUAL }) "가상 데이터(시연)" else null,
         footer = { VoiceBar(graph.guide) }
     ) {
-        Parked(graph, rec, soc, navi, ::submit, ::requestLocation, holder)
+        Parked(graph, rec, soc, navi, ::requestLocation)
     }
 }
 
@@ -166,64 +215,53 @@ private fun Parked(
     rec: RecommendState,
     soc: Int?,
     navi: NaviGateway,
-    onSubmit: (TripInput) -> Unit,
-    onRetry: () -> Unit,
-    holder: SaveableStateHolder
+    onRetry: () -> Unit
 ) {
     val s = graph.session
-    var now by remember { mutableStateOf(LocalDateTime.now()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(30_000)
-            now = LocalDateTime.now()
-        }
+    val trip = s.trip
+    val stop = s.stop
+    if (s.phase == Phase.ACTIVITY && trip != null && stop != null) {
+        val base = s.etaLoadedAt?.takeIf { s.eta?.destinationName == trip.destination.name }
+            ?.let { at -> s.eta?.let { at.plusSeconds(it.remainSeconds.toLong()) } }
+            ?.plusMinutes(stop.extraMinutes.toLong())
+        ChargingActivityScreen(
+            journey = Journey(
+                stopName = stop.place.name,
+                stopDetail = "${stop.place.name}까지 ${"%.1f".format(
+                    stop.detourKm
+                )}km · +${stop.extraMinutes}분",
+                destinationName = trip.destination.name,
+                baseArrival = base,
+                wishedArrival = trip.arrival
+            ),
+            tasks = trip.needs.map { it.label },
+            sessionId = s.tripId
+        )
+        return
     }
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(App.space.lg)) {
-        // 한 줄 고정 + 가로 스크롤: 좁은 폭·큰 글자에서도 모든 탭에 닿고 폼 높이를 뺏지 않는다.
-        // 동의는 설정성 항목이라 마지막 보조 버튼.
-        Row(
-            Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(App.space.lg)
-        ) {
-            Step.entries.filter { it != Step.CONSENT && (it != Step.ACTIVITY || s.charging) }
-                .forEach { step ->
-                    AppButton(step.label, { s.step = step }, primary = s.step == step)
-                }
-            AppButton(
-                Step.CONSENT.label,
-                { s.step = Step.CONSENT },
-                primary =
-                s.step == Step.CONSENT
-            )
-        }
-        // Keeps each step's typed-in state while driving removes the parked UI from composition.
-        holder.SaveableStateProvider(s.step.name) {
-            when (s.step) {
-                Step.INPUT -> TripInputScreen(
-                    parked = true,
-                    autoSocPercent = soc,
-                    onSubmit = onSubmit
-                )
-                Step.RECOMMEND -> Recommend(graph, rec, navi, onRetry)
-                Step.ACTIVITY -> ChargingActivityScreen(
-                    parked = true,
-                    candidates = (rec as? RecommendState.Success)?.candidates.orEmpty()
-                        .mapNotNull(::activityOf),
-                    chargeSessionId = s.tripId,
-                    autoCharging = false, // no Pleos charging-state API; user confirms (PL-UJFQXQ)
-                    autoChargeEndsAt = null,
-                    now = now
-                )
-                Step.CONSENT -> ConsentScreen(
-                    parked = true,
-                    tripId = s.tripId,
-                    consented = s.consented,
-                    onResult = { yes ->
-                        if (yes) s.grantConsent()
-                        s.step = Step.INPUT
-                    },
-                    onWithdraw = s::withdraw
-                )
+    Row(
+        Modifier.fillMaxSize().padding(App.space.lg),
+        horizontalArrangement = Arrangement.spacedBy(App.space.lg)
+    ) {
+        TripInputPane(
+            destinations = s.destinations,
+            eta = s.eta,
+            etaFailed = s.etaFailed,
+            autoSocPercent = soc,
+            draft = s.draft,
+            onDraft = { s.draft = it },
+            onOpenNavi = {
+                /* ponytail: 내비 앱 실행은 Pleos 실행 API 확인 후. 지금은 재시도만 */
+                s.destinations =
+                    DestinationsState.Loading
+            },
+            modifier = Modifier.weight(1.2f).verticalScroll(rememberScrollState())
+        )
+        Column(Modifier.weight(1f)) {
+            when {
+                s.trip != null -> Recommend(graph, rec, navi, onRetry)
+                s.draft.destinationKey == null -> StatusChip(Status.Unknown, "목적지를 골라 주세요")
+                else -> StatusChip(Status.Unknown, "도착 시각을 정해 주세요")
             }
         }
     }
@@ -245,7 +283,7 @@ private fun Recommend(
                 cause,
                 nowMs = System.currentTimeMillis(),
                 onRetry = onRetry,
-                onManual = { s.step = Step.INPUT }
+                onManual = { s.draft = s.draft.copy(destinationKey = null) }
             )
             else -> RecommendScreen(
                 state = rec,
@@ -263,25 +301,4 @@ private fun Recommend(
             onUndo = graph.handoff::undo
         )
     }
-}
-
-// ponytail: 왕복·활동 시간은 시연 고정값. 경로 기반 계산은 외부 제공처 연동 시.
-private fun activityOf(c: StopCandidate): ActivityCandidate? {
-    val kind = when {
-        StopNeed.MEAL in c.met -> ActivityKind.MEAL
-        StopNeed.KIDS_REST in c.met -> ActivityKind.REST
-        else -> return null
-    }
-    return ActivityCandidate(
-        c.place.name,
-        kind,
-        2 * c.extraMinutes,
-        if (kind ==
-            ActivityKind.MEAL
-        ) {
-            30
-        } else {
-            15
-        }
-    )
 }

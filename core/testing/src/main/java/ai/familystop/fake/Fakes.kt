@@ -1,8 +1,11 @@
 package ai.familystop.fake
 
+import ai.familystop.core.Destination
+import ai.familystop.core.DestinationSource
 import ai.familystop.core.GeoPoint
 import ai.familystop.core.LocationSource
 import ai.familystop.core.NaviGateway
+import ai.familystop.core.RouteEta
 import ai.familystop.core.StopPlace
 import ai.familystop.core.VehicleEnergySource
 import ai.familystop.core.VoiceOutput
@@ -39,4 +42,13 @@ class FakeNaviGateway : NaviGateway {
 class FakeVehicleEnergySource(private val soc: Int? = 62) : VehicleEnergySource {
     override fun start(onSoc: (Int?) -> Unit) = onSoc(soc)
     override fun stop() {}
+}
+
+class FakeDestinationSource(
+    private val list: List<Destination> = emptyList(),
+    private val eta: Result<RouteEta?> = Result.success(null)
+) : DestinationSource {
+    override fun load(onResult: (Result<List<Destination>>) -> Unit) =
+        onResult(Result.success(list))
+    override fun currentEta(onResult: (Result<RouteEta?>) -> Unit) = onResult(eta)
 }

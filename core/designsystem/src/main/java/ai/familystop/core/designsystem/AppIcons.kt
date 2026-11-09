@@ -55,4 +55,41 @@ object AppIcons {
                 "-7.86-7-8.77z"
         )
     }
+    val Remove: ImageVector by lazy { glyph("Remove", "M19 13H5v-2h14v2z") }
+    val History: ImageVector by lazy {
+        glyph(
+            "History",
+            "M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7" +
+                "-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21" +
+                "c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"
+        )
+    }
+    val Work: ImageVector by lazy {
+        glyph(
+            "Work",
+            "M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19" +
+                "c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"
+        )
+    }
+    val Navigation: ImageVector by lazy {
+        glyph("Navigation", "M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z")
+    }
+    val Bolt: ImageVector by lazy {
+        glyph(
+            "Bolt",
+            "M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12" +
+                "C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51" +
+                "l-.07.15C12.96 17.55 11 21 11 21z"
+        )
+    }
+    val Place: ImageVector by lazy {
+        glyph(
+            "Place",
+            "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5" +
+                "c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
+        )
+    }
+    val Warning: ImageVector by lazy {
+        glyph("Warning", "M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z")
+    }
 }

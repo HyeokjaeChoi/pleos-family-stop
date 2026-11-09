@@ -1,5 +1,7 @@
 package ai.familystop.impl.pleos
 
+import ai.familystop.core.Destination
+import ai.familystop.core.DestinationKind
 import ai.familystop.core.StopPlace
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -27,5 +29,15 @@ class PleosLogicTest {
         assertNull(socOrNull(null))
         assertNull(socOrNull(-1))
         assertNull(socOrNull(101))
+    }
+
+    @Test
+    fun destinationsDropUnsetDuplicatesAndPutBookmarksFirst() {
+        val unset = Destination("", 0.0, 0.0, DestinationKind.HOME)
+        val r1 = Destination("A", 1.0, 2.0, DestinationKind.RECENT)
+        val r1dup = Destination("A", 1.0, 2.0, DestinationKind.RECENT)
+        val home = Destination("집", 3.0, 4.0, DestinationKind.HOME)
+        val out = cleanDestinations(listOf(r1, unset, r1dup, home))
+        assertEquals(listOf(home, r1), out)
     }
 }

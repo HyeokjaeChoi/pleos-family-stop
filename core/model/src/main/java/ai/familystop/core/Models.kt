@@ -37,3 +37,25 @@ data class Facility(
     val detourKm: Double,
     val extraMinutes: Int
 )
+
+// --- Destination picking (#65). ---
+
+/** 목적지 목록 항목의 출처. 집·회사는 내비에 저장된 것만 나온다. */
+enum class DestinationKind { CURRENT, HOME, OFFICE, RECENT }
+
+/** 내비에서 가져온 목적지([DestinationKind.CURRENT]=지금 안내 중인 목적지). 직접 입력은 받지 않는다(#65). */
+data class Destination(
+    val name: String,
+    val lat: Double,
+    val lon: Double,
+    val kind: DestinationKind,
+    val address: String? = null
+)
+
+/** 내비가 안내 중인 경로의 남은 시간(초). 도착 예상 시각 = 지금 + [remainSeconds]. */
+data class RouteEta(
+    val destinationName: String,
+    val lat: Double,
+    val lon: Double,
+    val remainSeconds: Int
+)
