@@ -7,6 +7,7 @@ import ai.pleos.playground.navi.constants.WaypointCmdType
 import ai.pleos.playground.navi.constants.WaypointIndex
 import ai.pleos.playground.navi.data.RequestWaypointInfo
 import ai.pleos.playground.navi.data.WaypointChangedInfo
+import ai.pleos.playground.navi.data.WaypointInfo
 import ai.pleos.playground.navi.helper.listener.NaviHelperEventListener
 import android.os.Handler
 import android.os.Looper
@@ -33,11 +34,23 @@ class PleosNaviGateway(private val session: NaviSession) : NaviGateway {
     private val queue = ArrayDeque<Op>()
     private var inFlight: Op? = null
     private var ready = false
+    private var syncing = false
     private var connecting = false
 
     private val listener = object : NaviHelperEventListener {
         override fun onWaypointChanged(info: WaypointChangedInfo) {
             main.post { onChanged(info) }
+        }
+
+        override fun onWayPointInfo(list: List<WaypointInfo>) {
+            val places = list.map {
+                StopPlace(it.name, it.latitude, it.longitude, it.poiId?.takeIf(String::isNotEmpty))
+            }
+            main.post {
+                if (!syncing) return@post
+                slots.sync(places)
+                endSync()
+            }
         }
 
         // The SDK error does not say which request failed: fail the one in flight.
@@ -59,7 +72,7 @@ class PleosNaviGateway(private val session: NaviSession) : NaviGateway {
                 connecting = false
                 ready = true
                 helper.addListener(listener)
-                drain()
+                startSync()
             },
             {
                 connecting = false
@@ -81,18 +94,34 @@ class PleosNaviGateway(private val session: NaviSession) : NaviGateway {
         drain()
     }
 
+    // Navi keeps waypoints across app restarts, and adding into an occupied slot is ignored silently (no event,
+    // no error: #69). So learn the real slot state once before the first request.
+    private val syncTimeout = Runnable { endSync() }
+
+    private fun startSync() {
+        syncing = true
+        main.postDelayed(syncTimeout, SYNC_TIMEOUT_MS)
+        helper.getWaypointInfo()
+    }
+
+    private fun endSync() {
+        syncing = false
+        main.removeCallbacks(syncTimeout)
+        drain()
+    }
+
     private fun drain() {
-        while (ready && inFlight == null) {
+        while (ready && !syncing && inFlight == null) {
             val op = queue.removeFirstOrNull() ?: return
             if (op.cmd == WaypointCmdType.ADD) send(op) else sendRemove(op)
         }
     }
 
     private fun send(op: Op) {
+        // Already a waypoint (left from an earlier run): nothing to send.
+        if (slots.indexOf(op.place) != null) return op.onResult(Result.success(Unit))
         val i = slots.reserve(op.place)
-            ?: return op.onResult(
-                Result.failure(IllegalStateException("waypoints full or duplicate"))
-            )
+            ?: return op.onResult(Result.failure(IllegalStateException("waypoints full")))
         start(op, WaypointIndex.entries[i])
         helper.addWaypoint(
             RequestWaypointInfo(
@@ -164,5 +193,6 @@ class PleosNaviGateway(private val session: NaviSession) : NaviGateway {
         // Measured emulator re-route after addWaypoint: 5~12 s before onWaypointChanged (#14 E2E; 5 s timed out a
         // successful add). Trade-off: a genuinely lost reply holds the picker/handoff up to 15 s. Do not go below 12 s.
         const val REQUEST_TIMEOUT_MS = 15_000L
+        const val SYNC_TIMEOUT_MS = 5_000L
     }
 }

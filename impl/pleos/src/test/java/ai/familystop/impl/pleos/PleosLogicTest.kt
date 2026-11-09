@@ -40,4 +40,23 @@ class PleosLogicTest {
         val out = cleanDestinations(listOf(r1, unset, r1dup, home))
         assertEquals(listOf(home, r1), out)
     }
+
+    @Test
+    fun syncReplacesSlotsWithNaviState() {
+        val s = WaypointSlots()
+        s.reserve(a)
+        s.sync(listOf(b, c, a))
+        assertEquals(0, s.indexOf(b))
+        assertEquals(1, s.indexOf(c))
+        assertNull(s.indexOf(a))
+        assertNull(s.reserve(a))
+    }
+
+    @Test
+    fun naviEchoWithZeroCoordinatesStillMatchesByPoiId() {
+        val s = WaypointSlots()
+        s.sync(listOf(StopPlace("휴게소", 0.0, 0.0, "demo-c")))
+        assertEquals(0, s.indexOf(StopPlace("휴게소", 37.25, 127.08, "demo-c")))
+        assertNull(s.reserve(StopPlace("휴게소", 37.25, 127.08, "demo-c")))
+    }
 }

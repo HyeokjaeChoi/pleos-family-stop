@@ -113,3 +113,8 @@ adb shell am start -n ai.familystop.app/ai.familystop.MainActivity
 - ADR-0004의 결정(미확인=주행 중)은 바꾸지 않았다. 판별 후보는 기어(`GEAR_PARK` = 정차)이며, 이는 현재 결정과 충돌하지 않는다.
 
 **남은 것**: FusedLocation/STT/TTS는 SDK "Coming Soon"이라 미확인. 실차와 에뮬레이터 Navi 동작이 같다는 보장은 없다(에뮬 Navi는 경로 시간·거리가 고정값에 가깝다).
+
+## E2E 녹화 (`scripts/e2e-demo.sh <outdir>`)
+
+입력 → 추천 → 경유지 추가 → 활동 → 체크 → 카운트다운 → 충전 종료를 `uiautomator`로 구동하고, `screenrecord` 녹화 + `ffmpeg` 압축(1280px/15fps, 약 0.3MB)까지 한다. 단계별 OK/FAIL은 `<outdir>/log.txt`. 사전 조건: 내비에서 더현대서울 안내 중(경로 없음이면 목적지 선택·전달이 달라진다). 내비는 앱 재시작 후에도 경유지를 유지하므로, 앱은 연결 직후 `getWaypointInfo`로 슬롯을 동기화한다(#69).
+
