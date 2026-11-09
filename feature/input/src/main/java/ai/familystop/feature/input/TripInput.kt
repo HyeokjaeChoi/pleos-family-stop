@@ -1,8 +1,10 @@
 package ai.familystop.feature.input
 
+import ai.familystop.core.Destination
+import ai.familystop.core.DestinationKind
+import ai.familystop.core.RouteEta
 import java.time.LocalDateTime
 import java.time.LocalTime
-import java.time.format.DateTimeParseException
 
 /** F-GFBDZR: 가족이 정차에서 해결하려는 필요. */
 enum class StopNeed(val label: String) {
@@ -20,13 +22,27 @@ enum class ChargeNeed(val label: String) {
 
 /** 잔량 출처. 자동값과 수동값을 화면에서 구분해 표시한다(PL-UJFQXQ). */
 sealed interface Soc {
-    data class Auto(val percent: Int) : Soc
+    val percentOrNull: Int?
 
-    data class Manual(val percent: Int) : Soc
+    data class Auto(val percent: Int) : Soc {
+        override val percentOrNull get() = percent
+    }
+
+    data class Manual(val percent: Int) : Soc {
+        override val percentOrNull get() = percent
+    }
 
     /** 미확인: 도달 가능 여부를 보장하지 않는다. */
-    data object Unknown : Soc
+    data object Unknown : Soc {
+        override val percentOrNull: Int? = null
+    }
 }
+
+// ponytail: 수동 입력 시작값 50%와 5%p 단위는 잠정값.
+const val SOC_STEP = 5
+
+/** 수동 잔량 스테퍼 증감. 처음 누르면 50%에서 시작하고 0~100을 벗어나지 않는다. */
+fun stepSoc(current: Int?, delta: Int): Int = ((current ?: 50) + delta * SOC_STEP).coerceIn(0, 100)
 
 /** 차량 자동값이 있으면 그것을, 없으면 수동 입력을, 둘 다 없으면 Unknown. */
 fun resolveSoc(auto: Int?, manual: Int?): Soc = when {
@@ -43,14 +59,12 @@ fun socMismatch(auto: Int?, manual: Int?): Boolean =
     auto != null && manual != null && kotlin.math.abs(auto - manual) >= SOC_MISMATCH_PERCENT
 
 enum class InputError(val message: String) {
-    DESTINATION_MISSING("목적지를 입력해 주세요"),
-    TIME_INVALID("도착 시간을 00:00 형식으로 입력해 주세요"),
-    TIME_PAST("지난 시간이에요. 도착 시간을 다시 정해 주세요"),
-    SOC_RANGE("배터리 잔량은 0~100 사이로 입력해 주세요")
+    DESTINATION_MISSING("목적지를 골라 주세요"),
+    TIME_MISSING("도착 시각을 정해 주세요")
 }
 
 data class TripInput(
-    val destination: String,
+    val destination: Destination,
     val arrival: LocalDateTime,
     val needs: Set<StopNeed>,
     val urgent: Boolean,
@@ -64,54 +78,64 @@ sealed interface ValidationResult {
     data class Invalid(val errors: List<InputError>) : ValidationResult
 }
 
-/** 폼 초안. 주행 중에도 보존되도록 화면에서 rememberSaveable로 들고 있다. */
+/**
+ * 폼 초안. 목적지는 내비 목록에서 고르기만 한다(#65) — [destinationKey]로 기억한다.
+ * 도착 시각은 [hour24]가 null이면 아직 정하지 않은 것(현재+1시간 같은 폴백 없음).
+ */
 data class TripDraft(
-    val destination: String = "",
-    val timeText: String = "",
+    val destinationKey: String? = null,
+    val hour24: Int? = null,
+    val minute: Int = 0,
     val needs: Set<StopNeed> = emptySet(),
     val urgent: Boolean = false,
     val chargeNeed: ChargeNeed = ChargeNeed.UNDECIDED,
-    val manualSocText: String = ""
+    val manualSoc: Int? = null
 ) : java.io.Serializable
 
-/**
- * 추천 요청 전 검증. 목적지 누락·지난 시간은 수정을 요구한다(F-GFBDZR).
- * ponytail: 도착 시각은 '오늘' 기준 HH:mm. 자정을 넘기는 여행은 날짜 입력이 필요할 때 추가.
- */
-fun validate(draft: TripDraft, autoSoc: Int?, now: LocalDateTime): ValidationResult {
+fun destinationKey(d: Destination) = "${d.name}@${d.lat},${d.lon}"
+
+/** 선택한 시각이 이미 지났으면 내일로 해석한다(#65). */
+fun arrivalFrom(hour24: Int, minute: Int, now: LocalDateTime): LocalDateTime {
+    val today = now.toLocalDate().atTime(LocalTime.of(hour24, minute))
+    return if (today.isAfter(now)) today else today.plusDays(1)
+}
+
+/** 내비 예상 도착 시각(지금 + 남은 시간)의 시·분. 경로가 없으면 null. */
+fun etaTime(eta: RouteEta?, now: LocalDateTime): LocalTime? = eta?.takeIf {
+    it.remainSeconds > 0
+}?.let { now.plusSeconds(it.remainSeconds.toLong()).toLocalTime() }
+
+/** 안내 중인 목적지가 목록에 없으면 맨 앞에 [DestinationKind.CURRENT]로 넣고, 있으면 그 항목을 앞으로 올린다. */
+fun mergeCurrent(list: List<Destination>, eta: RouteEta?): List<Destination> {
+    if (eta == null || eta.destinationName.isBlank()) return list
+    val same = list.firstOrNull { it.name == eta.destinationName }
+    val current =
+        (same ?: Destination(eta.destinationName, eta.lat, eta.lon, DestinationKind.RECENT))
+            .copy(kind = DestinationKind.CURRENT)
+    return listOf(current) + list.filter { it !== same }
+}
+
+/** 추천 요청 전 검증. 목적지·시각이 비면 [ValidationResult.Invalid]. */
+fun validate(
+    draft: TripDraft,
+    destinations: List<Destination>,
+    autoSoc: Int?,
+    now: LocalDateTime
+): ValidationResult {
     val errors = mutableListOf<InputError>()
-    if (draft.destination.isBlank()) errors += InputError.DESTINATION_MISSING
-
-    val time =
-        try {
-            LocalTime.parse(draft.timeText.trim().padStart(5, '0'))
-        } catch (_: DateTimeParseException) {
-            null
-        }
-    val arrival = time?.let { now.toLocalDate().atTime(it) }
-    when {
-        arrival == null -> errors += InputError.TIME_INVALID
-        arrival.isBefore(now) -> errors += InputError.TIME_PAST
-    }
-
-    val manualText = draft.manualSocText.trim()
-    val manual = manualText.toIntOrNull()
-    if (autoSoc == null &&
-        manualText.isNotEmpty() &&
-        manual !in 0..100
-    ) {
-        errors += InputError.SOC_RANGE
-    }
-
-    if (errors.isNotEmpty() || arrival == null) return ValidationResult.Invalid(errors)
+    val dest = destinations.firstOrNull { destinationKey(it) == draft.destinationKey }
+    if (dest == null) errors += InputError.DESTINATION_MISSING
+    val hour = draft.hour24
+    if (hour == null) errors += InputError.TIME_MISSING
+    if (dest == null || hour == null) return ValidationResult.Invalid(errors)
     return ValidationResult.Ok(
         TripInput(
-            destination = draft.destination.trim(),
-            arrival = arrival,
+            destination = dest,
+            arrival = arrivalFrom(hour, draft.minute, now),
             needs = draft.needs,
             urgent = draft.urgent,
             chargeNeed = draft.chargeNeed,
-            soc = resolveSoc(autoSoc, manual)
+            soc = resolveSoc(autoSoc, draft.manualSoc)
         )
     )
 }

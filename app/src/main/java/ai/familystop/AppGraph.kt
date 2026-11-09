@@ -1,5 +1,6 @@
 package ai.familystop
 
+import ai.familystop.core.DestinationSource
 import ai.familystop.core.FacilitySource
 import ai.familystop.core.LocationSource
 import ai.familystop.core.NaviGateway
@@ -14,6 +15,7 @@ import ai.familystop.feature.recommend.parseFacilities
 import ai.familystop.feature.voice.VoiceGuide
 import ai.familystop.impl.platform.PlatformLocationSource
 import ai.familystop.impl.platform.PlatformVoiceOutput
+import ai.familystop.impl.pleos.PleosDestinationSource
 import ai.familystop.impl.pleos.PleosNaviGateway
 import ai.familystop.impl.pleos.PleosVehicleEnergySource
 import android.content.Context
@@ -29,6 +31,7 @@ class AppGraph(context: Context) {
     val location: LocationSource = PlatformLocationSource(app)
     val voice: VoiceOutput = PlatformVoiceOutput(app)
     val navi: NaviGateway = PleosNaviGateway(app)
+    val destinations: DestinationSource = PleosDestinationSource(app)
     val energy: VehicleEnergySource = PleosVehicleEnergySource(app)
     val metrics = MetricsCollector(FileMetricsStore(File(app.filesDir, "metrics")))
 

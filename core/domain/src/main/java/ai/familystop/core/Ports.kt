@@ -31,3 +31,12 @@ interface VehicleEnergySource {
 fun interface FacilitySource {
     suspend fun facilities(): List<Facility>
 }
+
+/** 내비의 최근·저장 목적지와 현재 경로 ETA. Impl: Pleos NaviHelper (#65). 결과는 main에서 돌려준다. */
+interface DestinationSource {
+    /** 집·회사(저장된 것만)와 최근 목적지. 실패하면 failure. */
+    fun load(onResult: (Result<List<Destination>>) -> Unit)
+
+    /** 안내 중인 경로의 남은 시간. 경로가 없으면 success(null), 모르면 failure. */
+    fun currentEta(onResult: (Result<RouteEta?>) -> Unit)
+}

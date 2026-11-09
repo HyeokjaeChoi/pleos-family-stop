@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -51,7 +52,7 @@ class RecommendScreenshotTest {
         rule.onNodeWithText("가상 휴게소 B").performClick()
         rule.waitForIdle()
         rule.onNodeWithText("선택: 가상 휴게소 B").assertIsDisplayed()
-        rule.onNodeWithText("선택됨").assertIsDisplayed()
+        rule.onNodeWithText("선택됨").assertDoesNotExist() // #65: 선택은 글자가 아니라 체크 아이콘
         rule.onNodeWithText("경유지로 추가").assertIsDisplayed()
         rule.onNodeWithText("일부 미충족").assertIsDisplayed()
         rule.onNodeWithTag("shot").saveShot(name)

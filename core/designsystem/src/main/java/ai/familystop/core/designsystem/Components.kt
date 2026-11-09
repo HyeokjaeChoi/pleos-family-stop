@@ -45,7 +45,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -371,7 +370,7 @@ internal val HelpIcon: ImageVector by lazy {
 
 /**
  * 후보 비교 한 행(DESIGN.md 7절 CompareRow, 정차 중 전용). 열 폭을 weight로 고정해 행끼리 열이 맞는다.
- * 선택된 행은 accent 면 + "선택됨" 문구로 구분한다(색만으로 구분하지 않음). 행 전체가 ≥76dp 터치 대상.
+ * 선택된 행은 accent 면 + 체크 원 아이콘으로 구분한다(색만으로 구분하지 않음, 문구 없음). 행 전체가 ≥76dp 터치 대상.
  */
 @Composable
 fun CompareRow(
@@ -399,24 +398,28 @@ fun CompareRow(
             .clip(RoundedCornerShape(App.radius.md))
             .background(rowBg)
             .selectable(selected, role = Role.RadioButton, onClick = onClick)
-            .padding(horizontal = App.space.xl, vertical = App.space.md),
+            .padding(horizontal = App.space.lg, vertical = App.space.md),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(App.space.lg)
+        horizontalArrangement = Arrangement.spacedBy(App.space.md)
     ) {
         Text(name, style = App.type.stopTitle, color = fg, modifier = Modifier.weight(COL_NAME))
         Text(minutes, style = App.type.stopBody, color = sub, modifier = Modifier.weight(COL_NUM))
         Text(distance, style = App.type.stopBody, color = sub, modifier = Modifier.weight(COL_NUM))
         Box(Modifier.weight(COL_CHIP)) { StatusChip(status, statusText) }
-        Text(
-            if (selected) "선택됨" else "",
-            style = App.type.stopBody.copy(fontWeight = FontWeight.Bold),
-            color = fg,
-            modifier = Modifier.weight(COL_PICK)
-        )
+        Box(Modifier.weight(COL_PICK), contentAlignment = Alignment.CenterEnd) {
+            if (selected) {
+                Icon(
+                    Icons.Rounded.CheckCircle,
+                    contentDescription = null,
+                    tint = fg,
+                    modifier = Modifier.size(App.icon.secondary)
+                )
+            }
+        }
     }
 }
 
-private const val COL_NAME = 2.4f
+private const val COL_NAME = 2.2f
 private const val COL_NUM = 1f
-private const val COL_CHIP = 2.2f
-private const val COL_PICK = 0.9f
+private const val COL_CHIP = 3f
+private const val COL_PICK = 0.5f

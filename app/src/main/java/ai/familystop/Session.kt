@@ -1,68 +1,76 @@
 package ai.familystop
 
 import ai.familystop.core.DataSource
+import ai.familystop.core.Destination
+import ai.familystop.core.RouteEta
 import ai.familystop.core.StopCandidate
 import ai.familystop.core.StopPlace
 import ai.familystop.feature.fallback.FallbackCause
 import ai.familystop.feature.input.ChargeNeed
+import ai.familystop.feature.input.DestinationsState
+import ai.familystop.feature.input.TripDraft
 import ai.familystop.feature.input.TripInput
+import ai.familystop.feature.input.mergeCurrent
 import ai.familystop.feature.metrics.DataOrigin
 import ai.familystop.feature.metrics.MetricsCollector
 import ai.familystop.feature.metrics.TripMetrics
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import java.time.LocalDateTime
 import kotlinx.coroutines.Job
 
-enum class Step(val label: String) {
-    INPUT("입력"),
-    RECOMMEND("추천"),
-    ACTIVITY("충전 중 활동"),
-    CONSENT("측정 동의")
-}
+/** 정차 화면 단계: 입력·추천 한 화면(PLAN) → 경유지 추가 후 충전 중 화면(ACTIVITY). 탭 없음(#65). */
+enum class Phase { PLAN, ACTIVITY }
 
 /** One trip's screen state. Held by [AppGraph] so it survives Activity recreation. */
 class Session(private val metrics: MetricsCollector) {
     var tripId by mutableStateOf(metrics.startTrip())
         private set
-    var step by mutableStateOf(Step.INPUT)
+    var phase by mutableStateOf(Phase.PLAN)
     var trip by mutableStateOf<TripInput?>(null)
+    var draft by mutableStateOf(TripDraft())
+    var rawList by mutableStateOf<List<Destination>?>(null) // null = not loaded yet
+    var listFailed by mutableStateOf(false)
+    var eta by mutableStateOf<RouteEta?>(null)
+    var etaFailed by mutableStateOf(false)
+    var etaLoadedAt by mutableStateOf<LocalDateTime?>(null)
+
+    /** Navi's list plus the route it is guiding now; derived so the two async answers cannot overwrite each other. */
+    val destinations: DestinationsState
+        get() {
+            val merged = mergeCurrent(rawList.orEmpty(), eta)
+            return when {
+                merged.isNotEmpty() -> DestinationsState.Ready(merged)
+                rawList != null || listFailed -> DestinationsState.Unavailable
+                else -> DestinationsState.Loading
+            }
+        }
     var locating by mutableStateOf(false)
     var fallback by mutableStateOf<FallbackCause?>(null)
-    var consented by mutableStateOf(false)
-    private var lastPick: StopCandidate? = null
+    var stop by mutableStateOf<StopCandidate?>(null)
+        private set
     var locateJob: Job? = null
     var announced: Any? = null // last recommendation read aloud
 
-    val charging get() = trip?.chargeNeed == ChargeNeed.YES
-
-    /** New trip = new random id and a fresh consent question (PL-NGEOJQ: consent is per trip). */
+    /** New trip = new random id (metrics are only recorded with consent, which has no screen now). */
     fun newTrip() {
         tripId = metrics.startTrip()
-        consented = false
-        lastPick = null
-    }
-
-    /** Driver consent; a stop already handed off in this trip is recorded right away. */
-    fun grantConsent(): Boolean {
-        consented = metrics.grantConsent(tripId, isDriver = true)
-        if (consented) lastPick?.let(::record)
-        return consented
-    }
-
-    fun withdraw() {
-        if (metrics.withdraw(tripId)) consented = false
+        stop = null
     }
 
     /** Waypoint accepted by the navigation app (from the handoff flow or the driving cards). */
     fun onWaypointAdded(c: StopCandidate) {
-        lastPick = c
+        stop = c
         record(c)
+        if (trip?.chargeNeed == ChargeNeed.YES) phase = Phase.ACTIVITY
     }
 
-    /** A cancelled stop must not be recorded later by a consent given after the undo. */
+    /** A cancelled stop leaves the charging screen. */
     fun onWaypointRemoved(place: StopPlace) {
-        if (lastPick?.place == place) lastPick = null
+        if (stop?.place != place) return
+        stop = null
+        phase = Phase.PLAN
     }
 
     private fun record(c: StopCandidate) {
