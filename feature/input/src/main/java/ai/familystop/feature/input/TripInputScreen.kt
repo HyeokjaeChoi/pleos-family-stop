@@ -5,7 +5,9 @@ import ai.familystop.core.DestinationKind
 import ai.familystop.core.RouteEta
 import ai.familystop.core.designsystem.App
 import ai.familystop.core.designsystem.AppButton
+import ai.familystop.core.designsystem.AppIcons
 import ai.familystop.core.designsystem.AppToggleChip
+import ai.familystop.core.designsystem.AppToggleTile
 import ai.familystop.core.designsystem.ProgressBar
 import ai.familystop.core.designsystem.SelectRow
 import ai.familystop.core.designsystem.Status
@@ -14,19 +16,17 @@ import ai.familystop.core.designsystem.Stepper
 import ai.familystop.core.designsystem.TimeWheel
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import java.time.LocalDateTime
@@ -105,24 +105,17 @@ fun TripInputPane(
             }
             Column(Modifier.weight(1f), verticalArrangement = Gap) {
                 Section("정차에서 필요한 것") {
-                    FlowRow(horizontalArrangement = Gap, verticalArrangement = Gap) {
+                    // Figma Tiles: 같은 폭·높이 3등분
+                    Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Gap) {
                         StopNeed.entries.forEach { n ->
-                            AppToggleChip(n in draft.needs, n.label) {
-                                onDraft(
-                                    draft.copy(
-                                        needs = if (n in
-                                            draft.needs
-                                        ) {
-                                            draft.needs - n
-                                        } else {
-                                            draft.needs + n
-                                        }
-                                    )
-                                )
-                            }
+                            AppToggleTile(
+                                n in draft.needs,
+                                n.label,
+                                n.icon(),
+                                Modifier.weight(1f).fillMaxHeight()
+                            ) { onDraft(draft.copy(needs = draft.needs.toggle(n))) }
                         }
                     }
-                    SwitchRow("급해요", draft.urgent) { onDraft(draft.copy(urgent = it)) }
                 }
                 Section("충전") { Charge(draft, autoSocPercent, onDraft) }
             }
@@ -175,30 +168,6 @@ private fun Destinations(
 }
 
 @Composable
-private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    val c = App.colors
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = App.touchMin)
-            .toggleable(checked, role = Role.Switch, onValueChange = onChange),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(label, style = App.type.stopTitle, color = c.textPrimary)
-        Switch(
-            checked,
-            null,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = c.accentOn,
-                checkedTrackColor = c.accentPrimary,
-                uncheckedThumbColor = c.textSecondary,
-                uncheckedTrackColor = c.bgRaised,
-                uncheckedBorderColor = c.bgRaised
-            )
-        )
-    }
-}
-
-@Composable
 private fun Charge(draft: TripDraft, auto: Int?, onDraft: (TripDraft) -> Unit) {
     Row(horizontalArrangement = Gap) {
         ChargeNeed.entries.forEach { c ->
@@ -233,3 +202,11 @@ private fun Charge(draft: TripDraft, auto: Int?, onDraft: (TripDraft) -> Unit) {
         Text("직접 정한 값(${draft.manualSoc}%)과 차량 데이터가 달라요. 차량 값을 사용해요.")
     }
 }
+
+private fun StopNeed.icon() = when (this) {
+    StopNeed.MEAL -> AppIcons.Restaurant
+    StopNeed.RESTROOM -> AppIcons.Wc
+    StopNeed.KIDS_REST -> AppIcons.Face
+}
+
+private fun Set<StopNeed>.toggle(n: StopNeed) = if (n in this) this - n else this + n

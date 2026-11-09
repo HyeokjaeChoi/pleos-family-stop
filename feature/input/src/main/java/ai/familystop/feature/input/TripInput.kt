@@ -67,7 +67,6 @@ data class TripInput(
     val destination: Destination,
     val arrival: LocalDateTime,
     val needs: Set<StopNeed>,
-    val urgent: Boolean,
     val chargeNeed: ChargeNeed,
     val soc: Soc
 )
@@ -87,7 +86,6 @@ data class TripDraft(
     val hour24: Int? = null,
     val minute: Int = 0,
     val needs: Set<StopNeed> = emptySet(),
-    val urgent: Boolean = false,
     val chargeNeed: ChargeNeed = ChargeNeed.UNDECIDED,
     val manualSoc: Int? = null
 ) : java.io.Serializable
@@ -133,7 +131,6 @@ fun validate(
             destination = dest,
             arrival = arrivalFrom(hour, draft.minute, now),
             needs = draft.needs,
-            urgent = draft.urgent,
             chargeNeed = draft.chargeNeed,
             soc = resolveSoc(autoSoc, draft.manualSoc)
         )
