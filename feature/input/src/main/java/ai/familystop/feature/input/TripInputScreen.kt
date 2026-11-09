@@ -59,7 +59,7 @@ fun TripInputPane(
     autoSocPercent: Int?,
     draft: TripDraft,
     onDraft: (TripDraft) -> Unit,
-    onOpenNavi: () -> Unit,
+    onRetry: () -> Unit,
     modifier: Modifier = Modifier,
     now: () -> LocalDateTime = { LocalDateTime.now() }
 ) {
@@ -77,7 +77,7 @@ fun TripInputPane(
         Section("목적지") {
             Column(
                 Modifier.heightIn(max = DEST_MAX_HEIGHT).verticalScroll(rememberScrollState())
-            ) { Destinations(destinations, draft, onDraft, onOpenNavi) }
+            ) { Destinations(destinations, draft, onDraft, onRetry) }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Gap) {
             Column(Modifier.weight(1f), verticalArrangement = Gap) {
@@ -86,12 +86,21 @@ fun TripInputPane(
                         StatusChip(Status.Warn, "내비 예상 도착 시각을 받지 못했어요. 직접 정해 주세요.")
                     }
                     val shown = draft.hour24 ?: now().hour
+                    val shownMinute = if (draft.hour24 == null) now().minute else draft.minute
                     TimeWheel(
                         hour = shown,
-                        minute = if (draft.hour24 == null) now().minute else draft.minute,
+                        minute = shownMinute,
                         onChange = { h, m -> onDraft(draft.copy(hour24 = h, minute = m)) },
                         modifier = Modifier.fillMaxWidth()
                     )
+                    // 휠이 보여 주는 값은 아직 정한 값이 아니다 → 그대로 쓰려면 직접 확정한다.
+                    if (draft.hour24 == null) {
+                        AppButton(
+                            "이 시각으로 정하기",
+                            { onDraft(draft.copy(hour24 = shown, minute = shownMinute)) },
+                            primary = false
+                        )
+                    }
                 }
             }
             Column(Modifier.weight(1f), verticalArrangement = Gap) {
@@ -141,13 +150,13 @@ private fun Destinations(
     state: DestinationsState,
     draft: TripDraft,
     onDraft: (TripDraft) -> Unit,
-    onOpenNavi: () -> Unit
+    onRetry: () -> Unit
 ) {
     when (state) {
         DestinationsState.Loading -> Text("목적지를 불러오는 중…", style = App.type.stopBody)
         DestinationsState.Unavailable -> {
             StatusChip(Status.Danger, "내비에서 목적지를 불러오지 못했어요")
-            AppButton("내비 열기", onOpenNavi, primary = false)
+            AppButton("다시 불러오기", onRetry, primary = false)
         }
         is DestinationsState.Ready -> Column(
             verticalArrangement = Arrangement.spacedBy(App.space.md)

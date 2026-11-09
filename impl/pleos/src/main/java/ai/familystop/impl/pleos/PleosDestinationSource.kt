@@ -31,6 +31,7 @@ class PleosDestinationSource(context: Context) : DestinationSource {
     private val helper = NaviHelper(context.applicationContext)
     private var connected = false
     private var connecting = false
+    private val pending = mutableListOf<() -> Unit>()
     private var recent: List<Destination>? = null
     private var bookmarks: List<Destination>? = null
     private var loadCb: ((Result<List<Destination>>) -> Unit)? = null
@@ -92,6 +93,7 @@ class PleosDestinationSource(context: Context) : DestinationSource {
         loadCb = onResult
         recent = null
         bookmarks = null
+        main.removeCallbacks(loadTimeout)
         main.postDelayed(loadTimeout, TIMEOUT_MS)
         whenConnected {
             helper.getRecentDestinationInfo()
@@ -101,6 +103,7 @@ class PleosDestinationSource(context: Context) : DestinationSource {
 
     override fun currentEta(onResult: (Result<RouteEta?>) -> Unit) {
         etaCb = onResult
+        main.removeCallbacks(etaTimeout)
         main.postDelayed(etaTimeout, TIMEOUT_MS)
         whenConnected { helper.getDestinationInfo() }
     }
@@ -129,10 +132,8 @@ class PleosDestinationSource(context: Context) : DestinationSource {
 
     private fun whenConnected(request: () -> Unit) {
         if (connected) return request()
-        if (connecting) {
-            main.postDelayed({ whenConnected(request) }, RETRY_MS)
-            return
-        }
+        pending += request
+        if (connecting) return
         connecting = true
         helper.initialize(
             {
@@ -140,12 +141,13 @@ class PleosDestinationSource(context: Context) : DestinationSource {
                     connecting = false
                     connected = true
                     helper.addListener(listener)
-                    request()
+                    pending.toList().also { pending.clear() }.forEach { it() }
                 }
             },
             {
                 main.post {
                     connecting = false
+                    pending.clear()
                     val e = IllegalStateException("navi init failed: ${it.message}")
                     loadCb?.let { cb ->
                         loadCb = null
@@ -166,6 +168,5 @@ class PleosDestinationSource(context: Context) : DestinationSource {
 
     private companion object {
         const val TIMEOUT_MS = 8_000L
-        const val RETRY_MS = 200L
     }
 }

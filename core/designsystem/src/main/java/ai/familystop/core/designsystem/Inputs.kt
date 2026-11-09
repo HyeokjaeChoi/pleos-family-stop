@@ -42,8 +42,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -108,6 +110,7 @@ fun TimeWheel(
                 index = h12 - 1,
                 label = { (it + 1).toString() },
                 onIndex = { update((it + 1) % 12 + if (pm) 12 else 0, minute) },
+                columnName = "시",
                 modifier = Modifier.weight(1f)
             )
             WheelColumn(
@@ -115,6 +118,7 @@ fun TimeWheel(
                 index = minute,
                 label = { "%02d".format(it) },
                 onIndex = { update(hour, it) },
+                columnName = "분",
                 modifier = Modifier.weight(1f)
             )
         }
@@ -141,6 +145,7 @@ private fun WheelColumn(
     index: Int,
     label: (Int) -> String,
     onIndex: (Int) -> Unit,
+    columnName: String,
     modifier: Modifier = Modifier
 ) {
     val rowH = App.touchMin
@@ -164,7 +169,20 @@ private fun WheelColumn(
         }
     }
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize().semantics {
+            // 스크롤 제스처 없이도 TalkBack으로 값을 바꿀 수 있게 현재 값과 증감 동작을 알린다.
+            contentDescription = "$columnName ${label(index)}"
+            customActions = listOf(
+                CustomAccessibilityAction("$columnName 늘리기") {
+                    if (index < count - 1) update(index + 1)
+                    true
+                },
+                CustomAccessibilityAction("$columnName 줄이기") {
+                    if (index > 0) update(index - 1)
+                    true
+                }
+            )
+        },
         state = state,
         flingBehavior = rememberSnapFlingBehavior(state),
         contentPadding = PaddingValues(vertical = rowH * WHEEL_CENTER)

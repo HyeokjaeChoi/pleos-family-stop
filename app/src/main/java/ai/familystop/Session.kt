@@ -1,6 +1,7 @@
 package ai.familystop
 
 import ai.familystop.core.DataSource
+import ai.familystop.core.Destination
 import ai.familystop.core.RouteEta
 import ai.familystop.core.StopCandidate
 import ai.familystop.core.StopPlace
@@ -9,6 +10,7 @@ import ai.familystop.feature.input.ChargeNeed
 import ai.familystop.feature.input.DestinationsState
 import ai.familystop.feature.input.TripDraft
 import ai.familystop.feature.input.TripInput
+import ai.familystop.feature.input.mergeCurrent
 import ai.familystop.feature.metrics.DataOrigin
 import ai.familystop.feature.metrics.MetricsCollector
 import ai.familystop.feature.metrics.TripMetrics
@@ -28,10 +30,22 @@ class Session(private val metrics: MetricsCollector) {
     var phase by mutableStateOf(Phase.PLAN)
     var trip by mutableStateOf<TripInput?>(null)
     var draft by mutableStateOf(TripDraft())
-    var destinations by mutableStateOf<DestinationsState>(DestinationsState.Loading)
+    var rawList by mutableStateOf<List<Destination>?>(null) // null = not loaded yet
+    var listFailed by mutableStateOf(false)
     var eta by mutableStateOf<RouteEta?>(null)
     var etaFailed by mutableStateOf(false)
     var etaLoadedAt by mutableStateOf<LocalDateTime?>(null)
+
+    /** Navi's list plus the route it is guiding now; derived so the two async answers cannot overwrite each other. */
+    val destinations: DestinationsState
+        get() {
+            val merged = mergeCurrent(rawList.orEmpty(), eta)
+            return when {
+                merged.isNotEmpty() -> DestinationsState.Ready(merged)
+                rawList != null || listFailed -> DestinationsState.Unavailable
+                else -> DestinationsState.Loading
+            }
+        }
     var locating by mutableStateOf(false)
     var fallback by mutableStateOf<FallbackCause?>(null)
     var stop by mutableStateOf<StopCandidate?>(null)

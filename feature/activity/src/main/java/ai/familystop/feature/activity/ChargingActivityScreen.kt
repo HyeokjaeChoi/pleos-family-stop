@@ -78,6 +78,7 @@ fun ChargingActivityScreen(
     var minutes by rememberSaveable(sessionId) { mutableStateOf(DEFAULT_MINUTES) }
     var startEpoch by rememberSaveable(sessionId) { mutableStateOf<Long?>(null) }
     var endEpoch by rememberSaveable(sessionId) { mutableStateOf<Long?>(null) }
+    var chargeDone by rememberSaveable(sessionId) { mutableStateOf(false) }
     var done by rememberSaveable(sessionId) { mutableStateOf(emptySet<String>()) }
     var tick by rememberSaveable(sessionId) { mutableStateOf(now().epoch()) }
     val started = startEpoch != null
@@ -138,6 +139,13 @@ fun ChargingActivityScreen(
                         style = App.type.stopBody,
                         color = App.colors.textSecondary
                     )
+                } else if (chargeDone) {
+                    StatusChip(Status.Ok, "충전 끝")
+                    Text(
+                        "출발해도 돼요. 내비 안내를 이어가세요.",
+                        style = App.type.stopTitle,
+                        color = App.colors.textPrimary
+                    )
                 } else {
                     val remaining = clock.remainingSeconds(current)
                     Text("충전 끝까지 남은 시간", style = App.type.stopTitle, color = App.colors.textPrimary)
@@ -171,7 +179,7 @@ fun ChargingActivityScreen(
                     Modifier.fillMaxWidth(),
                     icon = AppIcons.Bolt
                 )
-            } else {
+            } else if (!chargeDone) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Gap) {
                     AppButton(
                         "${STEP_MIN}분 연장",
@@ -181,7 +189,7 @@ fun ChargingActivityScreen(
                     )
                     AppButton(
                         "충전 끝났어요",
-                        { endEpoch = tick },
+                        { chargeDone = true },
                         Modifier.weight(2f),
                         icon = AppIcons.Bolt
                     )

@@ -1,6 +1,7 @@
 package ai.familystop
 
 import ai.familystop.core.DataSource
+import ai.familystop.core.DestinationKind
 import ai.familystop.core.NaviGateway
 import ai.familystop.core.StopCandidate
 import ai.familystop.core.StopNeed
@@ -21,7 +22,7 @@ import ai.familystop.feature.handoff.HandoffScreen
 import ai.familystop.feature.input.DestinationsState
 import ai.familystop.feature.input.TripInputPane
 import ai.familystop.feature.input.ValidationResult
-import ai.familystop.feature.input.mergeCurrent
+import ai.familystop.feature.input.destinationKey
 import ai.familystop.feature.input.validate
 import ai.familystop.feature.recommend.FETCH_TIMEOUT_MS
 import ai.familystop.feature.recommend.RecommendScreen
@@ -148,41 +149,26 @@ fun AppRoot(graph: AppGraph) {
         requestLocation()
     }
 
-    LaunchedEffect(Unit) {
-        // Destination list + current route ETA from Navi (#65). Once per process, retried on Unavailable.
-        if (s.destinations is DestinationsState.Loading) {
-            graph.destinations.load { r ->
-                val list = r.getOrNull().orEmpty()
-                s.destinations =
-                    if (list.isEmpty()) {
-                        DestinationsState.Unavailable
-                    } else {
-                        DestinationsState.Ready(
-                            list
-                        )
-                    }
-            }
+    fun reload() {
+        s.rawList = null
+        s.listFailed = false
+        graph.destinations.load { r ->
+            s.rawList = r.getOrNull()
+            s.listFailed = r.isFailure
         }
         graph.destinations.currentEta { r ->
             s.eta = r.getOrNull()
             s.etaFailed = r.isFailure || r.getOrNull() == null
             s.etaLoadedAt = LocalDateTime.now()
             // 내비에 설정된 목적지는 기본 선택(#65).
-            val ready = (s.destinations as? DestinationsState.Ready)?.list.orEmpty()
-            s.eta?.let { e ->
-                val merged = mergeCurrent(ready, e)
-                s.destinations = DestinationsState.Ready(merged)
-                if (s.draft.destinationKey == null) {
-                    s.draft =
-                        s.draft.copy(
-                            destinationKey = ai.familystop.feature.input.destinationKey(
-                                merged.first()
-                            )
-                        )
-                }
+            val current = (s.destinations as? DestinationsState.Ready)?.list
+                ?.firstOrNull { it.kind == DestinationKind.CURRENT }
+            if (current != null && s.draft.destinationKey == null) {
+                s.draft = s.draft.copy(destinationKey = destinationKey(current))
             }
         }
     }
+    LaunchedEffect(Unit) { if (s.rawList == null && !s.listFailed) reload() }
 
     val destList = (s.destinations as? DestinationsState.Ready)?.list.orEmpty()
     val valid = (
@@ -195,7 +181,10 @@ fun AppRoot(graph: AppGraph) {
         )?.input
     LaunchedEffect(valid) { s.trip = valid }
     // Refetch only when validity or needs change (not on every wheel tick).
-    LaunchedEffect(valid != null, valid?.needs) { if (valid != null) refetch() }
+    LaunchedEffect(valid != null, valid?.needs) {
+        // 필요 사항이 없으면 추천할 게 없어 위치 권한도 묻지 않는다.
+        if (valid != null && valid.needs.isNotEmpty()) refetch()
+    }
 
     val cards = rec.driveCards()
     DriveScreen(
@@ -205,7 +194,7 @@ fun AppRoot(graph: AppGraph) {
         sourceLabel = if (cards.any { it.source == DataSource.VIRTUAL }) "가상 데이터(시연)" else null,
         footer = { VoiceBar(graph.guide) }
     ) {
-        Parked(graph, rec, soc, navi, ::requestLocation)
+        Parked(graph, rec, soc, navi, ::requestLocation, ::reload)
     }
 }
 
@@ -215,7 +204,8 @@ private fun Parked(
     rec: RecommendState,
     soc: Int?,
     navi: NaviGateway,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onReload: () -> Unit
 ) {
     val s = graph.session
     val trip = s.trip
@@ -250,11 +240,7 @@ private fun Parked(
             autoSocPercent = soc,
             draft = s.draft,
             onDraft = { s.draft = it },
-            onOpenNavi = {
-                /* ponytail: 내비 앱 실행은 Pleos 실행 API 확인 후. 지금은 재시도만 */
-                s.destinations =
-                    DestinationsState.Loading
-            },
+            onRetry = onReload,
             modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())
         )
         Column(Modifier.weight(1f)) {
