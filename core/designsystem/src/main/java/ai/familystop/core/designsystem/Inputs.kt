@@ -97,12 +97,10 @@ fun TimeWheel(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // 오전·오후를 가운데 막대 위아래로 쌓아 현재 쪽만 막대 위에 둔다.
-                val ampm = listOf("오전" to false, "오후" to true)
-                Box(Modifier.height(rowH).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    WheelLabel(ampm[0].first, selected = !pm, alpha = if (!pm) 1f else 0.55f)
-                }
-                Box(Modifier.height(rowH).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    WheelLabel(ampm[1].first, selected = pm, alpha = if (pm) 1f else 0.55f)
+                listOf("오전" to !pm, "오후" to pm).forEach { (text, selected) ->
+                    Box(Modifier.height(rowH).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        WheelLabel(text, selected)
+                    }
                 }
             }
             WheelColumn(
@@ -126,7 +124,11 @@ fun TimeWheel(
 }
 
 @Composable
-private fun WheelLabel(text: String, selected: Boolean, alpha: Float) {
+private fun WheelLabel(
+    text: String,
+    selected: Boolean,
+    alpha: Float = if (selected) 1f else 0.55f
+) {
     Text(
         text,
         style = if (selected) App.type.driveTitle else App.type.driveBody,
@@ -344,7 +346,7 @@ fun ProgressBar(fraction: Float, modifier: Modifier = Modifier) {
 
 /**
  * 선택 행(>=96dp): 제목 + 선택적 부제. 선택되면 accent 옅은 면 + 오른쪽 check_circle 아이콘(문구 아님).
- * [trailing]이 있으면 선택 아이콘 앞에 놓인다. 접근성은 [Role.RadioButton] selectable.
+ * 접근성은 [Role.RadioButton] selectable.
  */
 @Composable
 fun SelectRow(
@@ -352,8 +354,7 @@ fun SelectRow(
     subtitle: String?,
     selected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    trailing: (@Composable () -> Unit)? = null
+    modifier: Modifier = Modifier
 ) {
     val c = App.colors
     Row(
@@ -373,7 +374,6 @@ fun SelectRow(
                 Text(subtitle, style = App.type.stopBody, color = c.textSecondary)
             }
         }
-        trailing?.invoke()
         if (selected) {
             Icon(
                 Icons.Rounded.CheckCircle,

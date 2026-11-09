@@ -208,11 +208,7 @@ private fun Charge(draft: TripDraft, auto: Int?, onDraft: (TripDraft) -> Unit) {
         }
     }
     val soc = resolveSoc(auto, draft.manualSoc)
-    val percent = when (soc) {
-        is Soc.Auto -> soc.percent
-        is Soc.Manual -> soc.percent
-        Soc.Unknown -> null
-    }
+    val percent = soc.percentOrNull
     if (percent != null) ProgressBar(percent / 100f)
     Text(
         when (soc) {
@@ -227,8 +223,8 @@ private fun Charge(draft: TripDraft, auto: Int?, onDraft: (TripDraft) -> Unit) {
         val m = draft.manualSoc
         Stepper(
             value = m?.let { "$it%" } ?: "미정",
-            onMinus = { onDraft(draft.copy(manualSoc = ((m ?: 50) - SOC_STEP).coerceAtLeast(0))) },
-            onPlus = { onDraft(draft.copy(manualSoc = ((m ?: 50) + SOC_STEP).coerceAtMost(100))) },
+            onMinus = { onDraft(draft.copy(manualSoc = stepSoc(m, -1))) },
+            onPlus = { onDraft(draft.copy(manualSoc = stepSoc(m, 1))) },
             modifier = Modifier.fillMaxWidth(),
             minusLabel = "배터리 ${SOC_STEP}% 줄이기",
             plusLabel = "배터리 ${SOC_STEP}% 늘리기"
@@ -237,5 +233,3 @@ private fun Charge(draft: TripDraft, auto: Int?, onDraft: (TripDraft) -> Unit) {
         Text("직접 정한 값(${draft.manualSoc}%)과 차량 데이터가 달라요. 차량 값을 사용해요.")
     }
 }
-
-private const val SOC_STEP = 5

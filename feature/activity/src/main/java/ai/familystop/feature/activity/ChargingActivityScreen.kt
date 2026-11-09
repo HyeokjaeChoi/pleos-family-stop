@@ -27,7 +27,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -80,10 +82,11 @@ fun ChargingActivityScreen(
     var endEpoch by rememberSaveable(sessionId) { mutableStateOf<Long?>(null) }
     var chargeDone by rememberSaveable(sessionId) { mutableStateOf(false) }
     var done by rememberSaveable(sessionId) { mutableStateOf(emptySet<String>()) }
-    var tick by rememberSaveable(sessionId) { mutableStateOf(now().epoch()) }
+    var tick by remember { mutableLongStateOf(now().epoch()) }
     val started = startEpoch != null
-    LaunchedEffect(started) {
-        while (started) {
+    LaunchedEffect(started, chargeDone) {
+        // 충전이 끝났거나 시작 전엔 1초 틱을 돌리지 않는다.
+        while (started && !chargeDone) {
             tick = now().epoch()
             delay(1_000)
         }

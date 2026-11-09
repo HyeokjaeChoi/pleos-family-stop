@@ -183,7 +183,11 @@ fun AppRoot(graph: AppGraph) {
     // Refetch only when validity or needs change (not on every wheel tick).
     LaunchedEffect(valid != null, valid?.needs) {
         // 필요 사항이 없으면 추천할 게 없어 위치 권한도 묻지 않는다.
-        if (valid != null && valid.needs.isNotEmpty()) refetch()
+        // 칩을 연달아 눌러도 마지막 선택으로 한 번만 조회한다.
+        if (valid != null && valid.needs.isNotEmpty()) {
+            delay(400)
+            refetch()
+        }
     }
 
     val cards = rec.driveCards()

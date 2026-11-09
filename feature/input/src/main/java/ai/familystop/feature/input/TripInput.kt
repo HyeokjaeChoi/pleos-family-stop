@@ -22,13 +22,27 @@ enum class ChargeNeed(val label: String) {
 
 /** 잔량 출처. 자동값과 수동값을 화면에서 구분해 표시한다(PL-UJFQXQ). */
 sealed interface Soc {
-    data class Auto(val percent: Int) : Soc
+    val percentOrNull: Int?
 
-    data class Manual(val percent: Int) : Soc
+    data class Auto(val percent: Int) : Soc {
+        override val percentOrNull get() = percent
+    }
+
+    data class Manual(val percent: Int) : Soc {
+        override val percentOrNull get() = percent
+    }
 
     /** 미확인: 도달 가능 여부를 보장하지 않는다. */
-    data object Unknown : Soc
+    data object Unknown : Soc {
+        override val percentOrNull: Int? = null
+    }
 }
+
+// ponytail: 수동 입력 시작값 50%와 5%p 단위는 잠정값.
+const val SOC_STEP = 5
+
+/** 수동 잔량 스테퍼 증감. 처음 누르면 50%에서 시작하고 0~100을 벗어나지 않는다. */
+fun stepSoc(current: Int?, delta: Int): Int = ((current ?: 50) + delta * SOC_STEP).coerceIn(0, 100)
 
 /** 차량 자동값이 있으면 그것을, 없으면 수동 입력을, 둘 다 없으면 Unknown. */
 fun resolveSoc(auto: Int?, manual: Int?): Soc = when {

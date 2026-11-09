@@ -73,6 +73,13 @@ class TripInputTest {
     }
 
     @Test
+    fun socStepperStartsAtFiftyAndClamps() {
+        assertEquals(55, stepSoc(null, 1))
+        assertEquals(0, stepSoc(2, -1))
+        assertEquals(100, stepSoc(98, 1))
+    }
+
+    @Test
     fun currentDestinationIsAddedOrPromoted() {
         val other = Destination("다른곳", 1.0, 1.0, DestinationKind.RECENT)
         val eta = RouteEta("더현대서울", 37.52, 126.93, 100)
