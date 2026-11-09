@@ -8,6 +8,7 @@ import ai.familystop.core.StopPlace
 import ai.familystop.feature.fallback.FallbackCause
 import ai.familystop.feature.input.ChargeNeed
 import ai.familystop.feature.input.DestinationsState
+import ai.familystop.feature.input.PlanStep
 import ai.familystop.feature.input.TripDraft
 import ai.familystop.feature.input.TripInput
 import ai.familystop.feature.input.mergeCurrent
@@ -20,7 +21,7 @@ import androidx.compose.runtime.setValue
 import java.time.LocalDateTime
 import kotlinx.coroutines.Job
 
-/** 정차 화면 단계: 입력·추천 한 화면(PLAN) → 경유지 추가 후 충전 중 화면(ACTIVITY). 탭 없음(#65). */
+/** 정차 화면 단계: 입력·추천 3단계(PLAN, [PlanStep]) → 경유지 추가 후 충전 중 화면(ACTIVITY). 탭 없음(#65). */
 enum class Phase { PLAN, ACTIVITY }
 
 /** One trip's screen state. Held by [AppGraph] so it survives Activity recreation. */
@@ -28,6 +29,7 @@ class Session(private val metrics: MetricsCollector) {
     var tripId by mutableStateOf(metrics.startTrip())
         private set
     var phase by mutableStateOf(Phase.PLAN)
+    var step by mutableStateOf(PlanStep.DESTINATION) // PLAN 안의 3단계(#72), 화면을 벗어나도 유지
     var trip by mutableStateOf<TripInput?>(null)
     var draft by mutableStateOf(TripDraft())
     var rawList by mutableStateOf<List<Destination>?>(null) // null = not loaded yet

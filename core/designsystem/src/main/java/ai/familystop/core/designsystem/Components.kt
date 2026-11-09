@@ -311,6 +311,38 @@ fun AppToggleTile(
     }
 }
 
+/** 요약 칩(Figma Chip/cur·fill·empty): 현재 단계는 accent 면, 정한 값은 raised 면, 못 정한 값은 흐린 글자. 누르면 그 단계로. */
+@Composable
+fun AppStepChip(
+    label: String,
+    current: Boolean,
+    filled: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val c = App.colors
+    Row(
+        modifier
+            .heightIn(min = App.touchMin)
+            .clip(RoundedCornerShape(App.radius.md))
+            .background(if (current) c.accentPrimary else c.bgRaised)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = App.space.lg),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            label,
+            style = App.type.stopBody,
+            color = when {
+                current -> c.accentOn
+                filled -> c.textPrimary
+                else -> c.textSecondary
+            },
+            maxLines = 1
+        )
+    }
+}
+
 /** 입력 필드: 밑줄·외곽선 없이 `bg/raised` 면. 높이 ≥ 76dp. */
 @Composable
 fun AppTextField(

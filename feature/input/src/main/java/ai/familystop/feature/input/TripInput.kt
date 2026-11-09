@@ -136,3 +136,27 @@ fun validate(
         )
     )
 }
+
+/** 정차 계획 3단계(#72). 상단 요약 칩이 진행 표시이자 되돌아가기다. */
+enum class PlanStep { DESTINATION, CONDITIONS, CANDIDATES }
+
+/** 요약 칩 한 개. [filled]가 false면 아직 정하지 않은 값. 누르면 [step]으로 돌아간다. */
+data class SummaryChip(val label: String, val filled: Boolean, val step: PlanStep)
+
+/** "오전/오후 h:mm". */
+fun formatClock(hour24: Int, minute: Int): String {
+    val h12 = if (hour24 % 12 == 0) 12 else hour24 % 12
+    return "${if (hour24 < 12) "오전" else "오후"} $h12:${"%02d".format(minute)}"
+}
+
+/** 목적지 · 도착 시각 · 필요 항목 요약 칩 3개. */
+fun summaryChips(draft: TripDraft, destinations: List<Destination>): List<SummaryChip> {
+    val dest = destinations.firstOrNull { destinationKey(it) == draft.destinationKey }
+    val time = draft.hour24?.let { formatClock(it, draft.minute) }
+    val needs = StopNeed.entries.filter { it in draft.needs }.joinToString("·") { it.label }
+    return listOf(
+        SummaryChip("목적지 · ${dest?.name ?: "선택 전"}", dest != null, PlanStep.DESTINATION),
+        SummaryChip("도착 · ${time ?: "선택 전"}", time != null, PlanStep.CONDITIONS),
+        SummaryChip("필요 · ${needs.ifEmpty { "선택 전" }}", needs.isNotEmpty(), PlanStep.CONDITIONS)
+    )
+}
