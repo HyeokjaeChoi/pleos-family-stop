@@ -94,4 +94,32 @@ class TripInputTest {
         assertEquals(listOf("더현대서울", "다른곳"), added.map { it.name })
         assertEquals(listOf(other), mergeCurrent(listOf(other), null))
     }
+
+    @Test
+    fun clockFormatUsesTwelveHourWithNoonAndMidnight() {
+        assertEquals("오전 12:05", formatClock(0, 5))
+        assertEquals("오후 12:00", formatClock(12, 0))
+        assertEquals("오후 11:35", formatClock(23, 35))
+        assertEquals("오전 9:07", formatClock(9, 7))
+    }
+
+    @Test
+    fun summaryChipsShowUnsetValuesAndReturnToTheOwningStep() {
+        val empty = summaryChips(TripDraft(), listOf(dest))
+        assertEquals(listOf(false, false, false), empty.map { it.filled })
+        assertEquals("목적지 · 선택 전", empty[0].label)
+
+        val full = summaryChips(
+            ok.copy(needs = setOf(StopNeed.RESTROOM, StopNeed.MEAL)),
+            listOf(dest)
+        )
+        assertEquals(
+            listOf("목적지 · 더현대서울", "도착 · 오후 1:30", "필요 · 식사·화장실"),
+            full.map { it.label }
+        )
+        assertEquals(
+            listOf(PlanStep.DESTINATION, PlanStep.CONDITIONS, PlanStep.CONDITIONS),
+            full.map { it.step }
+        )
+    }
 }

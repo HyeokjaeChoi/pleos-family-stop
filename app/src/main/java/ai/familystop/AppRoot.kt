@@ -19,8 +19,11 @@ import ai.familystop.feature.fallback.DataFailure
 import ai.familystop.feature.fallback.FallbackCard
 import ai.familystop.feature.fallback.FallbackCause
 import ai.familystop.feature.handoff.HandoffScreen
+import ai.familystop.feature.input.ConditionsStep
+import ai.familystop.feature.input.DestinationStep
 import ai.familystop.feature.input.DestinationsState
-import ai.familystop.feature.input.TripInputPane
+import ai.familystop.feature.input.PlanStep
+import ai.familystop.feature.input.PlanSummaryBar
 import ai.familystop.feature.input.ValidationResult
 import ai.familystop.feature.input.destinationKey
 import ai.familystop.feature.input.validate
@@ -35,11 +38,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -180,11 +180,10 @@ fun AppRoot(graph: AppGraph) {
         ) as? ValidationResult.Ok
         )?.input
     LaunchedEffect(valid) { s.trip = valid }
-    // Refetch only when validity or needs change (not on every wheel tick).
-    LaunchedEffect(valid != null, valid?.needs) {
+    // 후보 단계에 들어서거나(또는 거기서 유효성·필요 사항이 바뀌면) 조회한다. 휠을 돌릴 때마다 조회하지 않는다.
+    LaunchedEffect(s.step, valid != null, valid?.needs) {
         // 필요 사항이 없으면 추천할 게 없어 위치 권한도 묻지 않는다.
-        // 칩을 연달아 눌러도 마지막 선택으로 한 번만 조회한다.
-        if (valid != null && valid.needs.isNotEmpty()) {
+        if (s.step == PlanStep.CANDIDATES && valid != null && valid.needs.isNotEmpty()) {
             delay(400)
             refetch()
         }
@@ -233,28 +232,37 @@ private fun Parked(
         )
         return
     }
-    Row(
+    Column(
         Modifier.fillMaxSize().padding(App.space.lg),
-        horizontalArrangement = Arrangement.spacedBy(App.space.lg)
+        verticalArrangement = Arrangement.spacedBy(App.space.lg)
     ) {
-        TripInputPane(
-            destinations = s.destinations,
-            eta = s.eta,
-            etaFailed = s.etaFailed,
-            autoSocPercent = soc,
-            draft = s.draft,
-            onDraft = { s.draft = it },
-            onRetry = onReload,
-            modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())
-        )
-        Column(Modifier.weight(1f)) {
-            when {
-                s.trip?.needs?.isEmpty() == true ->
-                    StatusChip(Status.Unknown, "정차에서 필요한 것을 골라 주세요")
-                s.trip != null -> Recommend(graph, rec, navi, onRetry)
-                s.draft.destinationKey == null -> StatusChip(Status.Unknown, "목적지를 골라 주세요")
-                else -> StatusChip(Status.Unknown, "도착 시각을 정해 주세요")
-            }
+        PlanSummaryBar(s.draft, s.destinations, s.step, onStep = { s.step = it })
+        val body = Modifier.weight(1f)
+        when (s.step) {
+            PlanStep.DESTINATION -> DestinationStep(
+                s.destinations,
+                s.draft,
+                onDraft = { s.draft = it },
+                onRetry = onReload,
+                onNext = { s.step = PlanStep.CONDITIONS },
+                modifier = body
+            )
+            PlanStep.CONDITIONS -> ConditionsStep(
+                destinations = s.destinations,
+                eta = s.eta,
+                etaFailed = s.etaFailed,
+                autoSocPercent = soc,
+                draft = s.draft,
+                onDraft = { s.draft = it },
+                onNext = { s.step = PlanStep.CANDIDATES },
+                modifier = body
+            )
+            PlanStep.CANDIDATES ->
+                if (s.trip != null) {
+                    Recommend(graph, rec, navi, onRetry, body)
+                } else {
+                    StatusChip(Status.Unknown, "도착 시각을 정해 주세요")
+                }
         }
     }
 }
@@ -264,10 +272,11 @@ private fun Recommend(
     graph: AppGraph,
     rec: RecommendState,
     navi: NaviGateway,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val s = graph.session
-    Column(verticalArrangement = Arrangement.spacedBy(App.space.lg)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(App.space.lg)) {
         val cause = s.fallback
         when {
             s.locating -> Text("현재 위치를 확인하는 중…")
@@ -275,7 +284,10 @@ private fun Recommend(
                 cause,
                 nowMs = System.currentTimeMillis(),
                 onRetry = onRetry,
-                onManual = { s.draft = s.draft.copy(destinationKey = null) }
+                onManual = {
+                    s.draft = s.draft.copy(destinationKey = null)
+                    s.step = PlanStep.DESTINATION
+                }
             )
             else -> RecommendScreen(
                 state = rec,

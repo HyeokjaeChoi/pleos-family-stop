@@ -6,6 +6,7 @@ import ai.familystop.core.RouteEta
 import ai.familystop.core.designsystem.App
 import ai.familystop.core.designsystem.AppButton
 import ai.familystop.core.designsystem.AppIcons
+import ai.familystop.core.designsystem.AppStepChip
 import ai.familystop.core.designsystem.AppToggleChip
 import ai.familystop.core.designsystem.AppToggleTile
 import ai.familystop.core.designsystem.ProgressBar
@@ -21,7 +22,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -31,7 +31,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import java.time.LocalDateTime
 
-private val DEST_MAX_HEIGHT @Composable get() = App.touchMin * 4
 private val Gap @Composable get() = Arrangement.spacedBy(App.space.lg) // 터치 대상 간격 24dp 이상
 
 /** 목적지 목록을 불러오는 상태. */
@@ -44,22 +43,61 @@ sealed interface DestinationsState {
     data class Ready(val list: List<Destination>) : DestinationsState
 }
 
+/** 상단 요약 칩 줄(Figma 요약 칩): 진행 표시이자 되돌아가기. 현재 단계의 칩은 강조한다. */
+@Composable
+fun PlanSummaryBar(
+    draft: TripDraft,
+    destinations: DestinationsState,
+    step: PlanStep,
+    onStep: (PlanStep) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val list = (destinations as? DestinationsState.Ready)?.list.orEmpty()
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Gap) {
+        summaryChips(draft, list).forEach { chip ->
+            AppStepChip(chip.label, current = chip.step == step, filled = chip.filled) {
+                onStep(chip.step)
+            }
+        }
+    }
+}
+
+/** 1단계: 목적지 목록(Figma 단계 1). 타이핑 없이 내비 목록에서 고르고 "다음"으로 넘어간다. */
+@Composable
+fun DestinationStep(
+    destinations: DestinationsState,
+    draft: TripDraft,
+    onDraft: (TripDraft) -> Unit,
+    onRetry: () -> Unit,
+    onNext: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val ready = draft.destinationKey != null
+    Column(modifier, verticalArrangement = Gap) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+            Section("어디로 가나요") { Destinations(destinations, draft, onDraft, onRetry) }
+        }
+        if (!ready) StatusChip(Status.Unknown, "목적지를 골라 주세요")
+        AppButton("다음", onNext, Modifier.fillMaxWidth(), enabled = ready)
+    }
+}
+
 /**
- * 입력 창(Figma 27:620 왼쪽). 목적지는 내비 목록에서 고르고, 시각은 휠로 정한다(타이핑 없음, #65).
+ * 2단계: 도착 시각·필요한 것·충전(Figma 단계 2). 시각은 휠로 정하고, 둘 다 정해야 "후보 보기"가 켜진다.
  * 초안은 호출자가 들고 있어(주행 중에도 보존) 바뀔 때마다 [onDraft]로 올린다.
  *
  * @param eta 내비가 안내 중인 경로의 남은 시간. null이면 [etaFailed]에 따라 폼 안에 오류 칩을 보인다.
  * @param autoSocPercent 차량이 준 잔량. null이면 수동 입력.
  */
 @Composable
-fun TripInputPane(
+fun ConditionsStep(
     destinations: DestinationsState,
     eta: RouteEta?,
     etaFailed: Boolean,
     autoSocPercent: Int?,
     draft: TripDraft,
     onDraft: (TripDraft) -> Unit,
-    onRetry: () -> Unit,
+    onNext: () -> Unit,
     modifier: Modifier = Modifier,
     now: () -> LocalDateTime = { LocalDateTime.now() }
 ) {
@@ -72,14 +110,13 @@ fun TripInputPane(
             etaTime(eta, now())?.let { onDraft(draft.copy(hour24 = it.hour, minute = it.minute)) }
         }
     }
+    val timeSet = draft.hour24 != null
+    val ready = timeSet && draft.needs.isNotEmpty()
     Column(modifier, verticalArrangement = Gap) {
-        // 목적지는 3행 높이까지만 보이고 안에서 스크롤: 시각·필요 사항이 한 화면에 함께 보이게(Figma 27:620).
-        Section("목적지") {
-            Column(
-                Modifier.heightIn(max = DEST_MAX_HEIGHT).verticalScroll(rememberScrollState())
-            ) { Destinations(destinations, draft, onDraft, onRetry) }
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Gap) {
+        Row(
+            Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+            horizontalArrangement = Gap
+        ) {
             Column(Modifier.weight(1f), verticalArrangement = Gap) {
                 Section("도착 희망 시각") {
                     if (eta == null && etaFailed) {
@@ -94,7 +131,7 @@ fun TripInputPane(
                         modifier = Modifier.fillMaxWidth()
                     )
                     // 휠이 보여 주는 값은 아직 정한 값이 아니다 → 그대로 쓰려면 직접 확정한다.
-                    if (draft.hour24 == null) {
+                    if (!timeSet) {
                         AppButton(
                             "이 시각으로 정하기",
                             { onDraft(draft.copy(hour24 = shown, minute = shownMinute)) },
@@ -120,6 +157,9 @@ fun TripInputPane(
                 Section("충전") { Charge(draft, autoSocPercent, onDraft) }
             }
         }
+        if (!timeSet) StatusChip(Status.Unknown, "도착 시각을 정해 주세요")
+        if (draft.needs.isEmpty()) StatusChip(Status.Unknown, "정차에서 필요한 것을 골라 주세요")
+        AppButton("후보 보기", onNext, Modifier.fillMaxWidth(), enabled = ready)
     }
 }
 
