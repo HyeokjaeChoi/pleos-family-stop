@@ -103,7 +103,7 @@ fun TripInputPane(
                     }
                 }
             }
-            Column(Modifier.weight(1f), verticalArrangement = Gap) {
+            Column(Modifier.weight(1.2f), verticalArrangement = Gap) {
                 Section("정차에서 필요한 것") {
                     // Figma Tiles: 같은 폭·높이 3등분
                     Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Gap) {

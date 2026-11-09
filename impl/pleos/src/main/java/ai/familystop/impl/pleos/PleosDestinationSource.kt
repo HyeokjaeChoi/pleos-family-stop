@@ -9,9 +9,7 @@ import ai.pleos.playground.navi.constants.NaviErrorCode
 import ai.pleos.playground.navi.data.BookmarkInfo
 import ai.pleos.playground.navi.data.DestinationInfo
 import ai.pleos.playground.navi.data.RecentDestinationInfo
-import ai.pleos.playground.navi.helper.NaviHelper
 import ai.pleos.playground.navi.helper.listener.NaviHelperEventListener
-import android.content.Context
 import android.os.Handler
 import android.os.Looper
 
@@ -26,12 +24,10 @@ internal fun cleanDestinations(all: List<Destination>): List<Destination> =
         .sortedBy { it.kind.ordinal }
 
 /** [DestinationSource] on Pleos NaviHelper recent/bookmark/destination info (#65). Main thread only. */
-class PleosDestinationSource(context: Context) : DestinationSource {
+class PleosDestinationSource(private val session: NaviSession) : DestinationSource {
     private val main = Handler(Looper.getMainLooper())
-    private val helper = NaviHelper(context.applicationContext)
-    private var connected = false
-    private var connecting = false
-    private val pending = mutableListOf<() -> Unit>()
+    private val helper get() = session.helper
+    private var listening = false
     private var recent: List<Destination>? = null
     private var bookmarks: List<Destination>? = null
     private var loadCb: ((Result<List<Destination>>) -> Unit)? = null
@@ -131,39 +127,24 @@ class PleosDestinationSource(context: Context) : DestinationSource {
     }
 
     private fun whenConnected(request: () -> Unit) {
-        if (connected) return request()
-        pending += request
-        if (connecting) return
-        connecting = true
-        helper.initialize(
+        session.whenReady(
             {
-                main.post {
-                    connecting = false
-                    connected = true
+                if (!listening) {
+                    listening = true
                     helper.addListener(listener)
-                    pending.toList().also { pending.clear() }.forEach { it() }
                 }
+                request()
             },
             {
-                main.post {
-                    connecting = false
-                    pending.clear()
-                    val e = IllegalStateException("navi init failed: ${it.message}")
-                    loadCb?.let { cb ->
-                        loadCb = null
-                        main.removeCallbacks(loadTimeout)
-                        cb(Result.failure(e))
-                    }
-                    finishEta(Result.failure(e))
+                val e = it
+                loadCb?.let { cb ->
+                    loadCb = null
+                    main.removeCallbacks(loadTimeout)
+                    cb(Result.failure(e))
                 }
+                finishEta(Result.failure(e))
             }
         )
-    }
-
-    fun close() {
-        helper.removeListener(listener)
-        helper.release()
-        connected = false
     }
 
     private companion object {
