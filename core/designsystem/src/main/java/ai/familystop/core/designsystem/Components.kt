@@ -273,6 +273,44 @@ fun AppToggleChip(
     }
 }
 
+/** 필요 항목 타일(Figma Tile/선택·기본): 위 아이콘 + 아래 라벨. 선택은 면 색 + 체크 아이콘(색만으로 구분하지 않음). */
+@Composable
+fun AppToggleTile(
+    selected: Boolean,
+    label: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val c = App.colors
+    val fg = if (selected) c.accentOn else c.textPrimary
+    Column(
+        modifier
+            .clip(RoundedCornerShape(App.radius.md))
+            .background(if (selected) c.accentPrimary else c.bgRaised)
+            .toggleable(selected, role = Role.Checkbox, onValueChange = { onClick() })
+            .padding(horizontal = App.space.sm, vertical = App.space.md),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(App.space.sm)
+    ) {
+        Icon(icon, contentDescription = null, tint = fg, modifier = Modifier.size(App.icon.primary))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(App.space.sm)
+        ) {
+            if (selected) {
+                Icon(
+                    Icons.Rounded.Check,
+                    contentDescription = null,
+                    tint = fg,
+                    modifier = Modifier.size(App.icon.tertiary)
+                )
+            }
+            Text(label, style = App.type.stopBody, color = fg)
+        }
+    }
+}
+
 /** 입력 필드: 밑줄·외곽선 없이 `bg/raised` 면. 높이 ≥ 76dp. */
 @Composable
 fun AppTextField(
