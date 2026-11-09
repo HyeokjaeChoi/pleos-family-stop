@@ -255,10 +255,12 @@ private fun Parked(
                 s.destinations =
                     DestinationsState.Loading
             },
-            modifier = Modifier.weight(1.2f).verticalScroll(rememberScrollState())
+            modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())
         )
         Column(Modifier.weight(1f)) {
             when {
+                s.trip?.needs?.isEmpty() == true ->
+                    StatusChip(Status.Unknown, "정차에서 필요한 것을 골라 주세요")
                 s.trip != null -> Recommend(graph, rec, navi, onRetry)
                 s.draft.destinationKey == null -> StatusChip(Status.Unknown, "목적지를 골라 주세요")
                 else -> StatusChip(Status.Unknown, "도착 시각을 정해 주세요")

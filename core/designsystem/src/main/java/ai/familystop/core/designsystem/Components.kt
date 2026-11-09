@@ -398,9 +398,9 @@ fun CompareRow(
             .clip(RoundedCornerShape(App.radius.md))
             .background(rowBg)
             .selectable(selected, role = Role.RadioButton, onClick = onClick)
-            .padding(horizontal = App.space.xl, vertical = App.space.md),
+            .padding(horizontal = App.space.lg, vertical = App.space.md),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(App.space.lg)
+        horizontalArrangement = Arrangement.spacedBy(App.space.md)
     ) {
         Text(name, style = App.type.stopTitle, color = fg, modifier = Modifier.weight(COL_NAME))
         Text(minutes, style = App.type.stopBody, color = sub, modifier = Modifier.weight(COL_NUM))
@@ -419,7 +419,7 @@ fun CompareRow(
     }
 }
 
-private const val COL_NAME = 2.4f
+private const val COL_NAME = 2.2f
 private const val COL_NUM = 1f
-private const val COL_CHIP = 2.2f
-private const val COL_PICK = 0.9f
+private const val COL_CHIP = 3f
+private const val COL_PICK = 0.5f

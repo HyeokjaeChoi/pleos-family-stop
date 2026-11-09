@@ -18,7 +18,9 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -29,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import java.time.LocalDateTime
 
+private val DEST_MAX_HEIGHT @Composable get() = App.touchMin * 4
 private val Gap @Composable get() = Arrangement.spacedBy(App.space.lg) // 터치 대상 간격 24dp 이상
 
 /** 목적지 목록을 불러오는 상태. */
@@ -70,40 +73,51 @@ fun TripInputPane(
         }
     }
     Column(modifier, verticalArrangement = Gap) {
-        Section("목적지") { Destinations(destinations, draft, onDraft, onOpenNavi) }
-        Section("도착 희망 시각") {
-            if (eta == null && etaFailed) {
-                StatusChip(Status.Warn, "내비 예상 도착 시각을 받지 못했어요. 직접 정해 주세요.")
-            }
-            val shown = draft.hour24 ?: now().hour
-            TimeWheel(
-                hour = shown,
-                minute = if (draft.hour24 == null) now().minute else draft.minute,
-                onChange = { h, m -> onDraft(draft.copy(hour24 = h, minute = m)) },
-                modifier = Modifier.fillMaxWidth()
-            )
+        // 목적지는 3행 높이까지만 보이고 안에서 스크롤: 시각·필요 사항이 한 화면에 함께 보이게(Figma 27:620).
+        Section("목적지") {
+            Column(
+                Modifier.heightIn(max = DEST_MAX_HEIGHT).verticalScroll(rememberScrollState())
+            ) { Destinations(destinations, draft, onDraft, onOpenNavi) }
         }
-        Section("정차에서 필요한 것") {
-            FlowRow(horizontalArrangement = Gap, verticalArrangement = Gap) {
-                StopNeed.entries.forEach { n ->
-                    AppToggleChip(n in draft.needs, n.label) {
-                        onDraft(
-                            draft.copy(
-                                needs = if (n in
-                                    draft.needs
-                                ) {
-                                    draft.needs - n
-                                } else {
-                                    draft.needs + n
-                                }
-                            )
-                        )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Gap) {
+            Column(Modifier.weight(1f), verticalArrangement = Gap) {
+                Section("도착 희망 시각") {
+                    if (eta == null && etaFailed) {
+                        StatusChip(Status.Warn, "내비 예상 도착 시각을 받지 못했어요. 직접 정해 주세요.")
                     }
+                    val shown = draft.hour24 ?: now().hour
+                    TimeWheel(
+                        hour = shown,
+                        minute = if (draft.hour24 == null) now().minute else draft.minute,
+                        onChange = { h, m -> onDraft(draft.copy(hour24 = h, minute = m)) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
-            SwitchRow("급해요", draft.urgent) { onDraft(draft.copy(urgent = it)) }
+            Column(Modifier.weight(1f), verticalArrangement = Gap) {
+                Section("정차에서 필요한 것") {
+                    FlowRow(horizontalArrangement = Gap, verticalArrangement = Gap) {
+                        StopNeed.entries.forEach { n ->
+                            AppToggleChip(n in draft.needs, n.label) {
+                                onDraft(
+                                    draft.copy(
+                                        needs = if (n in
+                                            draft.needs
+                                        ) {
+                                            draft.needs - n
+                                        } else {
+                                            draft.needs + n
+                                        }
+                                    )
+                                )
+                            }
+                        }
+                    }
+                    SwitchRow("급해요", draft.urgent) { onDraft(draft.copy(urgent = it)) }
+                }
+                Section("충전") { Charge(draft, autoSocPercent, onDraft) }
+            }
         }
-        Section("충전") { Charge(draft, autoSocPercent, onDraft) }
     }
 }
 

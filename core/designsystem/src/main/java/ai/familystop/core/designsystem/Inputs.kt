@@ -88,15 +88,18 @@ fun TimeWheel(
                 Modifier
                     .weight(1f)
                     .fillMaxSize()
-                    .clickable(role = Role.Button) { update((hour + 12) % 24, minute) },
-                verticalArrangement = Arrangement.Center
+                    .clickable(role = Role.Button) { update((hour + 12) % 24, minute) }
+                    // 현재 쪽 행이 가운데(3번째) 선택 막대 위에 오도록 내린다.
+                    .padding(top = if (pm) rowH else rowH * 2),
+                verticalArrangement = Arrangement.Top,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // 오전·오후를 가운데 막대 위아래로 쌓아 현재 쪽만 막대 위에 둔다.
                 val ampm = listOf("오전" to false, "오후" to true)
-                Box(Modifier.height(rowH), contentAlignment = Alignment.Center) {
+                Box(Modifier.height(rowH).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     WheelLabel(ampm[0].first, selected = !pm, alpha = if (!pm) 1f else 0.55f)
                 }
-                Box(Modifier.height(rowH), contentAlignment = Alignment.Center) {
+                Box(Modifier.height(rowH).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     WheelLabel(ampm[1].first, selected = pm, alpha = if (pm) 1f else 0.55f)
                 }
             }
