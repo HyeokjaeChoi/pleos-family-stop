@@ -3,6 +3,7 @@ package ai.familystop.feature.input
 import ai.familystop.core.Destination
 import ai.familystop.core.DestinationKind
 import ai.familystop.core.RouteEta
+import ai.familystop.core.formatClock
 import java.time.LocalDateTime
 import java.time.LocalTime
 
@@ -142,12 +143,6 @@ enum class PlanStep { DESTINATION, CONDITIONS, CANDIDATES }
 
 /** 요약 칩 한 개. [filled]가 false면 아직 정하지 않은 값. 누르면 [step]으로 돌아간다. */
 data class SummaryChip(val label: String, val filled: Boolean, val step: PlanStep)
-
-/** "오전/오후 h:mm". */
-fun formatClock(hour24: Int, minute: Int): String {
-    val h12 = if (hour24 % 12 == 0) 12 else hour24 % 12
-    return "${if (hour24 < 12) "오전" else "오후"} $h12:${"%02d".format(minute)}"
-}
 
 /** 목적지 · 도착 시각 · 필요 항목 요약 칩 3개. */
 fun summaryChips(draft: TripDraft, destinations: List<Destination>): List<SummaryChip> {

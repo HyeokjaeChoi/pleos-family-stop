@@ -21,9 +21,9 @@ interface NaviGateway {
     fun removeWaypoint(place: StopPlace, onResult: (Result<Unit>) -> Unit)
 }
 
-/** EV state of charge in percent; null = unknown (never shown as fact, PL-UJFQXQ). */
+/** EV 잔량·충전 상태·주행 가능 거리. 값이 바뀔 때마다 main에서 [EnergyState]를 준다 (PL-UJFQXQ, #79). */
 interface VehicleEnergySource {
-    fun start(onSoc: (Int?) -> Unit)
+    fun start(onState: (EnergyState) -> Unit)
     fun stop()
 }
 

@@ -2,6 +2,7 @@ package ai.familystop.fake
 
 import ai.familystop.core.Destination
 import ai.familystop.core.DestinationSource
+import ai.familystop.core.EnergyState
 import ai.familystop.core.GeoPoint
 import ai.familystop.core.LocationSource
 import ai.familystop.core.NaviGateway
@@ -39,8 +40,9 @@ class FakeNaviGateway : NaviGateway {
     }
 }
 
-class FakeVehicleEnergySource(private val soc: Int? = 62) : VehicleEnergySource {
-    override fun start(onSoc: (Int?) -> Unit) = onSoc(soc)
+class FakeVehicleEnergySource(private val state: EnergyState = EnergyState(62, false, 310)) :
+    VehicleEnergySource {
+    override fun start(onState: (EnergyState) -> Unit) = onState(state)
     override fun stop() {}
 }
 

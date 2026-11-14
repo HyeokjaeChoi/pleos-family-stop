@@ -64,7 +64,7 @@ adb shell am start -n ai.familystop.app/ai.familystop.MainActivity
 | 입력(선택자) | `android input tap/text/key` | 미검증 |
 | 앱 설치/실행 | `adb install`, `adb shell am start` | 검증 (`android run`/`install`은 미검증) |
 | 로그 | `adb logcat --pid=$(adb shell pidof ai.familystop.app)` | 검증 |
-| 차량 값 조작 | `scripts/vconsole.sh gear P\|R\|N\|D`, `soc 0-100`, `speed <kph>`, `state` (Virtual Console REST, 아래) | 검증 |
+| 차량 값 조작 | `scripts/vconsole.sh gear P\|R\|N\|D`, `soc 0-100`, `charge on\|off`, `range <km>`, `speed <kph>`, `state` (Virtual Console REST, 아래) | 검증 |
 
 `android layout`은 최초 호출 때 기기에 `com.android.cli.interact.instrumentation`(3rd-party 패키지)을 설치한다.
 
@@ -76,6 +76,8 @@ adb shell am start -n ai.familystop.app/ai.familystop.MainActivity
 |---|---|
 | 기어 | `PUT /vehicle/gear?gear=Park\|Reverse\|Neutral\|Drive` |
 | 배터리 SOC | `PUT /vehicle/ev-battery?field=soc&value=0..100` |
+| 충전 스위치 | `PUT /vehicle/ev-battery?field=charge_switch&value=true\|false` (앱은 3초마다 `getEvChargeSwitchState`로 읽음) |
+| 주행 가능 거리 | `PUT /vehicle/odometer?remaining_range_m=<m>` (앱이 읽으려면 `CAR_DRIVE` 권한 필요 — 미선언, #79) |
 | 속도 | `PUT /vehicle/controls?speed_kph=0..240` (`accelerator`, `brake`, `steering`도 같은 엔드포인트) |
 | 상태 | `GET /vehicle/state`, 전체 항목 `GET /vehicle/catalog` |
 
@@ -116,5 +118,5 @@ adb shell am start -n ai.familystop.app/ai.familystop.MainActivity
 
 ## E2E 녹화 (`scripts/e2e-demo.sh <outdir>`)
 
-입력 → 추천 → 경유지 추가 → 활동 → 체크 → 카운트다운 → 충전 종료를 `uiautomator`로 구동하고, `screenrecord` 녹화 + `ffmpeg` 압축(1280px/15fps, 약 0.3MB)까지 한다. 단계별 OK/FAIL은 `<outdir>/log.txt`. 사전 조건: 내비에서 더현대서울 안내 중(경로 없음이면 목적지 선택·전달이 달라진다). 내비는 앱 재시작 후에도 경유지를 유지하므로, 앱은 연결 직후 `getWaypointInfo`로 슬롯을 동기화한다(#69).
+입력 → 추천 → 경유지 추가 → 활동 → 체크 → 충전(차량 값: Virtual Console로 충전 스위치 on, SOC 35→60→80, off) → 자동 충전 끝을 `uiautomator`로 구동하고, `screenrecord` 녹화 + `ffmpeg` 압축(1280px/15fps, 약 0.3MB)까지 한다. 단계별 OK/FAIL은 `<outdir>/log.txt`. 사전 조건: 내비에서 더현대서울 안내 중(경로 없음이면 목적지 선택·전달이 달라진다). 내비는 앱 재시작 후에도 경유지를 유지하므로, 앱은 연결 직후 `getWaypointInfo`로 슬롯을 동기화한다(#69).
 

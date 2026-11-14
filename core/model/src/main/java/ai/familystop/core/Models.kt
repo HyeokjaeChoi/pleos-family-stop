@@ -59,3 +59,15 @@ data class RouteEta(
     val lon: Double,
     val remainSeconds: Int
 )
+
+// --- Vehicle energy (#79). ---
+
+/**
+ * 차량에서 받은 에너지 상태. 모르는 값은 null이고 화면은 null을 사실처럼 채우지 않는다(PL-UJFQXQ).
+ * [charging]은 차량 충전 스위치(충전 활성) 상태, [rangeKm]은 주행 가능 거리.
+ */
+data class EnergyState(
+    val socPercent: Int? = null,
+    val charging: Boolean? = null,
+    val rangeKm: Int? = null
+)
