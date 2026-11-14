@@ -52,7 +52,7 @@ VC="bash $(dirname "$0")/vconsole.sh"
 $VC charge on >/dev/null; sleep 4; shot 08-charging
 has "충전 중" && has "배터리 35%" && log "OK charging 35%" || log "FAIL charging state"
 $VC soc 60 >/dev/null; $VC range 300 >/dev/null; sleep 3; shot 08b-charging-60
-has "배터리 60%" && log "OK charging 60%" || log "FAIL soc update"
+has "배터리 60%" && has "300km" && log "OK charging 60% / 300km" || log "FAIL soc/range update"
 $VC soc 80 >/dev/null; $VC range 400 >/dev/null; sleep 2
 $VC charge off >/dev/null; sleep 4; shot 09-done
 has "충전 끝" && has "출발해도 돼요" && has "배터리 80%" && log "OK charge done (auto)" || log "FAIL charge done"
