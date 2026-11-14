@@ -101,7 +101,7 @@ jobs:
         if: always()
         run: |
           n=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR}/comments" --paginate \
-            --jq "[.[] | select(.body | startswith(\"${MARKER}\"))] | length" | awk '{s+=$1} END {print s+0}')
+            --jq "[.[] | select(.body | contains(\"${MARKER}\"))] | length" | awk '{s+=$1} END {print s+0}')
           echo "count=$n" >> "$GITHUB_OUTPUT"
           echo "summary comments for ${SHA}: $n"
 
@@ -122,6 +122,11 @@ jobs:
             --allowedTools "Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(git log:*),Bash(git show:*),Bash(git blame:*),Bash(git diff:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/comments:*)"
 
       - name: Remove trigger label
-        if: always()
-        # 실패를 숨기지 않는다: 라벨이 남으면 "다시 붙이면 재리뷰"가 동작하지 않는다.
-        run: gh api -X DELETE "repos/${GITHUB_REPOSITORY}/issues/${PR}/labels/claude-review-request"
+        # 취소된 run(재요청으로 대체됨)은 새 요청의 라벨을 지우지 않는다.
+        if: ${{ !cancelled() }}
+        # 이미 없으면(404) 통과, 지운 뒤에도 남아 있으면 실패로 드러낸다.
+        run: |
+          gh api -X DELETE "repos/${GITHUB_REPOSITORY}/issues/${PR}/labels/claude-review-request" >/dev/null 2>&1 || true
+          if gh api "repos/${GITHUB_REPOSITORY}/issues/${PR}/labels" --jq '.[].name' | grep -qx claude-review-request; then
+            echo "::error::claude-review-request label still present"; exit 1
+          fi
