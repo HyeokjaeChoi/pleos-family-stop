@@ -2,6 +2,7 @@ package ai.familystop
 
 import ai.familystop.core.DataSource
 import ai.familystop.core.DestinationKind
+import ai.familystop.core.EnergyState
 import ai.familystop.core.NaviGateway
 import ai.familystop.core.StopCandidate
 import ai.familystop.core.StopNeed
@@ -69,11 +70,12 @@ fun AppRoot(graph: AppGraph) {
     val s = graph.session
     val holder = rememberSaveableStateHolder()
     val rec by graph.recommend.state.collectAsState()
-    var soc by remember { mutableStateOf<Int?>(null) }
+    var energy by remember { mutableStateOf<EnergyState?>(null) }
+    val soc = energy?.socPercent
     val movement = remember { CarUxMovementSource(context) }
     val navi = graph.shellNavi // stable: DriveScreen keys its PickController (10 s undo) on it
     DisposableEffect(Unit) {
-        graph.energy.start { soc = it }
+        graph.energy.start { energy = it }
         onDispose { graph.energy.stop() }
     }
     LaunchedEffect(rec) {
@@ -197,7 +199,7 @@ fun AppRoot(graph: AppGraph) {
         sourceLabel = if (cards.any { it.source == DataSource.VIRTUAL }) "가상 데이터(시연)" else null,
         footer = { VoiceBar(graph.guide) }
     ) {
-        Parked(graph, rec, soc, navi, ::requestLocation, ::reload)
+        Parked(graph, rec, energy, navi, ::requestLocation, ::reload)
     }
 }
 
@@ -205,7 +207,7 @@ fun AppRoot(graph: AppGraph) {
 private fun Parked(
     graph: AppGraph,
     rec: RecommendState,
-    soc: Int?,
+    energy: EnergyState?,
     navi: NaviGateway,
     onRetry: () -> Unit,
     onReload: () -> Unit
@@ -224,9 +226,10 @@ private fun Parked(
                     stop.detourKm
                 )}km · +${stop.extraMinutes}분",
                 destinationName = trip.destination.name,
-                baseArrival = base,
+                arrival = base,
                 wishedArrival = trip.arrival
             ),
+            energy = energy,
             tasks = trip.needs.map { it.label },
             sessionId = s.tripId
         )
@@ -251,7 +254,7 @@ private fun Parked(
                 destinations = s.destinations,
                 eta = s.eta,
                 etaFailed = s.etaFailed,
-                autoSocPercent = soc,
+                autoSocPercent = energy?.socPercent,
                 draft = s.draft,
                 onDraft = { s.draft = it },
                 onNext = { s.step = PlanStep.CANDIDATES },

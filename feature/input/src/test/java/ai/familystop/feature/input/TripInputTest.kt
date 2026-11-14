@@ -3,6 +3,7 @@ package ai.familystop.feature.input
 import ai.familystop.core.Destination
 import ai.familystop.core.DestinationKind
 import ai.familystop.core.RouteEta
+import ai.familystop.core.formatClock
 import java.time.LocalDateTime
 import java.time.LocalTime
 import org.junit.Assert.assertEquals

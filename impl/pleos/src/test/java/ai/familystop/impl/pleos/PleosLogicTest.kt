@@ -32,6 +32,15 @@ class PleosLogicTest {
     }
 
     @Test
+    fun rangeMetresBecomeKmAndBadValuesAreUnknown() {
+        assertEquals(310, rangeKmOrNull(310_400f))
+        assertEquals(0, rangeKmOrNull(0f))
+        assertNull(rangeKmOrNull(null))
+        assertNull(rangeKmOrNull(-5f))
+        assertNull(rangeKmOrNull(Float.NaN))
+    }
+
+    @Test
     fun destinationsDropUnsetDuplicatesAndPutBookmarksFirst() {
         val unset = Destination("", 0.0, 0.0, DestinationKind.HOME)
         val r1 = Destination("A", 1.0, 2.0, DestinationKind.RECENT)

@@ -1,6 +1,7 @@
 #!/bin/bash
 # usage: e2e.sh <outdir>  — runs full scenario on emulator, records video, saves step screenshots + result log
 # 사전 조건: 에뮬레이터 부팅, 앱 설치, 내비에서 더현대서울로 안내 시작(경로 있음). NIGHT=yes 로 Night 실행.
+# 차량 값은 스크립트가 맞춘다: 배터리 35%, 주행 가능 거리 180km, 충전 꺼짐(scripts/vconsole.sh).
 O=$1; mkdir -p $O; 
 dump(){ adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1; adb exec-out cat /sdcard/ui.xml; }
 tap_text(){ # tap center of first node whose text contains $1
@@ -15,6 +16,7 @@ shot(){ adb exec-out screencap -p > $O/$1.png; }
 has(){ dump | grep -q "$1"; }
 log(){ echo "$@" | tee -a $O/log.txt; }
 : > $O/log.txt
+bash "$(dirname "$0")/vconsole.sh" charge off >/dev/null; bash "$(dirname "$0")/vconsole.sh" soc 35 >/dev/null; bash "$(dirname "$0")/vconsole.sh" range 180 >/dev/null
 adb shell cmd uimode night ${NIGHT:-no} >/dev/null
 adb shell rm -f /sdcard/demo.mp4
 adb shell am force-stop ai.familystop.app; adb shell am start -n ai.familystop.app/ai.familystop.MainActivity >/dev/null; sleep 7
@@ -42,13 +44,18 @@ if [ $ok = 0 ]; then log "retry"; tap_text "다시 시도"; for i in $(seq 1 30)
 adb shell am start -n ai.familystop.app/ai.familystop.MainActivity >/dev/null 2>&1; sleep 4
 shot 06-activity
 has "정차에서 할 일" && log "OK activity shown" || log "FAIL activity not shown"
+has "충전 전" && log "OK charge before (vehicle not charging)" || log "FAIL charge before"
 tap_text "식사"; sleep 2; shot 07-checked
 has "1/2" && log "OK checklist 1/2" || log "FAIL checklist"
-tap_text "충전 시작했어요"; sleep 4; shot 08-countdown
-has "충전 끝까지" && log "OK countdown" || log "FAIL countdown"
-tap_text "5분 연장"; sleep 2
-tap_text "충전 끝났어요"; sleep 3; shot 09-done
-has "충전 끝" && log "OK charge done" || log "FAIL charge done"
+# 충전은 차량 값으로만 바뀐다(#79): Virtual Console로 충전 스위치·잔량·주행 가능 거리를 바꾼다.
+VC="bash $(dirname "$0")/vconsole.sh"
+$VC charge on >/dev/null; sleep 4; shot 08-charging
+has "충전 중" && has "배터리 35%" && log "OK charging 35%" || log "FAIL charging state"
+$VC soc 60 >/dev/null; $VC range 300 >/dev/null; sleep 3; shot 08b-charging-60
+has "배터리 60%" && log "OK charging 60%" || log "FAIL soc update"
+$VC soc 80 >/dev/null; $VC range 400 >/dev/null; sleep 2
+$VC charge off >/dev/null; sleep 4; shot 09-done
+has "충전 끝" && has "출발해도 돼요" && has "배터리 80%" && log "OK charge done (auto)" || log "FAIL charge done"
 sleep 2; adb shell pkill -2 screenrecord; sleep 3
 adb pull /sdcard/demo.mp4 $O/raw.mp4 >/dev/null 2>&1
 ffmpeg -y -loglevel error -i $O/raw.mp4 -vf "scale=1280:-2,fps=15" -c:v libx264 -crf 32 -preset slow -pix_fmt yuv420p -movflags +faststart -an $O/demo.mp4

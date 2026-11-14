@@ -1,5 +1,6 @@
 package ai.familystop.feature.fallback
 
+import ai.familystop.core.formatClock
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -34,24 +35,18 @@ data class PermissionNotice(val capability: Capability) {
 /** A value last received from [source] at [atMs] (epoch ms). Never shown as the current value. */
 data class LastKnown(val value: String, val source: String, val atMs: Long)
 
-private val sameDay = DateTimeFormatter.ofPattern("HH:mm")
-private val otherDay = DateTimeFormatter.ofPattern("M월 d일 HH:mm")
+private val dateOnly = DateTimeFormatter.ofPattern("M월 d일 ")
 
 /**
- * `"72% · 마지막 확인값 · 차량 14:05"`, or `"미확인"` when nothing was ever received. A value from
+ * `"72% · 마지막 확인값 · 차량 오후 2:05"`, or `"미확인"` when nothing was ever received. A value from
  * another day also carries its date so it is never mistaken for today's.
  */
 fun describeValue(known: LastKnown?, nowMs: Long, zone: ZoneId = ZoneId.systemDefault()): String {
     if (known == null) return "미확인"
     val at = Instant.ofEpochMilli(known.atMs).atZone(zone)
-    val fmt = if (at.toLocalDate() ==
-        Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate()
-    ) {
-        sameDay
-    } else {
-        otherDay
-    }
-    return "${known.value} · 마지막 확인값 · ${known.source} ${fmt.format(at)}"
+    val today = at.toLocalDate() == Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate()
+    val day = if (today) "" else dateOnly.format(at)
+    return "${known.value} · 마지막 확인값 · ${known.source} $day${formatClock(at.hour, at.minute)}"
 }
 
 /** What a failed data item looks like: which item, why, and the last value if any. */
