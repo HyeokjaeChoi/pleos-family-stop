@@ -20,8 +20,8 @@ internal fun rangeKmOrNull(meters: Float?): Int? =
 /**
  * [VehicleEnergySource] on Pleos Vehicle (ADR-0001, #79): SOC by listener, charge switch
  * (`getEvChargeSwitchState`, no listener in SDK 2.3.2) by polling — both under `CAR_ENERGY`.
- * Range (Odometer) needs `CAR_DRIVE`, which the app does not declare (unapproved permissions fail
- * Pleos review), so it is read only when that permission is granted; otherwise rangeKm stays null.
+ * Range (Odometer) needs `CAR_DRIVE` (declared since #81); it is still read only when granted, so a
+ * build or vehicle without it shows no range instead of crashing (rangeKm stays null).
  * The SDK has no time-to-full API, so none is reported. Results are merged and delivered on main.
  */
 class PleosVehicleEnergySource(context: Context) : VehicleEnergySource {

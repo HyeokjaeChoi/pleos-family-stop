@@ -77,7 +77,7 @@ adb shell am start -n ai.familystop.app/ai.familystop.MainActivity
 | 기어 | `PUT /vehicle/gear?gear=Park\|Reverse\|Neutral\|Drive` |
 | 배터리 SOC | `PUT /vehicle/ev-battery?field=soc&value=0..100` |
 | 충전 스위치 | `PUT /vehicle/ev-battery?field=charge_switch&value=true\|false` (앱은 3초마다 `getEvChargeSwitchState`로 읽음) |
-| 주행 가능 거리 | `PUT /vehicle/odometer?remaining_range_m=<m>` (앱이 읽으려면 `CAR_DRIVE` 권한 필요 — 미선언, #79) |
+| 주행 가능 거리 | `PUT /vehicle/odometer?remaining_range_m=<m>` (앱은 `CAR_DRIVE` 권한으로 읽음, #81) |
 | 속도 | `PUT /vehicle/controls?speed_kph=0..240` (`accelerator`, `brake`, `steering`도 같은 엔드포인트) |
 | 상태 | `GET /vehicle/state`, 전체 항목 `GET /vehicle/catalog` |
 
@@ -94,7 +94,7 @@ adb shell am start -n ai.familystop.app/ai.familystop.MainActivity
 3. 앱 창이 검게 보인다: 현재 `MainActivity`는 배경·글자색 지정 없이 `Text`만 그려서 검은 글씨가 검은 창에 묻힌다. 텍스트는 UI 덤프로 확인된다.
 4. `adb shell cmd car_service inject-vhal-event/get-property-value/emulate-driving-state`는 user 빌드라 막힘. `cmd hmg_car_service`(문서의 `driving_regulation`)도 서비스가 없다. 대신 Virtual Console을 쓴다.
 5. Virtual Console에 `curl`로만 PUT하면 `emulator_inactive`다. 하트비트가 필요하다(위 REST 절).
-6. Pleos SDK 호출은 권한이 없으면 앱이 `SecurityException`으로 죽는다: 기어 `GearSelectionListener`는 `pleos.car.permission.CAR_DRIVE`, `NaviHelper.getDestinationInfo`/`getWaypointInfo`/`getRouteStateInfo`는 `pleos.car.permission.NAVI_ROUTE`. 현재 매니페스트는 `NAVI_ROUTE_SEARCH`, `CAR_ENERGY`만 선언한다.
+6. Pleos SDK 호출은 권한이 없으면 앱이 `SecurityException`으로 죽는다: 기어 `GearSelectionListener`는 `pleos.car.permission.CAR_DRIVE`, `NaviHelper.getDestinationInfo`/`getWaypointInfo`/`getRouteStateInfo`는 `pleos.car.permission.NAVI_ROUTE`. 현재 매니페스트는 `NAVI_ROUTE_SEARCH`, `NAVI_ROUTE`, `CAR_ENERGY`, `CAR_DRIVE`(#81, 주행 가능 거리)를 선언한다.
 7. 에뮬레이터 현재 위치는 `adb emu geo fix <lon> <lat>`로 설정한다(서울 예: `127.0276 37.4979`).
 
 ## 6. 실측 결과 (2026-11-08, #31)
