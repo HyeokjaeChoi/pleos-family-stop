@@ -61,7 +61,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: ${{ env.PROMPT }}
           claude_args: ${{ env.CLAUDE_ARGS }}
-          show_full_output: true
 
       - name: Review (subscription fallback)
         if: steps.api.outcome == 'failure'
@@ -71,4 +70,3 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: ${{ env.PROMPT }}
           claude_args: ${{ env.CLAUDE_ARGS }}
-          show_full_output: true
