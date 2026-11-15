@@ -36,6 +36,19 @@
 - 저장소 밖: 접수양식 DOCX와 시연 영상은 로컬 `.submission/`·`.e2e-final/`(git 제외)에 두고 메일에 첨부한다. 접수양식의 개인정보는 저장소에 올리지 않는다.
 - 마지막 단계(메일 발송)는 사용자가 Gmail 임시보관함에서 직접 한다.
 
+**1차 제출 진행 순서 (2026-11-15 16:45 기준, 마감 23:59)**
+
+1. [x] 규정 재확인(Aside): 이메일 제출만, 메일에 저장소 주소·최종 커밋 번호, Collaborator 초대 불필요, 11/16까지 Public 전환 필요(11/23까지 유지), README에 에뮬레이터 버전·화면 사양.
+2. [x] 키스토어·서명 APK·README·기획서 확정 → PR #85.
+3. [ ] 시연 영상: 백그라운드 에이전트가 녹화·편집 중. 산출물 `.e2e-final/familystop-demo.mp4`(1080p, 20MB 이하, 자막·내레이션). 장면 s1~s4 녹화 끝, s5~s7·편집 남음. 끝나면 [`docs/submission/demo-script.md`](../submission/demo-script.md)를 녹화본 장면에 맞춰 고친다.
+4. [ ] 마지막 PR 병합 뒤 main HEAD가 **최종 커밋 번호**다. 그 뒤 저장소 Public 전환(사용자 승인): `gh repo edit HyeokjaeChoi/pleos-family-stop --visibility public --accept-visibility-change-consequences`.
+5. [ ] release APK 에뮬레이터 설치·실행 확인(debug를 먼저 `adb uninstall ai.familystop.app`).
+6. [ ] 접수양식 최종본: 로컬 `.submission/README.local.md`의 명령으로 `.submission/form/fill_form.py`에 최종 커밋 해시를 넘겨 `.submission/FamilyStop_접수양식.docx`를 만든다. 01·04란(개인정보·동의·서명 이미지)은 이미 채워진다.
+7. [ ] Gmail 임시보관 메일: Aside `google-gmail` 스킬(`aside repl` → `googleAccounts.print()`로 uid 확인 → `gmail.openComposer(uid, {to, subject, bodyHtml})` → `input[type=file][name=Filedata]`에 `setInputFiles`로 양식 DOCX·영상 첨부). **보내기는 누르지 않는다.** 받는 사람 appdevchallenge@hyundai-partners.com, 제목 `[차량용 앱 개발 공모전] 성명_성명`(개인 참가), 본문에 저장소 주소·최종 커밋 번호·첨부 목록. Gmail MCP `create_draft`는 첨부를 base64로 넘겨야 해서 영상 첨부에 못 쓴다.
+8. [ ] 사용자가 임시보관함에서 확인 후 발송.
+
+주의: 이 Mac의 LibreOffice는 시스템 글꼴을 읽지 못해 PDF 변환 시 한글이 빠진다. 양식은 DOCX로 낸다(DOCX·PDF 모두 허용). 개인정보(성명·연락처·서명)는 저장소·PR·이슈에 쓰지 않는다.
+
 **그 외**
 
 - #1, #2 에뮬레이터 실측.
