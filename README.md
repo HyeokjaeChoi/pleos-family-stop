@@ -12,7 +12,9 @@
 
 | 항목 | 값 |
 |---|---|
-| 대상 | Pleos Connect v2.1.0 (AAOS, API 34) 에뮬레이터 — Apple Silicon arm64 이미지에서 부팅·구동 확인 |
+| 에뮬레이터 | Pleos Connect v2.1.0 (AAOS, API 34) arm64 시스템 이미지, AVD `Pleos_Connect_v2_1_0` |
+| 화면 | 2560×1440, mdpi, 가로 (기기 정의 `Pleos_Connect_v2_0`, 이미지 포함 `devices.xml`) |
+| 검증 호스트 | Apple Silicon macOS, `-gpu host` |
 | 앱 | minSdk 28, targetSdk 34, compileSdk 36 |
 | 빌드 | JDK 21 이상, Gradle wrapper(`./gradlew`), Android SDK(`ANDROID_HOME`) |
 | SDK 저장소 | `https://nexus-playground.pleos.ai/repository/maven-releases/` (`settings.gradle.kts`에 설정됨) |
@@ -21,13 +23,13 @@ SDK 사용 현황 (Pleos My Project 콘솔 확인, 2026-11-07):
 
 | SDK | 상태 | 앱 사용 |
 |---|---|---|
-| Vehicle State | 사용 가능 | EV 배터리 잔량(구현), 기어 주행/정차 판별(실측 완료, 앱 구현 예정) |
+| Vehicle State | 사용 가능 | EV 배터리 잔량·충전 상태·주행 가능 거리(`CAR_DRIVE` 권한) |
 | NaviHelper | 사용 가능 | 정차 지점을 경유지로 추가·취소 |
 | FusedLocation | 준비 중 | 대체: Android `LocationManager` (`LocationSource` 뒤) |
 | TextToSpeech | 준비 중 | 대체: Android `TextToSpeech` (`VoiceOutput` 뒤) |
 | SpeechToText | 준비 중 | 시연에서 제외 |
 
-준비 중 SDK는 오픈 후 `:impl:pleos`의 구현으로 교체한다 (ADR-0001, ADR-0002).
+주행/정차 판별은 AAOS `CarUxRestrictions`(주의분산 제한 여부)로 한다. 준비 중 SDK는 오픈 후 `:impl:pleos`의 구현으로 교체한다 (ADR-0001, ADR-0002).
 
 ## 빌드·테스트
 
@@ -50,20 +52,29 @@ adb install -r -g app/build/outputs/apk/debug/app-debug.apk
 adb shell am start -n ai.familystop.app/ai.familystop.MainActivity
 ```
 
-차량 상태 조작(기어·배터리·속도)은 Virtual Console을 쓴다:
+차량 상태 조작(기어·배터리·충전·주행 가능 거리·속도)은 Virtual Console을 쓴다:
 
 ```bash
 scripts/vconsole.sh gear P      # P | R | N | D
 scripts/vconsole.sh soc 40      # 0–100
 scripts/vconsole.sh speed 60    # kph
+scripts/vconsole.sh charge on   # on | off
+scripts/vconsole.sh range 300    # 주행 가능 거리 km
 adb emu geo fix 127.0276 37.4979   # 현재 위치 (경도 위도)
 ```
 
 ## APK
 
-제출용 release APK는 `apk/` 폴더 또는 GitHub Releases에 둔다. 빌드·서명 절차: [`docs/submission/release-apk.md`](docs/submission/release-apk.md).
+- 위치: [`apk/FamilyStop_FamilyStop_release.apk`](apk/FamilyStop_FamilyStop_release.apk) (release 빌드, APK Signature Scheme v3, versionName 0.1.0)
+- 빌드·서명 절차: [`docs/submission/release-apk.md`](docs/submission/release-apk.md)
 
-- 위치: _(제출 직전 기입)_
+```bash
+adb uninstall ai.familystop.app   # debug 빌드가 깔려 있으면 서명이 달라 먼저 지운다
+adb install -r -g apk/FamilyStop_FamilyStop_release.apk
+adb shell am start -n ai.familystop.app/ai.familystop.MainActivity
+```
+
+내비에서 목적지 안내를 먼저 시작해 두면 앱 1단계에서 그 목적지가 미리 선택된다. 시연 흐름은 [`docs/submission/demo-script.md`](docs/submission/demo-script.md), 자동 E2E는 `scripts/e2e-demo.sh`.
 
 ## 구조
 
