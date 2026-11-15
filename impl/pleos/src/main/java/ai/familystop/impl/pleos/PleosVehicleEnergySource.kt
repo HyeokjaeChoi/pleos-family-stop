@@ -63,29 +63,35 @@ class PleosVehicleEnergySource(context: Context) : VehicleEnergySource {
         }
         socListener = soc
         rangeListener = range
-        vehicle.initialize()
-        val battery = vehicle.getEvBattery()
-        val odometer = vehicle.getOdometer()
-        battery.registerEvBatteryStateOfCharge(soc)
-        battery.getEvBatteryStateOfCharge(
-            { v -> update { it.copy(socPercent = socOrNull(v)) } },
-            { update { it.copy(socPercent = null) } }
-        )
-        if (canReadRange) {
-            odometer.registerRangeRemainingListener(range)
-            odometer.getRangeRemainingDistance(
-                { v -> update { it.copy(rangeKm = rangeKmOrNull(v)) } },
-                { update { it.copy(rangeKm = null) } }
-            )
-        } else {
+        // Denied: nothing is registered, state stays "no info" (SOC/range null).
+        guardDenied({
+            socListener = null
             rangeListener = null
+        }) {
+            vehicle.initialize()
+            val battery = vehicle.getEvBattery()
+            val odometer = vehicle.getOdometer()
+            battery.registerEvBatteryStateOfCharge(soc)
+            battery.getEvBatteryStateOfCharge(
+                { v -> update { it.copy(socPercent = socOrNull(v)) } },
+                { update { it.copy(socPercent = null) } }
+            )
+            if (canReadRange) {
+                odometer.registerRangeRemainingListener(range)
+                odometer.getRangeRemainingDistance(
+                    { v -> update { it.copy(rangeKm = rangeKmOrNull(v)) } },
+                    { update { it.copy(rangeKm = null) } }
+                )
+            } else {
+                rangeListener = null
+            }
         }
         val tick = object : Runnable {
             override fun run() {
                 if (session !== token) return
                 // A missing permission must read as "unknown", not crash the app (PL-UJFQXQ).
                 runCatching {
-                    battery.getEvChargeSwitchState(
+                    vehicle.getEvBattery().getEvChargeSwitchState(
                         { v -> update { it.copy(charging = v) } },
                         { update { it.copy(charging = null) } }
                     )

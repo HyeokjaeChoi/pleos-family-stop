@@ -5,6 +5,15 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 
+/** Pleos throws SecurityException for a missing permission; route it to the caller's failure path (#108). */
+internal inline fun guardDenied(onDenied: (SecurityException) -> Unit, block: () -> Unit) {
+    try {
+        block()
+    } catch (e: SecurityException) {
+        onDenied(e)
+    }
+}
+
 /**
  * One [NaviHelper] for the whole app. The Navi service keeps a single callback per appId, so a second helper
  * silently replaces the first one's callback (#69: waypoint replies never reached the gateway).
@@ -23,22 +32,24 @@ class NaviSession(context: Context) {
         waiting += onReady to onFail
         if (connecting) return
         connecting = true
-        helper.initialize(
-            {
-                main.post {
-                    connecting = false
-                    connected = true
-                    flush { it.first() }
-                }
-            },
-            {
-                main.post {
-                    connecting = false
-                    val e = IllegalStateException("navi init failed: ${it.message}")
-                    flush { w -> w.second(e) }
-                }
-            }
-        )
+        guardDenied({ failInit(it) }) {
+            helper.initialize(
+                {
+                    main.post {
+                        connecting = false
+                        connected = true
+                        flush { it.first() }
+                    }
+                },
+                { main.post { failInit(it) } }
+            )
+        }
+    }
+
+    private fun failInit(cause: Throwable) {
+        connecting = false
+        val e = IllegalStateException("navi init failed: ${cause.message}")
+        flush { w -> w.second(e) }
     }
 
     private fun flush(call: (Pair<() -> Unit, (Throwable) -> Unit>) -> Unit) =
