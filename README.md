@@ -6,7 +6,7 @@
 - 대상: 전기차로 가족 여행하는 운전자·성인 동승자
 - 기획서 초안: [`docs/submission/proposal.md`](docs/submission/proposal.md)
 
-> 상태: 기능 모듈은 개별 구현·테스트됐고, 화면 연결·실제 SDK 배선(#14)은 진행 전이다. 현재 `AppGraph`는 `:core:testing`의 fake를 기본값으로 쓴다. 통합 완료 후 이 문단을 갱신한다.
+> 상태 (2026-11-15): 화면 연결과 실제 SDK 배선(#14)을 마쳤다. `AppGraph`는 Pleos NaviHelper·Vehicle SDK와 Android 위치·TTS를 쓰고, 주행/정차는 AAOS `CarUxRestrictions`로 판별한다. 정차 후보 시설은 시연 구간 데이터(가상 포함, 화면에 출처 표시)다. 에뮬레이터 E2E는 `scripts/e2e-demo.sh`.
 
 ## 테스트 환경
 
