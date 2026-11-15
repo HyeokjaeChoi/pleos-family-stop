@@ -61,29 +61,25 @@ class PleosVehicleEnergySource(context: Context) : VehicleEnergySource {
                 update { it.copy(rangeKm = rangeKmOrNull(meters)) }
             override fun onFailed(e: Exception) = update { it.copy(rangeKm = null) }
         }
-        socListener = soc
-        rangeListener = range
-        // Denied: nothing is registered, state stays "no info" (SOC/range null).
-        guardDenied({
-            socListener = null
-            rangeListener = null
-        }) {
+        // Denied: state stays "no info" (SOC/range null). A listener field is set only once registered, so stop()
+        // unregisters exactly what was registered.
+        guardDenied({}) {
             vehicle.initialize()
             val battery = vehicle.getEvBattery()
             val odometer = vehicle.getOdometer()
             battery.registerEvBatteryStateOfCharge(soc)
+            socListener = soc
             battery.getEvBatteryStateOfCharge(
                 { v -> update { it.copy(socPercent = socOrNull(v)) } },
                 { update { it.copy(socPercent = null) } }
             )
             if (canReadRange) {
                 odometer.registerRangeRemainingListener(range)
+                rangeListener = range
                 odometer.getRangeRemainingDistance(
                     { v -> update { it.copy(rangeKm = rangeKmOrNull(v)) } },
                     { update { it.copy(rangeKm = null) } }
                 )
-            } else {
-                rangeListener = null
             }
         }
         val tick = object : Runnable {
