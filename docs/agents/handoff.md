@@ -42,7 +42,7 @@
 1. [x] 규정 재확인(Aside): 이메일 제출만, 메일에 저장소 주소·최종 커밋 번호, Collaborator 초대 불필요, 11/16까지 Public 전환 필요(11/23까지 유지), README에 에뮬레이터 버전·화면 사양.
 2. [x] 키스토어·서명 APK·README·기획서 확정 → PR #85.
 3. [x] 시연 영상: `.e2e-final/familystop-demo.mp4`(2:11, 3.4MB, 1080p, 자막·내레이션). 장면 5~7은 스크린숏을 이었다. [`docs/submission/demo-script.md`](../submission/demo-script.md)를 녹화본 기준으로 고쳤다.
-4. [x] 저장소 Public 전환(2026-11-15, 사용자 결정). 이 PR의 병합 커밋이 **최종 커밋 번호**다.
+4. [x] 저장소 Public 전환(2026-11-15, 사용자 결정). main의 마지막 병합 커밋이 **최종 커밋 번호**다(제출 메일에 적는다).
 5. [x] release APK 에뮬레이터 설치·실행 확인(debug를 먼저 `adb uninstall ai.familystop.app`).
 6. [ ] (이 PR 병합 뒤) 접수양식 최종본: 로컬 `.submission/README.local.md`의 명령으로 `.submission/form/fill_form.py`에 최종 커밋 해시를 넘겨 `.submission/FamilyStop_접수양식.docx`를 만든다. 01·04란(개인정보·동의·서명 이미지)은 이미 채워진다.
 7. [ ] (이 PR 병합 뒤) Gmail 임시보관 메일: Aside `google-gmail` 스킬(`aside repl` → `googleAccounts.print()`로 uid 확인 → `gmail.openComposer(uid, {to, subject, bodyHtml})` → `input[type=file][name=Filedata]`에 `setInputFiles`로 양식 DOCX·영상 첨부). **보내기는 누르지 않는다.** 받는 사람 appdevchallenge@hyundai-partners.com, 제목 `[차량용 앱 개발 공모전] 성명_성명`(개인 참가), 본문에 저장소 주소·최종 커밋 번호·첨부 목록. Gmail MCP `create_draft`는 첨부를 base64로 넘겨야 해서 영상 첨부에 못 쓴다.
