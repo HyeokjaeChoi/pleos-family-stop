@@ -17,7 +17,7 @@
 - [x] 에뮬레이터 E2E (debug 빌드): `scripts/e2e-demo.sh` 주간·야간 통과 (2026-11-14)
 - [ ] release APK 설치·실행 확인 (서명 후)
 - [ ] 시연 영상: E2E 녹화본은 로컬 `.e2e-final/`(저장소 제외)에 있다. [demo-script.md](demo-script.md) 기준 편집본 녹화·업로드와 링크 확보는 미완
-- [ ] 기획서를 실제 구현에 맞게 수정. 낡은 줄:
+- [x] 기획서를 실제 구현에 맞게 수정 (2026-11-15). 낡은 줄:
   - 3절 "이동 상황 판별"의 "Vehicle SDK 기어로": 실제 판별은 AAOS `CarUxRestrictions`(`feature/drive/.../Movement.kt`)
   - 4절 5번 "충전이 끝날 때까지 쓸 수 있는 시간 안에서": #79 이후 남은 시간을 추정하지 않는다
   - 5절 SDK 표 Vehicle State·NaviHelper 행의 "앱 연결은 #14", "기어 판별은 … 앱 구현 예정": 연결은 끝났고 기어 판별은 쓰지 않는다. Vehicle State 용도에 충전 상태·주행 가능 거리가 빠져 있다
