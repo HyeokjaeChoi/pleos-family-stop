@@ -5,7 +5,7 @@ p="${1#./}"
 case "$p" in
   */src/test/*|*/src/androidTest/*) exit 1 ;;
   core/designsystem/*) exit 0 ;;
-  */res/values*/strings*.xml) exit 0 ;;
+  */res/values*/*.xml) exit 0 ;;
   feature/*.kt|app/*.kt)
     [ -f "$p" ] && grep -q '@Composable' "$p" && exit 0
     case "$(basename "$p")" in *Screen*|*Bar*) exit 0 ;; esac ;;
