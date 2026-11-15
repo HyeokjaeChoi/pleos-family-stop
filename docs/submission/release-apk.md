@@ -42,6 +42,6 @@ debug APK로 설치한 에뮬레이터에는 서명이 달라 `adb install -r`�
 
 ## 주의
 
-- release 빌드는 현재 minify·shrink 없음(`app/build.gradle.kts`에 `buildTypes` 없음). 용량 문제가 없어 그대로 둔다.
+- release 빌드는 R8 minify·shrink가 켜져 있다(#105, `app/proguard-rules.pro`). CI `gate`가 `assembleRelease`로 누락 클래스를 잡는다. 서명 후 `scripts/e2e-demo.sh`로 확인하고, 시연 전에 `adb shell cmd package compile -m speed -f ai.familystop.app`를 실행한다(`docs/agents/emulator.md`).
 - 1차 제출본은 2026-11-15 main 기준으로 빌드·서명했다. 코드를 바꾸면 다시 빌드·서명해 같은 파일명으로 교체한다.
 - `versionCode`/`versionName`은 제출 전 확인(현재 1 / 0.1.0).

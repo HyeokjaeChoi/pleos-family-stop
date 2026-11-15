@@ -120,3 +120,6 @@ adb shell am start -n ai.familystop.app/ai.familystop.MainActivity
 
 입력 → 추천 → 경유지 추가 → 활동 → 체크 → 충전(차량 값: Virtual Console로 충전 스위치 on, SOC 35→60→80, off) → 자동 충전 끝을 `uiautomator`로 구동하고, `screenrecord` 녹화 + `ffmpeg` 압축(1280px/15fps, 약 0.3MB)까지 한다. 단계별 OK/FAIL은 `<outdir>/log.txt`. 사전 조건: 내비에서 더현대서울 안내 중(경로 없음이면 목적지 선택·전달이 달라진다). 내비는 앱 재시작 후에도 경유지를 유지하므로, 앱은 연결 직후 `getWaypointInfo`로 슬롯을 동기화한다(#69).
 
+## 시연 전 AOT 컴파일 (R8 release, #105)
+
+시연 전에 `adb shell cmd package compile -m speed -f ai.familystop.app`를 실행한다. 이 에뮬레이터는 sideload APK의 ProfileInstaller 프로필을 쓰지 못한다(broadcast 결과 `4` NOT_WRITABLE, dexopt는 `status=verify` 그대로). 컴파일하지 않으면 앱이 JIT로만 돈다.
