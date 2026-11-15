@@ -4,7 +4,7 @@
 
 ## 지금 상태
 
-- main `8e65095`, 열린 PR 없음.
+- 2026-11-15 오후: 1차 제출 준비 중(#15). 결정·진행은 [`docs/submission/checklist.md`](../submission/checklist.md).
 - 열린 이슈: #15 제출물(마감 **2026-11-15 23:59 KST**), #1·#2 에뮬레이터 실측(`ready-for-human`).
 - 앱은 #14로 실제 SDK에 연결됐다. 최종 E2E는 2026-11-14 22:41에 `scripts/e2e-demo.sh` 주간·야간으로 통과했다(#82 병합 직전 빌드). 녹화본은 로컬 `.e2e-final/`(저장소 제외), 화면 증거는 `docs/design-qa/shots/v79/`.
 
@@ -31,8 +31,10 @@
 
 **제출 (#15)**: 항목별 상태는 [`docs/submission/checklist.md`](../submission/checklist.md).
 
-- 사용자만 할 수 있는 것: 팀명·대표자명·앱명 결정, 키스토어 생성, 심사용 계정 Collaborator 초대, 실명 노출 점검, 접수양식, 메일 발송.
-- 이 저장소에서 할 것: release APK 서명·커밋(키스토어와 이름이 정해진 뒤), 시연 영상 편집본. 기획서 3·4·5절 수정은 끝남.
+- 결정 끝: 개인·일반부문, 팀명 FamilyStop, 앱명 Family Stop, 지금 저장소를 그대로 Public 전환(실명 영문 노출 감수), 키스토어 생성(비밀번호는 macOS 키체인 `pleos-release-keystore`).
+- 저장소: 서명한 `apk/FamilyStop_FamilyStop_release.apk`, README(에뮬레이터 버전·화면 사양, APK 위치), 기획서 확정본.
+- 저장소 밖: 접수양식 DOCX와 시연 영상은 로컬 `.submission/`·`.e2e-final/`(git 제외)에 두고 메일에 첨부한다. 접수양식의 개인정보는 저장소에 올리지 않는다.
+- 마지막 단계(메일 발송)는 사용자가 Gmail 임시보관함에서 직접 한다.
 
 **그 외**
 

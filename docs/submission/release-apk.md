@@ -6,6 +6,8 @@
 
 ## 1. 키스토어 (1회, 저장소 밖에 보관)
 
+2026-11-15 생성 완료: `~/pleos-release.jks`(별칭 `familystop`, 인증서 `CN=FamilyStop`), 비밀번호는 macOS 키체인 항목 `pleos-release-keystore`에만 있다. 새로 만들 때만 아래 명령을 쓴다.
+
 ```bash
 keytool -genkeypair -keystore ~/pleos-release.jks -alias familystop \
   -keyalg RSA -keysize 2048 -validity 10000
@@ -17,19 +19,22 @@ keytool -genkeypair -keystore ~/pleos-release.jks -alias familystop \
 
 ```bash
 ./gradlew :app:assembleRelease
-BT=$ANDROID_HOME/build-tools/36.1.0
+BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
 mkdir -p apk
 $BT/zipalign -f -P 16 4 app/build/outputs/apk/release/app-release-unsigned.apk build/aligned.apk
-$BT/apksigner sign --ks ~/pleos-release.jks --out "apk/팀명_앱이름_release.apk" build/aligned.apk
-$BT/apksigner verify --verbose "apk/팀명_앱이름_release.apk"   # v3 true 이어야 함
+KS_PW="$(security find-generic-password -s pleos-release-keystore -w)" \
+  $BT/apksigner sign --ks ~/pleos-release.jks --ks-key-alias familystop --ks-pass env:KS_PW --key-pass env:KS_PW \
+  --out apk/FamilyStop_FamilyStop_release.apk build/aligned.apk
+rm -f apk/*.idsig
+$BT/apksigner verify --verbose apk/FamilyStop_FamilyStop_release.apk   # v3 true 이어야 함
 ```
 
-`팀명_앱이름`은 확정 전 placeholder다 (`checklist.md`).
+파일명은 `팀명_앱이름_release.apk` 규칙에 따라 `FamilyStop_FamilyStop_release.apk`다 (팀명 FamilyStop, 앱명 Family Stop).
 
 ## 3. 설치 확인
 
 ```bash
-adb install -r -g "apk/팀명_앱이름_release.apk"
+adb install -r -g apk/FamilyStop_FamilyStop_release.apk
 adb shell am start -n ai.familystop.app/ai.familystop.MainActivity
 ```
 
@@ -38,5 +43,5 @@ debug APK로 설치한 에뮬레이터에는 서명이 달라 `adb install -r`�
 ## 주의
 
 - release 빌드는 현재 minify·shrink 없음(`app/build.gradle.kts`에 `buildTypes` 없음). 용량 문제가 없어 그대로 둔다.
-- #14(통합) 이후에 다시 빌드해야 실제 제출본이 된다. 지금 만든 APK는 fake 기반 셸이라 제출하지 않는다.
+- 1차 제출본은 2026-11-15 main 기준으로 빌드·서명했다. 코드를 바꾸면 다시 빌드·서명해 같은 파일명으로 교체한다.
 - `versionCode`/`versionName`은 제출 전 확인(현재 1 / 0.1.0).
