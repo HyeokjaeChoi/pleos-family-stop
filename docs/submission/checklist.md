@@ -11,9 +11,9 @@
 - [x] 키스토어 생성 (`~/pleos-release.jks`, 비밀번호는 macOS 키체인 `pleos-release-keystore`) → [release-apk.md](release-apk.md)
 - [x] release APK 빌드·서명·커밋: `apk/FamilyStop_FamilyStop_release.apk` (v3 서명 검증)
 - [x] 에뮬레이터 E2E (debug 빌드): `scripts/e2e-demo.sh` 주간·야간 통과 (2026-11-14)
-- [ ] release APK 에뮬레이터 설치·실행 확인
-- [ ] 시연 영상 편집본 (저장소 밖 `.e2e-final/`, 메일 첨부) + [demo-script.md](demo-script.md)를 녹화본에 맞춤
-- [ ] 저장소 Public 전환 (사용자 결정: 지금 저장소 그대로 공개)
+- [x] release APK 에뮬레이터 설치·실행 확인 (2026-11-15: debug 삭제 후 설치, 크래시 없음, 2단계에서 차량 배터리 값 표시)
+- [x] 시연 영상 편집본: 2:11, 3.4MB, 1080p, 자막·내레이션. 저장소 밖 `.e2e-final/`에 두고 메일에 `FamilyStop_demo.mp4`로 첨부. [demo-script.md](demo-script.md)는 녹화본 기준으로 고침
+- [x] 저장소 Public 전환 (2026-11-15)
 
 ## 결정 (2026-11-15)
 
@@ -26,3 +26,4 @@
 ## 사용자 몫
 
 - [ ] 메일 발송: Gmail 임시보관함의 제출 메일을 확인하고 보내기 (접수양식 DOCX·시연 영상 첨부, 본문에 저장소 주소·최종 커밋 번호). 접수양식의 개인정보는 이 저장소에 두지 않는다.
+- [ ] 11/23까지 저장소를 Public으로 유지한다. 심사는 메일에 적은 커밋으로 하므로 그 뒤 커밋은 심사에 들어가지 않는다.

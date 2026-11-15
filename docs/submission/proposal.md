@@ -84,7 +84,7 @@
 
 ## 7. 참고자료 (선택 · 가산점)
 
-- 시연 영상: 제출 메일에 첨부한 `FamilyStop_demo.mp4` (에뮬레이터 화면 녹화, 자막·내레이션. 시나리오: 저장소 `docs/submission/demo-script.md`)
+- 시연 영상: 제출 메일에 첨부한 `FamilyStop_demo.mp4` (에뮬레이터 화면 녹화와 스크린숏, 자막·내레이션. 시나리오: 저장소 `docs/submission/demo-script.md`)
 - GitHub 저장소: https://github.com/HyeokjaeChoi/pleos-family-stop (README, release APK `apk/FamilyStop_FamilyStop_release.apk`). 최종 커밋 번호는 제출 메일에 적는다.
 - 앱 화면: 저장소 `docs/design-qa/shots/`의 에뮬레이터 화면 캡처
 
