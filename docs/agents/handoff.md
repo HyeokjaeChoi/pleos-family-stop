@@ -4,11 +4,11 @@
 
 ## 지금 상태
 
-- 2026-11-15 오후: 1차 제출 준비 중(#15). 결정·진행은 [`docs/submission/checklist.md`](../submission/checklist.md).
+- 2026-11-15 저녁: 1차 제출 준비를 마쳤다(#15). 남은 일은 사용자의 메일 발송뿐이다. 결정·진행은 [`docs/submission/checklist.md`](../submission/checklist.md).
 - 열린 이슈: #15 제출물(마감 **2026-11-15 23:59 KST**), #1·#2 에뮬레이터 실측(`ready-for-human`).
 - 앱은 #14로 실제 SDK에 연결됐다. 최종 E2E는 2026-11-14 22:41에 `scripts/e2e-demo.sh` 주간·야간으로 통과했다(#82 병합 직전 빌드). 녹화본은 로컬 `.e2e-final/`(저장소 제외), 화면 증거는 `docs/design-qa/shots/v79/`.
 
-## 최근 병합 (2026-11-09 ~ 11-14)
+## 최근 병합 (2026-11-09 ~ 11-15)
 
 | PR (이슈) | 내용 |
 |---|---|
@@ -19,6 +19,7 @@
 | #75~#78 (#74) | AI PR 리뷰 workflow |
 | #80 (#79) | 충전 화면: 충전 시간 직접 입력·카운트다운 제거, 차량 충전 정보 표시. 시각 표기를 `formatClock`(오전/오후 h:mm)으로 통일 |
 | #82 (#81) | `pleos.car.permission.CAR_DRIVE` 선언(주행 가능 거리) |
+| #83~#85와 이 PR (#15) | 1차 제출 문서: 기획서 확정, README 테스트 환경, 서명한 release APK, 녹화본 기준 시연 시나리오 |
 
 ## 결정
 
@@ -36,21 +37,22 @@
 - 저장소 밖: 접수양식 DOCX와 시연 영상은 로컬 `.submission/`·`.e2e-final/`(git 제외)에 두고 메일에 첨부한다. 접수양식의 개인정보는 저장소에 올리지 않는다.
 - 마지막 단계(메일 발송)는 사용자가 Gmail 임시보관함에서 직접 한다.
 
-**1차 제출 진행 순서 (2026-11-15 16:45 기준, 마감 23:59)**
+**1차 제출 진행 순서 (2026-11-15 17:50 기준, 마감 23:59)**
 
 1. [x] 규정 재확인(Aside): 이메일 제출만, 메일에 저장소 주소·최종 커밋 번호, Collaborator 초대 불필요, 11/16까지 Public 전환 필요(11/23까지 유지), README에 에뮬레이터 버전·화면 사양.
 2. [x] 키스토어·서명 APK·README·기획서 확정 → PR #85.
-3. [ ] 시연 영상: 백그라운드 에이전트가 녹화·편집 중. 산출물 `.e2e-final/familystop-demo.mp4`(1080p, 20MB 이하, 자막·내레이션). 장면 s1~s4 녹화 끝, s5~s7·편집 남음. 끝나면 [`docs/submission/demo-script.md`](../submission/demo-script.md)를 녹화본 장면에 맞춰 고친다.
-4. [ ] 마지막 PR 병합 뒤 main HEAD가 **최종 커밋 번호**다. 그 뒤 저장소 Public 전환(사용자 승인): `gh repo edit HyeokjaeChoi/pleos-family-stop --visibility public --accept-visibility-change-consequences`.
-5. [ ] release APK 에뮬레이터 설치·실행 확인(debug를 먼저 `adb uninstall ai.familystop.app`).
-6. [ ] 접수양식 최종본: 로컬 `.submission/README.local.md`의 명령으로 `.submission/form/fill_form.py`에 최종 커밋 해시를 넘겨 `.submission/FamilyStop_접수양식.docx`를 만든다. 01·04란(개인정보·동의·서명 이미지)은 이미 채워진다.
-7. [ ] Gmail 임시보관 메일: Aside `google-gmail` 스킬(`aside repl` → `googleAccounts.print()`로 uid 확인 → `gmail.openComposer(uid, {to, subject, bodyHtml})` → `input[type=file][name=Filedata]`에 `setInputFiles`로 양식 DOCX·영상 첨부). **보내기는 누르지 않는다.** 받는 사람 appdevchallenge@hyundai-partners.com, 제목 `[차량용 앱 개발 공모전] 성명_성명`(개인 참가), 본문에 저장소 주소·최종 커밋 번호·첨부 목록. Gmail MCP `create_draft`는 첨부를 base64로 넘겨야 해서 영상 첨부에 못 쓴다.
+3. [x] 시연 영상: `.e2e-final/familystop-demo.mp4`(2:11, 3.4MB, 1080p, 자막·내레이션). 장면 5~7은 스크린숏을 이었다. [`docs/submission/demo-script.md`](../submission/demo-script.md)를 녹화본 기준으로 고쳤다.
+4. [x] 저장소 Public 전환(2026-11-15, 사용자 결정). 이 PR의 병합 커밋이 **최종 커밋 번호**다.
+5. [x] release APK 에뮬레이터 설치·실행 확인(debug를 먼저 `adb uninstall ai.familystop.app`).
+6. [ ] (이 PR 병합 뒤) 접수양식 최종본: 로컬 `.submission/README.local.md`의 명령으로 `.submission/form/fill_form.py`에 최종 커밋 해시를 넘겨 `.submission/FamilyStop_접수양식.docx`를 만든다. 01·04란(개인정보·동의·서명 이미지)은 이미 채워진다.
+7. [ ] (이 PR 병합 뒤) Gmail 임시보관 메일: Aside `google-gmail` 스킬(`aside repl` → `googleAccounts.print()`로 uid 확인 → `gmail.openComposer(uid, {to, subject, bodyHtml})` → `input[type=file][name=Filedata]`에 `setInputFiles`로 양식 DOCX·영상 첨부). **보내기는 누르지 않는다.** 받는 사람 appdevchallenge@hyundai-partners.com, 제목 `[차량용 앱 개발 공모전] 성명_성명`(개인 참가), 본문에 저장소 주소·최종 커밋 번호·첨부 목록. Gmail MCP `create_draft`는 첨부를 base64로 넘겨야 해서 영상 첨부에 못 쓴다.
 8. [ ] 사용자가 임시보관함에서 확인 후 발송.
 
 주의: 이 Mac의 LibreOffice는 시스템 글꼴을 읽지 못해 PDF 변환 시 한글이 빠진다. 양식은 DOCX로 낸다(DOCX·PDF 모두 허용). 개인정보(성명·연락처·서명)는 저장소·PR·이슈에 쓰지 않는다.
 
 **그 외**
 
+- 11/23(1차 발표)까지 저장소를 Public으로 유지한다.
 - #1, #2 에뮬레이터 실측.
 - Pleos 콘솔에서 `CAR_DRIVE` 승인 여부 확인.
 - API 프로모션 크레딧은 2026-12-14 만료. 그 뒤 AI 리뷰는 구독 폴백으로만 돈다.
@@ -59,5 +61,5 @@
 
 - 충전 카드 "정보 없음": 에뮬레이터에서 값을 끊을 수 없어 단위 테스트와 Figma(#79)로만 확인했다.
 - AI 리뷰 workflow의 마지막 수정(마커 `contains`, 라벨 제거 `!cancelled()`)은 병합 뒤 실제 실행으로 확인하지 않았다. 그 전 두 번의 실행은 1단계(API 크레딧)로 성공했다.
-- release APK는 아직 빌드·서명·설치하지 않았다.
+- 시연 영상은 장면별 프레임, 검은 화면, 무음 구간만 기계로 확인했다. 처음부터 끝까지 사람이 보지는 않았다.
 - 음성 안내(TTS)와 위치 5초 타임아웃 분기는 에뮬레이터 한계로 실기기 확인이 필요하다(`docs/e2e/README.md`).
