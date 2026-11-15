@@ -9,13 +9,18 @@
 - [x] release APK 빌드·서명 절차 → [release-apk.md](release-apk.md)
 - [x] 시연 영상 시나리오 초안 → [demo-script.md](demo-script.md)
 
-## #14(통합) 완료 후
+## 이 저장소에서 할 것 (#14 완료, 2026-11-15 갱신)
 
-- [ ] README "상태" 문단 갱신, APK 위치 기입
-- [ ] release APK 재빌드·서명·`apk/팀명_앱이름_release.apk` 커밋 (또는 GitHub Releases)
-- [ ] 에뮬레이터 설치·실행 확인, 시나리오대로 동작 확인
-- [ ] 시연 영상 녹화·업로드, 링크 확보
-- [ ] 기획서 3·5절을 실제 구현 상태에 맞게 수정
+- [x] README "상태" 문단 갱신
+- [ ] README APK 위치 기입 (APK 빌드 후)
+- [ ] release APK 빌드·서명·`apk/팀명_앱이름_release.apk` 커밋 (또는 GitHub Releases). 키스토어와 팀명·앱명이 먼저 정해져야 한다
+- [x] 에뮬레이터 E2E (debug 빌드): `scripts/e2e-demo.sh` 주간·야간 통과 (2026-11-14)
+- [ ] release APK 설치·실행 확인 (서명 후)
+- [ ] 시연 영상: E2E 녹화본은 로컬 `.e2e-final/`(저장소 제외)에 있다. [demo-script.md](demo-script.md) 기준 편집본 녹화·업로드와 링크 확보는 미완
+- [ ] 기획서를 실제 구현에 맞게 수정. 낡은 줄:
+  - 3절 "이동 상황 판별"의 "Vehicle SDK 기어로": 실제 판별은 AAOS `CarUxRestrictions`(`feature/drive/.../Movement.kt`)
+  - 4절 5번 "충전이 끝날 때까지 쓸 수 있는 시간 안에서": #79 이후 남은 시간을 추정하지 않는다
+  - 5절 SDK 표 Vehicle State·NaviHelper 행의 "앱 연결은 #14", "기어 판별은 … 앱 구현 예정": 연결은 끝났고 기어 판별은 쓰지 않는다. Vehicle State 용도에 충전 상태·주행 가능 거리가 빠져 있다
 
 ## 사용자 승인·직접 처리 필요 (이 세션은 하지 않음)
 
