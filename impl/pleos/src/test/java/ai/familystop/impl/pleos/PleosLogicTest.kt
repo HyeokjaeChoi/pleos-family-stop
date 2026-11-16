@@ -51,6 +51,22 @@ class PleosLogicTest {
     }
 
     @Test
+    fun securityExceptionGoesToDeniedPathInsteadOfCrashing() {
+        var denied: SecurityException? = null
+        guardDenied({ denied = it }) { throw SecurityException("CAR_DRIVE") }
+        assertEquals("CAR_DRIVE", denied?.message)
+        // Other exceptions are not swallowed.
+        var other = false
+        try {
+            guardDenied({ denied = null }) { error("boom") }
+        } catch (e: IllegalStateException) {
+            other = true
+        }
+        assertEquals(true, other)
+        assertEquals("CAR_DRIVE", denied?.message)
+    }
+
+    @Test
     fun syncReplacesSlotsWithNaviState() {
         val s = WaypointSlots()
         s.reserve(a)

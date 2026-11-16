@@ -70,9 +70,11 @@ class PleosNaviGateway(private val session: NaviSession) : NaviGateway {
         session.whenReady(
             {
                 connecting = false
-                ready = true
-                helper.addListener(listener)
-                startSync()
+                guardDenied({ failQueued(it) }) {
+                    helper.addListener(listener)
+                    ready = true
+                    startSync()
+                }
             },
             {
                 connecting = false
@@ -101,7 +103,8 @@ class PleosNaviGateway(private val session: NaviSession) : NaviGateway {
     private fun startSync() {
         syncing = true
         main.postDelayed(syncTimeout, SYNC_TIMEOUT_MS)
-        helper.getWaypointInfo()
+        // Denied: skip the sync, same as a sync timeout.
+        guardDenied({ endSync() }) { helper.getWaypointInfo() }
     }
 
     private fun endSync() {
@@ -123,24 +126,30 @@ class PleosNaviGateway(private val session: NaviSession) : NaviGateway {
         val i = slots.reserve(op.place)
             ?: return op.onResult(Result.failure(IllegalStateException("waypoints full")))
         start(op, WaypointIndex.entries[i])
-        helper.addWaypoint(
-            RequestWaypointInfo(
-                latitude = op.place.lat,
-                longitude = op.place.lon,
-                poiName = op.place.name,
-                waypointIndex = op.index!!,
-                poiId = op.place.poiId.orEmpty(),
-                poiSubId = "",
-                address = ""
+        // Denied: nothing was sent, so the slot is free again.
+        guardDenied({
+            slots.release(i)
+            finish(op, Result.failure(it))
+        }) {
+            helper.addWaypoint(
+                RequestWaypointInfo(
+                    latitude = op.place.lat,
+                    longitude = op.place.lon,
+                    poiName = op.place.name,
+                    waypointIndex = op.index!!,
+                    poiId = op.place.poiId.orEmpty(),
+                    poiSubId = "",
+                    address = ""
+                )
             )
-        )
+        }
     }
 
     private fun sendRemove(op: Op) {
         // Not in a slot: nothing to undo (also a repeated undo after the first one finished).
         val i = slots.indexOf(op.place) ?: return op.onResult(Result.success(Unit))
         start(op, WaypointIndex.entries[i])
-        helper.removeWaypoint(op.index!!)
+        guardDenied({ finish(op, Result.failure(it)) }) { helper.removeWaypoint(op.index!!) }
     }
 
     private fun start(op: Op, index: WaypointIndex) {
