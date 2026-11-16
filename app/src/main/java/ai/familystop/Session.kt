@@ -83,7 +83,7 @@ class Session(private val metrics: MetricsCollector) {
                 recruitChannel = "demo",
                 baselinePlanMinutes = null,
                 prototypePlanMinutes = null,
-                choiceReasons = listOf(c.reason),
+                choiceReasons = listOf(c.reason.needs.joinToString("+") { it.name }),
                 unresolvedNeeds = c.missed.map { it.name },
                 spendWon = null
             )

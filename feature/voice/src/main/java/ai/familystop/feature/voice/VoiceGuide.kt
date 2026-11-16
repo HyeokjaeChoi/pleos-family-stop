@@ -1,7 +1,9 @@
 package ai.familystop.feature.voice
 
 import ai.familystop.core.StopCandidate
+import ai.familystop.core.StopNeed
 import ai.familystop.core.StopPlace
+import ai.familystop.core.StopReason
 import ai.familystop.core.VoiceOutput
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,7 +22,19 @@ fun recommendationText(candidates: List<StopCandidate>): String? {
 
 /** "다음" 안내: 3번째 후보 한 개. */
 fun nextText(candidate: StopCandidate): String =
-    "${SPOKEN_FIRST + 1}번 ${candidate.place.name}, ${candidate.reason}."
+    "${SPOKEN_FIRST + 1}번 ${candidate.place.name}, ${candidate.reason.koText()}."
+
+// 임시 한국어 다리: #102가 앱 언어를 따르는 문장 조립으로 대체한다.
+private fun StopReason.koText(): String {
+    val names = needs.joinToString("·") {
+        when (it) {
+            StopNeed.MEAL -> "식사"
+            StopNeed.RESTROOM -> "화장실"
+            StopNeed.KIDS_REST -> "아이 휴식"
+        }
+    }
+    return if (coversAll) "$names 모두 한 번에 해결" else "$names 해결"
+}
 
 /** 경유지 추가 결과 안내. */
 fun resultText(place: StopPlace, ok: Boolean): String =
