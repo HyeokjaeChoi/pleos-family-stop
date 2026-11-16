@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="activity_journey_label">Journey (estimated)</string>
+    <string name="activity_current_location">Current location</string>
+    <string name="activity_stop_unavailable">No charging info</string>
+    <string name="activity_stop_before">Not started</string>
+    <string name="activity_stop_charging">Charging</string>
+    <string name="activity_stop_done">Charging done</string>
+    <string name="activity_arrival">Arrives %1$s · excl. charging time</string>
+    <string name="activity_arrival_unknown">Arrival unknown</string>
+    <string name="activity_arrival_battery_unknown">Battery on arrival · Unknown</string>
+    <string name="activity_late">%2$s after your preferred %1$s arrival</string>
+    <string name="activity_tasks_label">To do at the stop · %1$d/%2$d</string>
+    <string name="activity_charge_info_label">Charging info</string>
+    <string name="activity_unavailable_chip">Couldn\'t get charging info</string>
+    <string name="activity_unavailable_body">Couldn\'t get charging status from the vehicle. Check the charger screen.</string>
+    <string name="activity_before_body">This updates automatically once charging starts.</string>
+    <string name="activity_done_title">Good to go. Resume navigation.</string>
+    <string name="activity_battery">Battery %1$d%%</string>
+    <string name="activity_battery_unknown">Battery unknown</string>
+    <string name="activity_range">Range %1$d km · Value from the vehicle.</string>
+</resources>
