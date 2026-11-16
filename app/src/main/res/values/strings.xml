@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_card_met">필요 조건 충족</string>
+    <string name="app_card_unmet">일부 미충족</string>
+    <string name="app_card_delay_label">도착 지연</string>
+    <string name="app_card_detour_label">우회 거리</string>
+    <string name="app_distance_km">%1$skm</string>
+    <!-- TODO: #95 병합 후 ds_unit_minutes로 교체 -->
+    <plurals name="app_unit_minutes">
+        <item quantity="other">%d분</item>
+    </plurals>
+    <string name="app_stop_detail">%1$s까지 %2$s · %3$s</string>
+</resources>
