@@ -142,6 +142,7 @@ class PlatformVoiceOutput(context: Context) : VoiceOutput {
         if (tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "$ID_PREFIX$gen") ==
             TextToSpeech.ERROR
         ) {
+            abandonFocus()
             fail(gen, "음성 안내를 재생하지 못했습니다")
         }
     }
