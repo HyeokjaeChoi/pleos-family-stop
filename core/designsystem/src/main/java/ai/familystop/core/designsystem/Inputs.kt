@@ -42,6 +42,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -74,6 +76,7 @@ fun TimeWheel(
     modifier: Modifier = Modifier
 ) {
     val pm = hour >= 12
+    val locale = LocalConfiguration.current.locales[0]
     val h12 = if (hour % 12 == 0) 12 else hour % 12
     val rowH = App.touchMin
     val update by rememberUpdatedState(onChange)
@@ -97,7 +100,10 @@ fun TimeWheel(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // 오전·오후를 가운데 막대 위아래로 쌓아 현재 쪽만 막대 위에 둔다.
-                listOf("오전" to !pm, "오후" to pm).forEach { (text, selected) ->
+                listOf(
+                    stringResource(R.string.ds_time_am) to !pm,
+                    stringResource(R.string.ds_time_pm) to pm
+                ).forEach { (text, selected) ->
                     Box(Modifier.height(rowH).fillMaxWidth(), contentAlignment = Alignment.Center) {
                         WheelLabel(text, selected)
                     }
@@ -108,15 +114,15 @@ fun TimeWheel(
                 index = h12 - 1,
                 label = { (it + 1).toString() },
                 onIndex = { update((it + 1) % 12 + if (pm) 12 else 0, minute) },
-                columnName = "시",
+                columnName = stringResource(R.string.ds_wheel_hour),
                 modifier = Modifier.weight(1f)
             )
             WheelColumn(
                 count = 60,
                 index = minute,
-                label = { "%02d".format(it) },
+                label = { "%02d".format(locale, it) },
                 onIndex = { update(hour, it) },
-                columnName = "분",
+                columnName = stringResource(R.string.ds_wheel_minute),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -151,6 +157,8 @@ private fun WheelColumn(
     modifier: Modifier = Modifier
 ) {
     val rowH = App.touchMin
+    val increase = stringResource(R.string.ds_wheel_increase, columnName)
+    val decrease = stringResource(R.string.ds_wheel_decrease, columnName)
     val state = rememberLazyListState(initialFirstVisibleItemIndex = index)
     val scope = rememberCoroutineScope()
     val update by rememberUpdatedState(onIndex)
@@ -175,11 +183,11 @@ private fun WheelColumn(
             // 스크롤 제스처 없이도 TalkBack으로 값을 바꿀 수 있게 현재 값과 증감 동작을 알린다.
             contentDescription = "$columnName ${label(index)}"
             customActions = listOf(
-                CustomAccessibilityAction("$columnName 늘리기") {
+                CustomAccessibilityAction(increase) {
                     if (index < count - 1) update(index + 1)
                     true
                 },
-                CustomAccessibilityAction("$columnName 줄이기") {
+                CustomAccessibilityAction(decrease) {
                     if (index > 0) update(index - 1)
                     true
                 }
@@ -218,11 +226,15 @@ fun Stepper(
     onMinus: () -> Unit,
     onPlus: () -> Unit,
     modifier: Modifier = Modifier,
-    minusLabel: String = "줄이기",
-    plusLabel: String = "늘리기"
+    minusLabel: String? = null,
+    plusLabel: String? = null
 ) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        StepButton(AppIcons.Remove, minusLabel, onMinus)
+        StepButton(
+            AppIcons.Remove,
+            minusLabel ?: stringResource(R.string.ds_stepper_minus),
+            onMinus
+        )
         Text(
             value,
             style = App.type.driveTitle,
@@ -232,7 +244,7 @@ fun Stepper(
                 .weight(1f)
                 .padding(horizontal = App.space.lg)
         )
-        StepButton(Icons.Rounded.Add, plusLabel, onPlus)
+        StepButton(Icons.Rounded.Add, plusLabel ?: stringResource(R.string.ds_stepper_plus), onPlus)
     }
 }
 
