@@ -1,6 +1,7 @@
 package ai.familystop.impl.platform
 
 import ai.familystop.core.GeoPoint
+import ai.familystop.core.LocationError
 import ai.familystop.core.LocationSource
 import android.Manifest
 import android.content.Context
@@ -18,6 +19,10 @@ internal fun pickProvider(sdkInt: Int, isEnabled: (String) -> Boolean): String? 
     LocationManager.GPS_PROVIDER
 ).firstOrNull(isEnabled)
 
+/** GPS needs FINE; FUSED (API 31+) also works with approximate location. */
+internal fun permitted(provider: String, fine: Boolean, coarse: Boolean) =
+    fine || (provider != LocationManager.GPS_PROVIDER && coarse)
+
 /** [LocationSource] on Android's LocationManager; swapped for Pleos FusedLocation when it opens. */
 class PlatformLocationSource(context: Context) : LocationSource {
     private val appContext = context.applicationContext
@@ -27,19 +32,13 @@ class PlatformLocationSource(context: Context) : LocationSource {
     private fun granted(permission: String) =
         appContext.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
 
-    override fun start(onUpdate: (GeoPoint) -> Unit, onUnavailable: (String) -> Unit) {
+    override fun start(onUpdate: (GeoPoint) -> Unit, onUnavailable: (LocationError) -> Unit) {
         stop()
         val fine = granted(Manifest.permission.ACCESS_FINE_LOCATION)
         val provider = pickProvider(Build.VERSION.SDK_INT) { manager.isProviderEnabled(it) }
-            ?: return onUnavailable("위치를 사용할 수 없습니다")
-        // GPS needs FINE; FUSED (API 31+) also works with approximate location.
-        if (!fine &&
-            (
-                provider == LocationManager.GPS_PROVIDER ||
-                    !granted(Manifest.permission.ACCESS_COARSE_LOCATION)
-                )
-        ) {
-            return onUnavailable("위치 권한이 없습니다")
+            ?: return onUnavailable(LocationError.UNAVAILABLE)
+        if (!permitted(provider, fine, granted(Manifest.permission.ACCESS_COARSE_LOCATION))) {
+            return onUnavailable(LocationError.NO_PERMISSION)
         }
         // Explicit no-op overrides: onStatusChanged/onProviderEnabled are abstract below API 30.
         val l = object : LocationListener {
@@ -52,7 +51,7 @@ class PlatformLocationSource(context: Context) : LocationSource {
             }
 
             override fun onProviderDisabled(provider: String) {
-                if (listener === this) onUnavailable("위치가 꺼졌습니다")
+                if (listener === this) onUnavailable(LocationError.OFF)
             }
 
             override fun onProviderEnabled(provider: String) = Unit
@@ -71,7 +70,7 @@ class PlatformLocationSource(context: Context) : LocationSource {
             )
         } catch (e: SecurityException) {
             listener = null
-            onUnavailable("위치 권한이 없습니다")
+            onUnavailable(LocationError.NO_PERMISSION)
         }
     }
 
