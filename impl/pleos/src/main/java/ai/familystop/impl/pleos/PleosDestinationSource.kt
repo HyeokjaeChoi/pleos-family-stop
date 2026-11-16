@@ -126,24 +126,27 @@ class PleosDestinationSource(private val session: NaviSession) : DestinationSour
         cb(result)
     }
 
+    private fun fail(e: Throwable) {
+        loadCb?.let { cb ->
+            loadCb = null
+            main.removeCallbacks(loadTimeout)
+            cb(Result.failure(e))
+        }
+        finishEta(Result.failure(e))
+    }
+
     private fun whenConnected(request: () -> Unit) {
         session.whenReady(
             {
-                if (!listening) {
-                    listening = true
-                    helper.addListener(listener)
+                guardDenied(::fail) {
+                    if (!listening) {
+                        helper.addListener(listener)
+                        listening = true
+                    }
+                    request()
                 }
-                request()
             },
-            {
-                val e = it
-                loadCb?.let { cb ->
-                    loadCb = null
-                    main.removeCallbacks(loadTimeout)
-                    cb(Result.failure(e))
-                }
-                finishEta(Result.failure(e))
-            }
+            ::fail
         )
     }
 
