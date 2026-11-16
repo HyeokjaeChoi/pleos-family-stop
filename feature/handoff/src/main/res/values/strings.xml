@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="handoff_sending">%1$s 전달 중…</string>
+    <string name="handoff_sending_wait">응답을 기다리고 있어요.</string>
+    <string name="handoff_full_title">경유지가 가득 찼어요</string>
+    <string name="handoff_full_body">새 경유지: %1$s. 바꿀 경유지를 골라 주세요.</string>
+    <string name="handoff_replace_option">%1$s 대신</string>
+    <string name="handoff_cancel">취소</string>
+    <string name="handoff_done_chip">경유지로 추가했어요</string>
+    <string name="handoff_done_body">%1$s이(가) 길 안내에 전달됐어요. 도착 여부와는 별개예요.</string>
+    <string name="handoff_undo_failed">되돌리지 못했어요.</string>
+    <string name="handoff_failed_body">%1$s은 아직 추가되지 않았어요.</string>
+    <string name="handoff_retry">다시 시도</string>
+    <string name="handoff_back_to_candidates">후보로 돌아가기</string>
+    <string name="handoff_fail_send">길 안내에 전달하지 못했어요.</string>
+    <string name="handoff_fail_replace">기존 경유지를 바꾸지 못했어요.</string>
+    <string name="handoff_fail_stale">기존 경유지는 이미 지워졌어요. 다시 시도해 주세요.</string>
+</resources>
