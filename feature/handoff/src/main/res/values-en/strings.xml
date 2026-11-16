@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="handoff_sending">Sending %1$s…</string>
+    <string name="handoff_sending_wait">Waiting for a response.</string>
+    <string name="handoff_full_title">Waypoints are full</string>
+    <string name="handoff_full_body">New waypoint: %1$s. Choose one to replace.</string>
+    <string name="handoff_replace_option">Replace %1$s</string>
+    <string name="handoff_cancel">Cancel</string>
+    <string name="handoff_done_chip">Added as a waypoint</string>
+    <string name="handoff_done_body">%1$s was handed off to navigation. This doesn\'t mean you\'ve arrived.</string>
+    <string name="handoff_undo_failed">Couldn\'t undo.</string>
+    <string name="handoff_failed_body">%1$s hasn\'t been added yet.</string>
+    <string name="handoff_retry">Try again</string>
+    <string name="handoff_back_to_candidates">Back to candidates</string>
+    <string name="handoff_fail_send">Couldn\'t hand off to navigation.</string>
+    <string name="handoff_fail_replace">Couldn\'t replace the existing waypoint.</string>
+    <string name="handoff_fail_stale">The existing waypoint was already removed. Please try again.</string>
+</resources>
