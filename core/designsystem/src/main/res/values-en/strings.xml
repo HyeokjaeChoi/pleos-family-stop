@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ds_unit_ordinal">No. %1$d</string>
+    <string name="ds_time_am">AM</string>
+    <string name="ds_time_pm">PM</string>
+    <string name="ds_wheel_hour">Hour</string>
+    <string name="ds_wheel_minute">Minute</string>
+    <string name="ds_wheel_increase">Increase %1$s</string>
+    <string name="ds_wheel_decrease">Decrease %1$s</string>
+    <string name="ds_stepper_minus">Decrease</string>
+    <string name="ds_stepper_plus">Increase</string>
+    <plurals name="ds_unit_minutes">
+        <item quantity="one">%1$d min</item>
+        <item quantity="other">%1$d min</item>
+    </plurals>
+    <plurals name="ds_unit_seconds">
+        <item quantity="one">%1$d sec</item>
+        <item quantity="other">%1$d sec</item>
+    </plurals>
+    <plurals name="ds_unit_items">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d items</item>
+    </plurals>
+</resources>
