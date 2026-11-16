@@ -61,31 +61,33 @@ class PleosVehicleEnergySource(context: Context) : VehicleEnergySource {
                 update { it.copy(rangeKm = rangeKmOrNull(meters)) }
             override fun onFailed(e: Exception) = update { it.copy(rangeKm = null) }
         }
-        socListener = soc
-        rangeListener = range
-        vehicle.initialize()
-        val battery = vehicle.getEvBattery()
-        val odometer = vehicle.getOdometer()
-        battery.registerEvBatteryStateOfCharge(soc)
-        battery.getEvBatteryStateOfCharge(
-            { v -> update { it.copy(socPercent = socOrNull(v)) } },
-            { update { it.copy(socPercent = null) } }
-        )
-        if (canReadRange) {
-            odometer.registerRangeRemainingListener(range)
-            odometer.getRangeRemainingDistance(
-                { v -> update { it.copy(rangeKm = rangeKmOrNull(v)) } },
-                { update { it.copy(rangeKm = null) } }
+        // Denied: state stays "no info" (SOC/range null). A listener field is set only once registered, so stop()
+        // unregisters exactly what was registered.
+        guardDenied({}) {
+            vehicle.initialize()
+            val battery = vehicle.getEvBattery()
+            val odometer = vehicle.getOdometer()
+            battery.registerEvBatteryStateOfCharge(soc)
+            socListener = soc
+            battery.getEvBatteryStateOfCharge(
+                { v -> update { it.copy(socPercent = socOrNull(v)) } },
+                { update { it.copy(socPercent = null) } }
             )
-        } else {
-            rangeListener = null
+            if (canReadRange) {
+                odometer.registerRangeRemainingListener(range)
+                rangeListener = range
+                odometer.getRangeRemainingDistance(
+                    { v -> update { it.copy(rangeKm = rangeKmOrNull(v)) } },
+                    { update { it.copy(rangeKm = null) } }
+                )
+            }
         }
         val tick = object : Runnable {
             override fun run() {
                 if (session !== token) return
                 // A missing permission must read as "unknown", not crash the app (PL-UJFQXQ).
                 runCatching {
-                    battery.getEvChargeSwitchState(
+                    vehicle.getEvBattery().getEvChargeSwitchState(
                         { v -> update { it.copy(charging = v) } },
                         { update { it.copy(charging = null) } }
                     )
