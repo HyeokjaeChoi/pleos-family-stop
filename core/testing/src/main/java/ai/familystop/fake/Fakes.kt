@@ -4,6 +4,7 @@ import ai.familystop.core.Destination
 import ai.familystop.core.DestinationSource
 import ai.familystop.core.EnergyState
 import ai.familystop.core.GeoPoint
+import ai.familystop.core.LocationError
 import ai.familystop.core.LocationSource
 import ai.familystop.core.NaviGateway
 import ai.familystop.core.RouteEta
@@ -15,7 +16,7 @@ import ai.familystop.core.VoiceOutput
 
 class FakeLocationSource(private val point: GeoPoint = GeoPoint(37.5665, 126.9780, 0)) :
     LocationSource {
-    override fun start(onUpdate: (GeoPoint) -> Unit, onUnavailable: (String) -> Unit) =
+    override fun start(onUpdate: (GeoPoint) -> Unit, onUnavailable: (LocationError) -> Unit) =
         onUpdate(point)
     override fun stop() {}
 }

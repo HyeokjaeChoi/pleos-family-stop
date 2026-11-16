@@ -8,6 +8,10 @@
     <string name="fallback_location_purpose">가까운 정차 후보를 찾으려면 현재 위치가 필요해요.</string>
     <string name="fallback_location_limit">지금은 현재 위치 기준 추천을 할 수 없어요.</string>
     <string name="fallback_location_alternative">목적지나 경유지를 직접 입력해 주세요.</string>
+    <string name="fallback_location_item">위치</string>
+    <string name="fallback_location_unavailable">위치를 사용할 수 없습니다</string>
+    <string name="fallback_location_no_permission">위치 권한이 없습니다</string>
+    <string name="fallback_location_off">위치가 꺼졌습니다</string>
     <string name="fallback_permission_title">%1$s 권한이 꺼져 있어요</string>
     <string name="fallback_permission_off">권한 꺼짐</string>
     <string name="fallback_permission_retry">권한 다시 요청</string>
