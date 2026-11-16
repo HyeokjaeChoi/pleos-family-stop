@@ -26,6 +26,8 @@ android {
         }
     }
     buildFeatures { compose = true }
+    // Per-app language (ADR-0007): res/values is Korean (see res/resources.properties), values-en is English.
+    androidResources { generateLocaleConfig = true }
 }
 
 dependencies {

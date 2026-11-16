@@ -4,7 +4,7 @@ UI 화면 구현·수정은 **문구 수정 포함 예외 없이** Figma 작업�
 
 ## UI 경로 (`scripts/hooks/is-ui-path.sh`가 유일한 정의)
 - `core/designsystem/**`
-- `**/res/values*/strings*.xml`
+- `**/res/values*/*.xml`
 - `feature/**/*.kt`, `app/**/*.kt` 중 `@Composable`이 있는 파일 (새 파일은 이름에 `Screen`/`Bar` 포함)
 - `src/test`, `src/androidTest`는 제외
 
