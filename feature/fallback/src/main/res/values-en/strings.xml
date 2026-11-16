@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fallback_mic_label">Microphone</string>
+    <string name="fallback_mic_purpose">The microphone is needed to request a stop by voice.</string>
+    <string name="fallback_mic_limit">Voice input isn\'t available right now.</string>
+    <string name="fallback_mic_alternative">Please enter it on the screen while parked.</string>
+    <string name="fallback_location_label">Location</string>
+    <string name="fallback_location_purpose">Your location is needed to find nearby stop candidates.</string>
+    <string name="fallback_location_limit">Recommendations based on your location aren\'t available right now.</string>
+    <string name="fallback_location_alternative">Please enter a destination or waypoint yourself.</string>
+    <string name="fallback_permission_title">%1$s permission is off</string>
+    <string name="fallback_permission_off">Permission off</string>
+    <string name="fallback_permission_retry">Ask again</string>
+    <string name="fallback_manual">Enter manually</string>
+    <string name="fallback_data_title">Couldn\'t get %1$s</string>
+    <string name="fallback_data_item_value">%1$s: %2$s</string>
+    <string name="fallback_data_reconnect">Reconnect</string>
+    <string name="fallback_status_unknown">Unknown</string>
+    <string name="fallback_status_stale">Outdated</string>
+    <string name="fallback_value_known">%1$s · Last known value · %2$s %3$s</string>
+    <string name="fallback_value_known_other_day">%1$s · Last known value · %2$s %3$s %4$s</string>
+</resources>

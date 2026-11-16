@@ -18,6 +18,9 @@ t ui-screen 0 ui feature/input/src/main/java/ai/familystop/feature/input/TripInp
 t ui-compose-component 0 ui feature/voice/src/main/java/ai/familystop/feature/voice/VoiceBar.kt
 t ui-designsystem 0 ui core/designsystem/src/main/java/Theme.kt
 t ui-strings 0 ui app/src/main/res/values/strings.xml
+t ui-strings-en 0 ui feature/fallback/src/main/res/values-en/strings.xml
+t ui-plurals 0 ui feature/fallback/src/main/res/values/plurals.xml
+t ui-plurals-en 0 ui feature/fallback/src/main/res/values-en/plurals.xml
 t nonui-controller 1 ui feature/drive/src/main/java/ai/familystop/feature/drive/PickController.kt
 t nonui-test 1 ui feature/input/src/test/java/TripInputScreenTest.kt
 t nonui-md 1 ui docs/agents/figma-gate.md
