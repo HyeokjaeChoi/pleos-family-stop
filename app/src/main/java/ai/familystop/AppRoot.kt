@@ -9,6 +9,7 @@ import ai.familystop.core.StopCandidate
 import ai.familystop.core.StopNeed
 import ai.familystop.core.StopRequest
 import ai.familystop.core.designsystem.App
+import ai.familystop.core.designsystem.R as DsR
 import ai.familystop.core.designsystem.Status
 import ai.familystop.core.designsystem.StatusChip
 import ai.familystop.feature.activity.ChargingActivityScreen
@@ -69,7 +70,7 @@ private fun distanceKm(km: Double, locale: Locale) =
 
 @Composable
 private fun delayMinutes(minutes: Int) =
-    "+" + pluralStringResource(R.plurals.app_unit_minutes, minutes, minutes)
+    "+" + pluralStringResource(DsR.plurals.ds_unit_minutes, minutes, minutes)
 
 @Composable
 private fun StopCandidate.driveCard(locale: Locale) = DriveCandidate(
