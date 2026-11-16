@@ -1,5 +1,6 @@
 package ai.familystop.feature.fallback
 
+import ai.familystop.core.LocationError
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -39,8 +40,11 @@ fun describeValue(
     return ValueDescription.Known(known.value, known.source, local, otherDay = !today)
 }
 
+/** Data items that can fail. */
+enum class DataItem { LOCATION }
+
 /** What a failed data item looks like: which item, why, and the last value if any. */
-data class DataFailure(val item: String, val limit: String, val last: LastKnown? = null)
+data class DataFailure(val item: DataItem, val limit: LocationError, val last: LastKnown? = null)
 
 /** Why the fallback is shown. Denied and revoked are the same: stop, explain, never resume on its own. */
 sealed interface FallbackCause {
