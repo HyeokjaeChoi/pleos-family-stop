@@ -4,6 +4,7 @@ import ai.familystop.core.DataSource
 import ai.familystop.core.StopCandidate
 import ai.familystop.core.StopNeed
 import ai.familystop.core.StopPlace
+import ai.familystop.core.StopReason
 import ai.familystop.core.designsystem.AppTheme
 import ai.familystop.feature.recommend.RecommendScreen
 import ai.familystop.feature.recommend.RecommendState
@@ -30,7 +31,7 @@ class RecommendScreenshotTest {
         StopPlace(name, 37.3, 127.0),
         met = StopNeed.entries.toSet() - missed,
         missed = missed,
-        reason = "식사 · 화장실 · 아이 휴식",
+        reason = StopReason(StopNeed.entries, coversAll = missed.isEmpty()),
         extraMinutes = min,
         detourKm = km,
         source = DataSource.VIRTUAL

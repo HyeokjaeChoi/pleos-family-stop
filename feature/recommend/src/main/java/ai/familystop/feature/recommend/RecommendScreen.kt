@@ -2,11 +2,14 @@ package ai.familystop.feature.recommend
 
 import ai.familystop.core.DataSource
 import ai.familystop.core.StopCandidate
+import ai.familystop.core.StopNeed
 import ai.familystop.core.StopPlace
+import ai.familystop.core.StopReason
 import ai.familystop.core.designsystem.App
 import ai.familystop.core.designsystem.AppButton
 import ai.familystop.core.designsystem.AppIcons
 import ai.familystop.core.designsystem.CompareRow
+import ai.familystop.core.designsystem.R as DsR
 import ai.familystop.core.designsystem.Status
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,6 +28,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 
 /**
  * 정차 중 후보 비교 화면(스크롤 허용). 주행 중에는 이 화면을 쓰지 않고
@@ -44,9 +49,18 @@ fun RecommendScreen(
     ) {
         when (state) {
             RecommendState.Idle -> Unit
-            RecommendState.Loading -> Text("근처 시설을 찾는 중…", style = App.type.stopTitle)
-            RecommendState.Empty -> Notice("조건에 맞는 정차 후보가 없어요.", onRetry)
-            is RecommendState.Failed -> Notice(state.reason, onRetry)
+            RecommendState.Loading ->
+                Text(stringResource(R.string.recommend_loading), style = App.type.stopTitle)
+            RecommendState.Empty -> Notice(stringResource(R.string.recommend_empty), onRetry)
+            is RecommendState.Failed -> Notice(
+                stringResource(
+                    when (state.kind) {
+                        FailKind.TIMEOUT -> R.string.recommend_fail_timeout
+                        FailKind.LOAD_ERROR -> R.string.recommend_fail_load
+                    }
+                ),
+                onRetry
+            )
             is RecommendState.Success -> CompareList(state.candidates, onPick)
         }
     }
@@ -55,7 +69,7 @@ fun RecommendScreen(
 @Composable
 private fun Notice(message: String, onRetry: () -> Unit) {
     Text(message, style = App.type.stopTitle)
-    AppButton("다시 찾기", onRetry)
+    AppButton(stringResource(R.string.recommend_retry), onRetry)
 }
 
 private fun StopCandidate.key() = "${place.name}@${place.lat},${place.lon}"
@@ -65,10 +79,24 @@ private fun ColumnScope.CompareList(candidates: List<StopCandidate>, onPick: (St
     // Selection is remembered by key so a refreshed list keeps it when the candidate is still there.
     var selectedKey by rememberSaveable { mutableStateOf<String?>(null) }
     val selected = candidates.firstOrNull { it.key() == selectedKey } ?: candidates.first()
-    val source = if (selected.source == DataSource.REAL) "실제 데이터" else "가상 데이터(시연)"
+    val source = stringResource(
+        if (selected.source == DataSource.REAL) {
+            R.string.recommend_source_real
+        } else {
+            R.string.recommend_source_virtual
+        }
+    )
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("정차 후보 비교", style = App.type.stopTitle, modifier = Modifier.weight(1f))
-        Text("출처: $source", style = App.type.stopBody, color = App.colors.textSecondary)
+        Text(
+            stringResource(R.string.recommend_title),
+            style = App.type.stopTitle,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            stringResource(R.string.recommend_source, source),
+            style = App.type.stopBody,
+            color = App.colors.textSecondary
+        )
     }
     LazyColumn(
         Modifier.weight(1f).selectableGroup(),
@@ -77,10 +105,21 @@ private fun ColumnScope.CompareList(candidates: List<StopCandidate>, onPick: (St
         items(candidates, key = { it.key() }) { c ->
             CompareRow(
                 name = c.place.name,
-                minutes = "+${c.extraMinutes}분",
-                distance = "${c.detourKm}km",
+                minutes = "+" +
+                    pluralStringResource(
+                        DsR.plurals.ds_unit_minutes,
+                        c.extraMinutes,
+                        c.extraMinutes
+                    ),
+                distance = stringResource(R.string.recommend_distance_km, c.detourKm.toString()),
                 status = if (c.missed.isEmpty()) Status.Ok else Status.Danger,
-                statusText = if (c.missed.isEmpty()) "필요 조건 충족" else "일부 미충족",
+                statusText = stringResource(
+                    if (c.missed.isEmpty()) {
+                        R.string.recommend_chip_met
+                    } else {
+                        R.string.recommend_chip_unmet
+                    }
+                ),
                 selected = c.key() == selected.key(),
                 modifier = Modifier.fillMaxWidth()
             ) { selectedKey = c.key() }
@@ -92,11 +131,14 @@ private fun ColumnScope.CompareList(candidates: List<StopCandidate>, onPick: (St
         horizontalArrangement = Arrangement.spacedBy(App.space.lg)
     ) {
         Column(Modifier.weight(1f)) {
-            Text("선택: ${selected.place.name}", style = App.type.stopTitle)
+            Text(
+                stringResource(R.string.recommend_selected, selected.place.name),
+                style = App.type.stopTitle
+            )
             Text(detail(selected), style = App.type.stopBody, color = App.colors.textSecondary)
         }
         AppButton(
-            "경유지로 추가",
+            stringResource(R.string.recommend_add_waypoint),
             { onPick(selected.place) },
             Modifier.weight(1f),
             icon = AppIcons.AddLocationAlt
@@ -105,6 +147,30 @@ private fun ColumnScope.CompareList(candidates: List<StopCandidate>, onPick: (St
 }
 
 /** 선택한 후보의 충족·미충족 필요를 한 줄로(칩은 요약만 보여 주므로 여기서 구체화). */
-private fun detail(c: StopCandidate): String =
-    (c.met.map { "${it.label} 충족" } + c.missed.map { "${it.label} 미충족" })
-        .joinToString(" · ").ifEmpty { c.reason }
+@Composable
+private fun detail(c: StopCandidate): String = (
+    c.met.map { stringResource(R.string.recommend_need_met, it.label()) } +
+        c.missed.map { stringResource(R.string.recommend_need_unmet, it.label()) }
+    )
+    .joinToString(" · ").ifEmpty { stopReasonText(c.reason) }
+
+/** 추천 이유 문장. 화면·주행 카드가 공유한다(음성 안내는 #102에서 같은 값으로 따로 조립). */
+@Composable
+fun stopReasonText(reason: StopReason): String {
+    // joinToString의 transform은 inline이 아니라 label()을 먼저 map으로 푼다.
+    val names = reason.needs.map { it.label() }
+        .joinToString(stringResource(R.string.recommend_need_separator))
+    return stringResource(
+        if (reason.coversAll) R.string.recommend_reason_all else R.string.recommend_reason_some,
+        names
+    )
+}
+
+@Composable
+private fun StopNeed.label() = stringResource(
+    when (this) {
+        StopNeed.MEAL -> R.string.recommend_need_meal
+        StopNeed.RESTROOM -> R.string.recommend_need_restroom
+        StopNeed.KIDS_REST -> R.string.recommend_need_kids_rest
+    }
+)
