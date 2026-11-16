@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fallback_mic_label">마이크</string>
+    <string name="fallback_mic_purpose">음성으로 정차 요청을 말하려면 마이크가 필요해요.</string>
+    <string name="fallback_mic_limit">지금은 음성 입력을 쓸 수 없어요.</string>
+    <string name="fallback_mic_alternative">정차 중에 화면으로 입력해 주세요.</string>
+    <string name="fallback_location_label">위치</string>
+    <string name="fallback_location_purpose">가까운 정차 후보를 찾으려면 현재 위치가 필요해요.</string>
+    <string name="fallback_location_limit">지금은 현재 위치 기준 추천을 할 수 없어요.</string>
+    <string name="fallback_location_alternative">목적지나 경유지를 직접 입력해 주세요.</string>
+    <string name="fallback_permission_title">%1$s 권한이 꺼져 있어요</string>
+    <string name="fallback_permission_off">권한 꺼짐</string>
+    <string name="fallback_permission_retry">권한 다시 요청</string>
+    <string name="fallback_manual">직접 입력</string>
+    <string name="fallback_data_title">%1$s을(를) 받지 못했어요</string>
+    <string name="fallback_data_item_value">%1$s: %2$s</string>
+    <string name="fallback_data_reconnect">다시 연결</string>
+    <string name="fallback_status_unknown">미확인</string>
+    <string name="fallback_status_stale">최신 아님</string>
+    <string name="fallback_value_known">%1$s · 마지막 확인값 · %2$s %3$s</string>
+    <string name="fallback_value_known_other_day">%1$s · 마지막 확인값 · %2$s %3$s %4$s</string>
+</resources>
