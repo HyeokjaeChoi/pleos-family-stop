@@ -31,4 +31,11 @@ class PlatformLogicTest {
         assertNotNull(ttsInitError(TextToSpeech.SUCCESS, TextToSpeech.LANG_MISSING_DATA))
         assertNotNull(ttsInitError(TextToSpeech.SUCCESS, TextToSpeech.ERROR))
     }
+
+    @Test
+    fun staleUtteranceDoesNotOwnFocus() {
+        assertEquals(true, isCurrentUtterance("p-3", 3, "p-"))
+        assertEquals(false, isCurrentUtterance("p-2", 3, "p-"))
+        assertEquals(false, isCurrentUtterance(null, 3, "p-"))
+    }
 }
