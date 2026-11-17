@@ -16,6 +16,12 @@ enum class DataSource { REAL, VIRTUAL }
 data class StopRequest(val origin: GeoPoint, val needs: Set<StopNeed>)
 
 /**
+ * 추천 이유의 의미 값(문장 아님). 화면·음성이 각자 언어로 조립한다.
+ * [needs]=이 후보가 해결하는 필요(요청 순서), [coversAll]=요청한 필요를 모두 해결.
+ */
+data class StopReason(val needs: List<StopNeed>, val coversAll: Boolean)
+
+/**
  * 추천된 정차 후보. 카드 위계: 필요 충족([met]/[missed]) → 추천 이유([reason])
  * → 도착 시간 변화([extraMinutes]) → 이동 부담([detourKm]).
  */
@@ -23,7 +29,7 @@ data class StopCandidate(
     val place: StopPlace,
     val met: Set<StopNeed>,
     val missed: Set<StopNeed>,
-    val reason: String,
+    val reason: StopReason,
     val extraMinutes: Int,
     val detourKm: Double,
     val source: DataSource
