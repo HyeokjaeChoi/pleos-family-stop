@@ -8,6 +8,7 @@ import ai.familystop.core.designsystem.AppCard
 import ai.familystop.core.designsystem.AppIcons
 import ai.familystop.core.designsystem.AppMotion
 import ai.familystop.core.designsystem.EmptyState
+import ai.familystop.core.designsystem.R as DsR
 import ai.familystop.core.designsystem.Status
 import ai.familystop.core.designsystem.StatusChip
 import androidx.compose.animation.AnimatedContent
@@ -47,6 +48,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -120,8 +123,8 @@ fun DriveScreen(
             if (candidates.isEmpty()) {
                 if (reading.state == MovementState.UNKNOWN) UnknownMovementChip()
                 EmptyState(
-                    "아직 추천 후보가 없어요",
-                    "정차 후 목적지를 입력하면 후보가 여기에 나타나요",
+                    stringResource(R.string.drive_empty_title),
+                    stringResource(R.string.drive_empty_body),
                     Modifier.weight(1f).fillMaxWidth()
                 )
             } else {
@@ -156,7 +159,8 @@ fun DriveScreen(
 }
 
 @Composable
-private fun UnknownMovementChip() = StatusChip(Status.Unknown, "이동 상태 미확인 · 주행 중 제한 적용")
+private fun UnknownMovementChip() =
+    StatusChip(Status.Unknown, stringResource(R.string.drive_unknown_movement))
 
 @Composable
 private fun DriveHeader(sourceLabel: String?) {
@@ -170,7 +174,11 @@ private fun DriveHeader(sourceLabel: String?) {
             tint = App.colors.textPrimary,
             modifier = Modifier.size(App.icon.primary)
         )
-        Text("다음 충전 정차", style = App.type.driveTitle, color = App.colors.textPrimary)
+        Text(
+            stringResource(R.string.drive_header),
+            style = App.type.driveTitle,
+            color = App.colors.textPrimary
+        )
         Spacer(Modifier.weight(1f))
         // ADR-0001: demo data must be labelled on screen.
         if (sourceLabel != null) {
@@ -214,7 +222,7 @@ private fun CandidateCard(
         Text(c.summary, style = App.type.driveBody, color = App.colors.textSecondary, maxLines = 2)
         Spacer(Modifier.weight(1f))
         AppButton(
-            if (busy) "추가하는 중…" else "경유지로 추가",
+            stringResource(if (busy) R.string.drive_adding else R.string.drive_add_waypoint),
             null,
             Modifier.fillMaxWidth(),
             enabled = enabled || busy,
@@ -258,12 +266,23 @@ private fun StatusSlot(state: PickState, now: Long, onUndo: () -> Unit) {
         ) { st ->
             when (st) {
                 is PickState.Undoable -> UndoBar(st, now, onUndo)
-                is PickState.Failed -> StatusBar(Status.Danger, "추가 실패", st.message)
+                is PickState.Failed -> StatusBar(
+                    Status.Danger,
+                    stringResource(R.string.drive_failed_chip),
+                    stringResource(R.string.drive_failed_message)
+                )
                 is PickState.Done ->
                     if (st.note != null) {
-                        StatusBar(Status.Danger, "확인 필요", st.note)
+                        StatusBar(
+                            Status.Danger,
+                            stringResource(R.string.drive_check_chip),
+                            stringResource(st.note.message())
+                        )
                     } else {
-                        StatusChip(Status.Ok, "${st.place.name} 경유지 추가됨")
+                        StatusChip(
+                            Status.Ok,
+                            stringResource(R.string.drive_added_chip, st.place.name)
+                        )
                     }
                 else -> Unit
             }
@@ -301,13 +320,17 @@ private fun UndoBar(s: PickState.Undoable, now: Long, onUndo: () -> Unit) {
     val sec = ((s.expiresAtMs - now + 999) / 1000).coerceAtLeast(0)
     SlotBar {
         Text(
-            "경유지로 추가했어요 · ${s.place.name} · ${sec}초 안에 취소할 수 있어요",
+            stringResource(
+                R.string.drive_undo_bar,
+                s.place.name,
+                pluralStringResource(DsR.plurals.ds_unit_seconds, sec.toInt(), sec.toInt())
+            ),
             style = App.type.driveBody.copy(fontFeatureSettings = "tnum"),
             color = App.colors.textPrimary,
             modifier = Modifier.weight(1f)
         )
         AppButton(
-            "취소",
+            stringResource(R.string.drive_undo),
             onUndo,
             primary = false,
             large = true,
@@ -315,4 +338,9 @@ private fun UndoBar(s: PickState.Undoable, now: Long, onUndo: () -> Unit) {
             background = App.colors.bgSurface
         )
     }
+}
+
+private fun PickNote.message() = when (this) {
+    PickNote.UndoFailed -> R.string.drive_note_undo_failed
+    PickNote.ResultLost -> R.string.drive_note_result_lost
 }

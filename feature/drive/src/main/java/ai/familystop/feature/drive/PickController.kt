@@ -7,13 +7,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.setValue
 
+/** Why a finished pick needs the driver's attention; the screen words it (ADR-0007). */
+enum class PickNote { UndoFailed, ResultLost }
+
 sealed interface PickState {
     data object Idle : PickState
     data class Adding(val place: StopPlace) : PickState
     data class Undoable(val place: StopPlace, val expiresAtMs: Long) : PickState
     data class Removing(val place: StopPlace) : PickState
-    data class Done(val place: StopPlace, val note: String? = null) : PickState
-    data class Failed(val place: StopPlace, val message: String) : PickState
+    data class Done(val place: StopPlace, val note: PickNote? = null) : PickState
+    data class Failed(val place: StopPlace) : PickState
 }
 
 /** One tap adds the waypoint at once; a 10 s undo window follows (ADR-0003). One pick per screen. */
@@ -35,7 +38,7 @@ class PickController(
         navi.addWaypoint(place) { r ->
             state = r.fold(
                 { PickState.Undoable(place, clock() + undoMs) },
-                { PickState.Failed(place, "경유지를 추가하지 못했습니다. 다시 누르거나 정차 후 선택하세요.") }
+                { PickState.Failed(place) }
             )
         }
     }
@@ -47,7 +50,7 @@ class PickController(
             state = if (r.isSuccess) {
                 PickState.Idle
             } else {
-                PickState.Done(s.place, "취소하지 못했습니다. 정차 후 내비에서 지우세요.")
+                PickState.Done(s.place, PickNote.UndoFailed)
             }
         }
     }
@@ -58,8 +61,6 @@ class PickController(
     }
 }
 
-private const val LOST_NOTE = "진행 중이던 요청 결과를 확인하지 못했습니다. 정차 후 내비의 경유지를 확인하세요."
-
 /**
  * Survives Activity recreation (e.g. day/night switch). An in-flight add/remove loses its callback,
  * so it restores as a locked [PickState.Done] with a note instead of accepting another pick.
@@ -68,9 +69,9 @@ fun pickControllerSaver(navi: NaviGateway, clock: () -> Long) = Saver<PickContro
     save = { c ->
         when (val s = c.state) {
             is PickState.Undoable -> listOf(s.expiresAtMs) + s.place.toList()
-            is PickState.Done -> listOf(s.note) + s.place.toList()
-            is PickState.Adding -> listOf(LOST_NOTE) + s.place.toList()
-            is PickState.Removing -> listOf(LOST_NOTE) + s.place.toList()
+            is PickState.Done -> listOf(s.note?.name) + s.place.toList()
+            is PickState.Adding -> listOf(PickNote.ResultLost.name) + s.place.toList()
+            is PickState.Removing -> listOf(PickNote.ResultLost.name) + s.place.toList()
             else -> emptyList()
         }
     },
@@ -82,7 +83,7 @@ fun pickControllerSaver(navi: NaviGateway, clock: () -> Long) = Saver<PickContro
                 c.restore(
                     when (val head = l[0]) {
                         is Long -> PickState.Undoable(place, head)
-                        else -> PickState.Done(place, head as String?)
+                        else -> PickState.Done(place, (head as String?)?.let(PickNote::valueOf))
                     }
                 )
             }
