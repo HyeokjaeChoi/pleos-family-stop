@@ -3,11 +3,13 @@ package ai.familystop
 import ai.familystop.core.DataSource
 import ai.familystop.core.DestinationKind
 import ai.familystop.core.EnergyState
+import ai.familystop.core.LocationError
 import ai.familystop.core.NaviGateway
 import ai.familystop.core.StopCandidate
 import ai.familystop.core.StopNeed
 import ai.familystop.core.StopRequest
 import ai.familystop.core.designsystem.App
+import ai.familystop.core.designsystem.R as DsR
 import ai.familystop.core.designsystem.Status
 import ai.familystop.core.designsystem.StatusChip
 import ai.familystop.feature.activity.ChargingActivityScreen
@@ -17,6 +19,7 @@ import ai.familystop.feature.drive.DriveCandidate
 import ai.familystop.feature.drive.DriveScreen
 import ai.familystop.feature.fallback.Capability
 import ai.familystop.feature.fallback.DataFailure
+import ai.familystop.feature.fallback.DataItem
 import ai.familystop.feature.fallback.FallbackCard
 import ai.familystop.feature.fallback.FallbackCause
 import ai.familystop.feature.handoff.HandoffScreen
@@ -27,11 +30,13 @@ import ai.familystop.feature.input.PlanStep
 import ai.familystop.feature.input.PlanSummaryBar
 import ai.familystop.feature.input.ValidationResult
 import ai.familystop.feature.input.destinationKey
+import ai.familystop.feature.input.label
 import ai.familystop.feature.input.validate
 import ai.familystop.feature.recommend.FETCH_TIMEOUT_MS
 import ai.familystop.feature.recommend.RecommendScreen
 import ai.familystop.feature.recommend.RecommendState
 import ai.familystop.feature.recommend.driveCards
+import ai.familystop.feature.recommend.stopReasonText
 import ai.familystop.feature.voice.VoiceBar
 import android.Manifest
 import android.content.pm.PackageManager
@@ -52,16 +57,36 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import java.time.LocalDateTime
+import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private fun StopCandidate.driveCard() = DriveCandidate(
+@Composable
+private fun distanceKm(km: Double, locale: Locale) =
+    stringResource(R.string.app_distance_km, String.format(locale, "%.1f", km))
+
+@Composable
+private fun delayMinutes(minutes: Int) =
+    "+" + pluralStringResource(DsR.plurals.ds_unit_minutes, minutes, minutes)
+
+@Composable
+private fun StopCandidate.driveCard(locale: Locale) = DriveCandidate(
     place,
-    reason,
-    if (missed.isEmpty()) Status.Ok to "필요 조건 충족" else Status.Danger to "일부 미충족",
-    listOf("+${extraMinutes}분" to "도착 지연", "${"%.1f".format(detourKm)}km" to "우회 거리")
+    stopReasonText(reason),
+    if (missed.isEmpty()) {
+        Status.Ok to stringResource(R.string.app_card_met)
+    } else {
+        Status.Danger to stringResource(R.string.app_card_unmet)
+    },
+    listOf(
+        delayMinutes(extraMinutes) to stringResource(R.string.app_card_delay_label),
+        distanceKm(detourKm, locale) to stringResource(R.string.app_card_detour_label)
+    )
 )
 
 @Composable
@@ -106,7 +131,7 @@ fun AppRoot(graph: AppGraph) {
         s.locateJob = graph.scope.launch {
             // process scope: survives Activity recreation
             delay(FETCH_TIMEOUT_MS)
-            fail(FallbackCause.Data(DataFailure("현재 위치", "지금은 현재 위치 기준 추천을 할 수 없어요.")))
+            fail(FallbackCause.Data(DataFailure(DataItem.LOCATION, LocationError.TIMEOUT)))
         }
         graph.location.start(
             onUpdate = { p ->
@@ -120,7 +145,7 @@ fun AppRoot(graph: AppGraph) {
                     )
                 }
             },
-            onUnavailable = { fail(FallbackCause.Data(DataFailure("현재 위치", it))) }
+            onUnavailable = { fail(FallbackCause.Data(DataFailure(DataItem.LOCATION, it))) }
         )
     }
 
@@ -193,7 +218,7 @@ fun AppRoot(graph: AppGraph) {
 
     val cards = rec.driveCards()
     DriveScreen(
-        candidates = cards.map { it.driveCard() },
+        candidates = cards.map { it.driveCard(LocalConfiguration.current.locales[0]) },
         navi = navi,
         movement = movement,
         sourceLabel = if (cards.any { it.source == DataSource.VIRTUAL }) "가상 데이터(시연)" else null,
@@ -222,15 +247,18 @@ private fun Parked(
         ChargingActivityScreen(
             journey = Journey(
                 stopName = stop.place.name,
-                stopDetail = "${stop.place.name}까지 ${"%.1f".format(
-                    stop.detourKm
-                )}km · +${stop.extraMinutes}분",
+                stopDetail = stringResource(
+                    R.string.app_stop_detail,
+                    stop.place.name,
+                    distanceKm(stop.detourKm, LocalConfiguration.current.locales[0]),
+                    delayMinutes(stop.extraMinutes)
+                ),
                 destinationName = trip.destination.name,
                 arrival = base,
                 wishedArrival = trip.arrival
             ),
             energy = energy,
-            tasks = trip.needs.map { it.label },
+            tasks = trip.needs.map { it.label() },
             sessionId = s.tripId
         )
         return

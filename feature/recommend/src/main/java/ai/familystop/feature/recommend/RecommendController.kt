@@ -20,6 +20,9 @@ const val RESPONSE_TARGET_MS = 3_000L
 /** 제공처 응답 타임아웃 5s. ponytail: 잠정값(ADR-0001), 프로토타입 측정 후 확정. */
 const val FETCH_TIMEOUT_MS = 5_000L
 
+/** [RecommendState.Failed]의 이유(화면이 리소스로 문구를 만든다). */
+enum class FailKind { TIMEOUT, LOAD_ERROR }
+
 sealed interface RecommendState {
     data object Idle : RecommendState
 
@@ -31,7 +34,7 @@ sealed interface RecommendState {
     data object Empty : RecommendState
 
     /** 데이터 미수신(타임아웃·오류) → 이유 한 줄 + 재검색. */
-    data class Failed(val reason: String, val cause: Throwable? = null) : RecommendState
+    data class Failed(val kind: FailKind, val cause: Throwable? = null) : RecommendState
 }
 
 /** 주행 중 화면용: 큰 카드 최대 2개(ADR-0003). */
@@ -82,10 +85,10 @@ class RecommendController(
                 if (found.isEmpty()) RecommendState.Empty else RecommendState.Success(found)
             } catch (e: CancellationException) {
                 if (e !is TimeoutCancellationException) throw e
-                RecommendState.Failed("시설 정보를 받지 못했어요. 다시 시도해 주세요.")
+                RecommendState.Failed(FailKind.TIMEOUT)
             } catch (e: Exception) {
                 runCatching { onError(e) } // 콜백 실패가 상태 게시를 막지 않게 한다
-                RecommendState.Failed("시설 정보를 불러오지 못했어요. 다시 시도해 주세요.", e)
+                RecommendState.Failed(FailKind.LOAD_ERROR, e)
             }
             publish(mine, result)
         }
