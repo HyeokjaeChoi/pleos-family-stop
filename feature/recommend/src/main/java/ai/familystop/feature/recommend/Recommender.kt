@@ -2,7 +2,7 @@ package ai.familystop.feature.recommend
 
 import ai.familystop.core.Facility
 import ai.familystop.core.StopCandidate
-import ai.familystop.core.StopNeed
+import ai.familystop.core.StopReason
 import ai.familystop.core.StopRequest
 import kotlin.math.asin
 import kotlin.math.cos
@@ -31,24 +31,12 @@ fun recommend(request: StopRequest, all: List<Facility>): List<StopCandidate> = 
             place = f.place,
             met = met,
             missed = request.needs - met,
-            reason = reasonOf(met, request.needs),
+            reason = StopReason(met.toList(), coversAll = met.size == request.needs.size),
             extraMinutes = f.extraMinutes,
             detourKm = f.detourKm,
             source = f.source
         )
     }
-
-val StopNeed.label: String
-    get() = when (this) {
-        StopNeed.MEAL -> "식사"
-        StopNeed.RESTROOM -> "화장실"
-        StopNeed.KIDS_REST -> "아이 휴식"
-    }
-
-private fun reasonOf(met: Set<StopNeed>, wanted: Set<StopNeed>): String {
-    val names = met.joinToString("·") { it.label }
-    return if (met.size == wanted.size) "$names 모두 한 번에 해결" else "$names 해결"
-}
 
 private fun distanceKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
     val p = Math.PI / 180

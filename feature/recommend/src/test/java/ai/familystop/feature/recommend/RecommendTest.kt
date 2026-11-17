@@ -4,6 +4,7 @@ import ai.familystop.core.Facility
 import ai.familystop.core.FacilitySource
 import ai.familystop.core.GeoPoint
 import ai.familystop.core.StopNeed
+import ai.familystop.core.StopReason
 import ai.familystop.core.StopRequest
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CompletableDeferred
@@ -47,6 +48,15 @@ class RecommendTest {
     }
 
     @Test
+    fun reasonIsSemanticValue() {
+        val r = recommend(StopRequest(here, all), demo)
+        assertEquals(StopReason(r[0].met.toList(), coversAll = true), r[0].reason)
+        val partial = recommend(StopRequest(here, setOf(StopNeed.MEAL, StopNeed.KIDS_REST)), demo)
+        val a = partial.first { it.place.name == "가상 가족식당 A" }
+        assertEquals(StopReason(listOf(StopNeed.MEAL), coversAll = false), a.reason)
+    }
+
+    @Test
     fun emptyWhenNothingNearbyOrNoNeed() {
         assertTrue(recommend(StopRequest(GeoPoint(35.0, 129.0, 0), all), demo).isEmpty())
         assertTrue(recommend(StopRequest(here, emptySet()), demo).isEmpty())
@@ -84,8 +94,8 @@ class RecommendTest {
                 CompletableDeferred<List<Facility>>().await()
             }, timeoutMs = 50)
         c.request(StopRequest(here, all))
-        withTimeout(2_000) { c.state.first { it is RecommendState.Failed } }
-        Unit
+        val failed = withTimeout(2_000) { c.state.first { it is RecommendState.Failed } }
+        assertEquals(FailKind.TIMEOUT, (failed as RecommendState.Failed).kind)
     }
 
     @Test
@@ -107,7 +117,8 @@ class RecommendTest {
         var fail = true
         val c = RecommendController(scope, { if (fail) error("boom") else demo })
         c.request(StopRequest(here, all))
-        withTimeout(2_000) { c.state.first { it is RecommendState.Failed } }
+        val failed = withTimeout(2_000) { c.state.first { it is RecommendState.Failed } }
+        assertEquals(FailKind.LOAD_ERROR, (failed as RecommendState.Failed).kind)
         fail = false
         c.request(StopRequest(here, all))
         withTimeout(2_000) { c.state.first { it is RecommendState.Success } }

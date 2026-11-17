@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="input_unset">Not set</string>
+    <string name="input_chip_destination">Destination · %1$s</string>
+    <string name="input_chip_arrival">Arrival · %1$s</string>
+    <string name="input_chip_needs">Needs · %1$s</string>
+    <string name="input_needs_separator">", "</string>
+    <string name="input_need_meal">Meal</string>
+    <string name="input_need_restroom">Restroom</string>
+    <string name="input_need_kids_rest">Kids\' break</string>
+    <string name="input_charge_yes">Needed</string>
+    <string name="input_charge_no">Not needed</string>
+    <string name="input_charge_undecided">Undecided</string>
+    <string name="input_where">Where to?</string>
+    <string name="input_choose_destination">Choose a destination</string>
+    <string name="input_next">Next</string>
+    <string name="input_arrival_title">Desired arrival time</string>
+    <string name="input_eta_failed">Couldn\'t get the navigation ETA. Set it yourself.</string>
+    <string name="input_set_this_time">Set this time</string>
+    <string name="input_needs_title">Needs at the stop</string>
+    <string name="input_charge_title">Charging</string>
+    <string name="input_set_arrival">Set an arrival time</string>
+    <string name="input_choose_needs">Choose what you need at the stop</string>
+    <string name="input_see_candidates">See candidates</string>
+    <string name="input_kind_current">Active in navigation</string>
+    <string name="input_kind_home">Home</string>
+    <string name="input_kind_office">Work</string>
+    <string name="input_kind_recent">Recent</string>
+    <string name="input_loading">Loading destinations…</string>
+    <string name="input_load_failed">Couldn\'t load destinations from navigation</string>
+    <string name="input_reload">Reload</string>
+    <string name="input_soc_auto">Battery %1$d%% · Auto from vehicle</string>
+    <string name="input_soc_manual">Battery %1$d%% · Set manually (not auto)</string>
+    <string name="input_soc_unknown">Battery level unknown · Can\'t tell if you can reach it</string>
+    <string name="input_soc_value">%1$d%%</string>
+    <string name="input_soc_unset">Not set</string>
+    <string name="input_soc_minus">Decrease battery by %1$d%%</string>
+    <string name="input_soc_plus">Increase battery by %1$d%%</string>
+    <string name="input_soc_mismatch">Your manual value (%1$d%%) differs from vehicle data. Using the vehicle value.</string>
+</resources>

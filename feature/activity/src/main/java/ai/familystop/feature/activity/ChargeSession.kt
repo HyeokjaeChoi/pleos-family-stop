@@ -17,14 +17,6 @@ fun chargeView(state: EnergyState?, sawCharging: Boolean): ChargeView = when (st
     false -> if (sawCharging) ChargeView.DONE else ChargeView.BEFORE
 }
 
-/** 여정 카드 정차지 아래 문구. 충전 카드와 같은 상태를 따른다. */
-fun stopStatus(view: ChargeView): String = when (view) {
-    ChargeView.UNAVAILABLE -> "충전 정보 없음"
-    ChargeView.BEFORE -> "충전 전"
-    ChargeView.CHARGING -> "충전 중"
-    ChargeView.DONE -> "충전 끝"
-}
-
 /** 희망 도착보다 늦으면 늦은 분, 아니면 null. */
 fun lateMinutes(arrival: LocalDateTime, wished: LocalDateTime): Long? =
     Duration.between(wished, arrival).toMinutes().takeIf { it > 0 }
