@@ -33,6 +33,13 @@ class PlatformLogicTest {
     }
 
     @Test
+    fun staleUtteranceDoesNotOwnFocus() {
+        assertEquals(true, isCurrentUtterance("p-3", 3, "p-"))
+        assertEquals(false, isCurrentUtterance("p-2", 3, "p-"))
+        assertEquals(false, isCurrentUtterance(null, 3, "p-"))
+    }
+
+    @Test
     fun gpsNeedsFineButFusedAcceptsCoarse() {
         assertEquals(true, permitted(LocationManager.GPS_PROVIDER, fine = true, coarse = false))
         assertEquals(false, permitted(LocationManager.GPS_PROVIDER, fine = false, coarse = true))
