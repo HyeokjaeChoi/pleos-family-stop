@@ -91,7 +91,7 @@ class HandoffTest {
         h.pick(a)
         navi.adds[0].second(Result.failure(IllegalStateException("x")))
         navi.removes[0].second(Result.success(Unit)) // 실패한 add의 슬롯 정리
-        assertTrue(h.state.value is HandoffState.Failed)
+        assertEquals(HandoffState.Failed(a, HandoffFail.SendFailed), h.state.value)
         h.retry()
         assertEquals(HandoffState.Sending(a), h.state.value)
         h.backToCompare()
@@ -152,7 +152,7 @@ class HandoffTest {
         navi.removes[1].second(Result.success(Unit))
         navi.adds[3].second(Result.failure(IllegalStateException("x")))
         navi.removes[2].second(Result.success(Unit))
-        assertTrue((h.state.value as HandoffState.Failed).reason.contains("지워졌"))
+        assertEquals(HandoffFail.StaleRemoved, (h.state.value as HandoffState.Failed).reason)
     }
 
     @Test

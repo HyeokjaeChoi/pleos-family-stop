@@ -6,6 +6,7 @@ import ai.familystop.core.designsystem.AppCard
 import ai.familystop.core.designsystem.AppIcons
 import ai.familystop.core.designsystem.CheckRow
 import ai.familystop.core.designsystem.ProgressBar
+import ai.familystop.core.designsystem.R as DsR
 import ai.familystop.core.designsystem.Status
 import ai.familystop.core.designsystem.StatusChip
 import ai.familystop.core.formatClock
@@ -33,6 +34,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import java.time.LocalDateTime
 
 /**
@@ -49,7 +53,15 @@ data class Journey(
 
 private val Gap @Composable get() = Arrangement.spacedBy(App.space.lg)
 
-private fun LocalDateTime.clock() = formatClock(hour, minute)
+@Composable
+private fun LocalDateTime.clock() = formatClock(hour, minute, LocalConfiguration.current.locales[0])
+
+private fun ChargeView.stopLabel() = when (this) {
+    ChargeView.UNAVAILABLE -> R.string.activity_stop_unavailable
+    ChargeView.BEFORE -> R.string.activity_stop_before
+    ChargeView.CHARGING -> R.string.activity_stop_charging
+    ChargeView.DONE -> R.string.activity_stop_done
+}
 
 /**
  * 충전 중 화면(Figma v5 41:696 충전 중 · 41:773 충전 끝 · 41:850 정보 없음). 왼쪽 여정·할 일,
@@ -78,10 +90,18 @@ fun ChargingActivityScreen(
             Modifier.weight(1.3f).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(App.space.lg)
         ) {
-            Label("여정 (예상)")
+            Label(stringResource(R.string.activity_journey_label))
             Timeline(journey, view)
             if (tasks.isNotEmpty()) {
-                Label("정차에서 할 일 · ${tasks.count { it in done }}/${tasks.size}")
+                Label(
+                    stringResource(
+                        R.string.activity_tasks_label,
+                        tasks.count {
+                            it in done
+                        },
+                        tasks.size
+                    )
+                )
                 AppCard(spacing = App.space.sm) {
                     tasks.forEach { t ->
                         CheckRow(t, t in done, { done = if (t in done) done - t else done + t })
@@ -90,7 +110,7 @@ fun ChargingActivityScreen(
             }
         }
         Column(Modifier.weight(1f).fillMaxSize(), verticalArrangement = Gap) {
-            Label("충전 정보")
+            Label(stringResource(R.string.activity_charge_info_label))
             ChargeCard(view, energy)
         }
     }
@@ -101,23 +121,23 @@ private fun ChargeCard(view: ChargeView, energy: EnergyState?) {
     AppCard(Modifier.fillMaxWidth()) {
         when (view) {
             ChargeView.UNAVAILABLE -> {
-                StatusChip(Status.Unknown, "충전 정보를 받지 못했어요")
-                Body("차량에서 충전 상태를 받지 못했어요. 충전기 화면에서 확인해 주세요.")
+                StatusChip(Status.Unknown, stringResource(R.string.activity_unavailable_chip))
+                Body(stringResource(R.string.activity_unavailable_body))
             }
             ChargeView.BEFORE -> {
-                StatusChip(Status.Unknown, "충전 전")
+                StatusChip(Status.Unknown, stringResource(R.string.activity_stop_before))
                 Battery(energy)
-                Body("충전을 시작하면 자동으로 바뀌어요.")
+                Body(stringResource(R.string.activity_before_body))
             }
             ChargeView.CHARGING -> {
-                StatusChip(Status.Ok, "충전 중")
+                StatusChip(Status.Ok, stringResource(R.string.activity_stop_charging))
                 Battery(energy)
                 rangeText(energy)?.let { Body(it) }
             }
             ChargeView.DONE -> {
-                StatusChip(Status.Ok, "충전 끝")
+                StatusChip(Status.Ok, stringResource(R.string.activity_stop_done))
                 Text(
-                    "출발해도 돼요. 내비 안내를 이어가세요.",
+                    stringResource(R.string.activity_done_title),
                     style = App.type.stopTitle,
                     color = App.colors.textPrimary
                 )
@@ -133,7 +153,11 @@ private fun ChargeCard(view: ChargeView, energy: EnergyState?) {
 private fun Battery(energy: EnergyState?) {
     val soc = energy?.socPercent
     Text(
-        if (soc != null) "배터리 $soc%" else "배터리 미확인",
+        if (soc != null) {
+            stringResource(R.string.activity_battery, soc)
+        } else {
+            stringResource(R.string.activity_battery_unknown)
+        },
         style = App.type.driveTitle,
         color = App.colors.textPrimary
     )
@@ -141,8 +165,9 @@ private fun Battery(energy: EnergyState?) {
 }
 
 /** 주행 가능 거리를 받았을 때만 한 줄. 못 받으면 줄을 숨긴다(미확인 값을 채우지 않음). */
+@Composable
 private fun rangeText(energy: EnergyState?): String? =
-    energy?.rangeKm?.let { "주행 가능 거리 ${it}km · 차량에서 받은 값이에요." }
+    energy?.rangeKm?.let { stringResource(R.string.activity_range, it) }
 
 @Composable
 private fun Body(text: String) =
@@ -156,17 +181,23 @@ private fun Label(text: String) =
 private fun Timeline(journey: Journey, view: ChargeView) {
     val arrival = journey.arrival
     AppCard(Modifier.fillMaxWidth(), spacing = App.space.lg) {
-        Stop(AppIcons.Navigation, false, "현재 위치", journey.stopDetail)
-        Stop(AppIcons.Bolt, true, journey.stopName, stopStatus(view))
+        Stop(
+            AppIcons.Navigation,
+            false,
+            stringResource(R.string.activity_current_location),
+            journey.stopDetail
+        )
+        Stop(AppIcons.Bolt, true, journey.stopName, stringResource(view.stopLabel()))
         Column {
             Stop(
                 AppIcons.Place,
                 false,
                 journey.destinationName,
-                arrival?.let { "도착 예상 ${it.clock()} · 충전 시간 제외" } ?: "도착 예상 미확인"
+                arrival?.let { stringResource(R.string.activity_arrival, it.clock()) }
+                    ?: stringResource(R.string.activity_arrival_unknown)
             )
             Text(
-                "도착 시 배터리 예상 · 미확인",
+                stringResource(R.string.activity_arrival_battery_unknown),
                 style = App.type.stopBody,
                 color = App.colors.textSecondary,
                 modifier = Modifier.padding(start = MARKER + App.space.md)
@@ -175,7 +206,15 @@ private fun Timeline(journey: Journey, view: ChargeView) {
             if (late != null) {
                 StatusChip(
                     Status.Warn,
-                    "희망 도착 ${journey.wishedArrival.clock()}보다 ${late}분 늦어요",
+                    stringResource(
+                        R.string.activity_late,
+                        journey.wishedArrival.clock(),
+                        pluralStringResource(
+                            DsR.plurals.ds_unit_minutes,
+                            late.toInt(),
+                            late.toInt()
+                        )
+                    ),
                     Modifier.padding(start = MARKER + App.space.md)
                 )
             }
