@@ -1,5 +1,6 @@
 package ai.familystop.feature.fallback
 
+import ai.familystop.core.LocationError
 import ai.familystop.core.designsystem.App
 import ai.familystop.core.designsystem.AppButton
 import ai.familystop.core.designsystem.AppCard
@@ -45,12 +46,13 @@ fun FallbackCard(
     }
     is FallbackCause.Data -> {
         val f = cause.failure
+        val item = stringResource(f.item.label())
         val value = valueText(describeValue(f.last, nowMs))
         CardContent(
-            title = stringResource(R.string.fallback_data_title, f.item),
+            title = stringResource(R.string.fallback_data_title, item),
             lines = listOf(
-                f.limit,
-                stringResource(R.string.fallback_data_item_value, f.item, value)
+                stringResource(f.limit.text()),
+                stringResource(R.string.fallback_data_item_value, item, value)
             ),
             status = if (f.last == null) Status.Unknown else Status.Warn,
             statusText = stringResource(
@@ -69,6 +71,17 @@ fun FallbackCard(
             modifier = modifier
         )
     }
+}
+
+private fun DataItem.label() = when (this) {
+    DataItem.LOCATION -> R.string.fallback_location_item
+}
+
+private fun LocationError.text() = when (this) {
+    LocationError.TIMEOUT -> R.string.fallback_location_limit
+    LocationError.UNAVAILABLE -> R.string.fallback_location_unavailable
+    LocationError.NO_PERMISSION -> R.string.fallback_location_no_permission
+    LocationError.OFF -> R.string.fallback_location_off
 }
 
 private fun Capability.label() = when (this) {

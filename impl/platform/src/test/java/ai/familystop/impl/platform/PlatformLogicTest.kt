@@ -31,4 +31,12 @@ class PlatformLogicTest {
         assertNotNull(ttsInitError(TextToSpeech.SUCCESS, TextToSpeech.LANG_MISSING_DATA))
         assertNotNull(ttsInitError(TextToSpeech.SUCCESS, TextToSpeech.ERROR))
     }
+
+    @Test
+    fun gpsNeedsFineButFusedAcceptsCoarse() {
+        assertEquals(true, permitted(LocationManager.GPS_PROVIDER, fine = true, coarse = false))
+        assertEquals(false, permitted(LocationManager.GPS_PROVIDER, fine = false, coarse = true))
+        assertEquals(true, permitted(LocationManager.FUSED_PROVIDER, fine = false, coarse = true))
+        assertEquals(false, permitted(LocationManager.FUSED_PROVIDER, fine = false, coarse = false))
+    }
 }

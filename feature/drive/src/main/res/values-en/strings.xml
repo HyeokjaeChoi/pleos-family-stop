@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="drive_unknown_movement">Movement unknown · Driving limits apply</string>
+    <string name="drive_empty_title">No recommendations yet</string>
+    <string name="drive_empty_body">Enter a destination after you stop and candidates will appear here</string>
+    <string name="drive_header">Next charging stop</string>
+    <string name="drive_add_waypoint">Add as waypoint</string>
+    <string name="drive_adding">Adding…</string>
+    <string name="drive_failed_chip">Couldn\'t add</string>
+    <string name="drive_failed_message">Couldn\'t add the waypoint. Tap again, or choose once you\'ve stopped.</string>
+    <string name="drive_check_chip">Check needed</string>
+    <string name="drive_note_undo_failed">Couldn\'t undo. Remove it in navigation once you\'ve stopped.</string>
+    <string name="drive_note_result_lost">Result unknown. Check the waypoint in navigation once you\'ve stopped.</string>
+    <string name="drive_added_chip">%1$s added as waypoint</string>
+    <string name="drive_undo_bar">Added as waypoint · %1$s · You can undo within %2$s</string>
+    <string name="drive_undo">Undo</string>
+</resources>

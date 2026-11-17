@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_card_met">Needs met</string>
+    <string name="app_card_unmet">Some unmet</string>
+    <string name="app_card_delay_label">Arrival delay</string>
+    <string name="app_card_detour_label">Detour</string>
+    <string name="app_distance_km">%1$s km</string>
+    <string name="app_stop_detail">%2$s to %1$s · %3$s</string>
+</resources>

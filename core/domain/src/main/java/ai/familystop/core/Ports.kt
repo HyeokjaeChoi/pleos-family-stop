@@ -3,9 +3,12 @@ package ai.familystop.core
 // Swappable seams (ADR-0001, ADR-0002). Each Pleos SDK that is still "준비 중"
 // gets a platform/fake implementation now and a Pleos one when it opens.
 
+/** Why a position can't be had (ADR-0007: semantic value; the screen words it). TIMEOUT: no fix in time. */
+enum class LocationError { TIMEOUT, UNAVAILABLE, NO_PERMISSION, OFF }
+
 /** Current position. Impl: platform LocationManager now, Pleos FusedLocation later. */
 interface LocationSource {
-    fun start(onUpdate: (GeoPoint) -> Unit, onUnavailable: (String) -> Unit)
+    fun start(onUpdate: (GeoPoint) -> Unit, onUnavailable: (LocationError) -> Unit)
     fun stop()
 }
 

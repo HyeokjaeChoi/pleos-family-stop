@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="activity_journey_label">여정 (예상)</string>
+    <string name="activity_current_location">현재 위치</string>
+    <string name="activity_stop_unavailable">충전 정보 없음</string>
+    <string name="activity_stop_before">충전 전</string>
+    <string name="activity_stop_charging">충전 중</string>
+    <string name="activity_stop_done">충전 끝</string>
+    <string name="activity_arrival">도착 예상 %1$s · 충전 시간 제외</string>
+    <string name="activity_arrival_unknown">도착 예상 미확인</string>
+    <string name="activity_arrival_battery_unknown">도착 시 배터리 예상 · 미확인</string>
+    <string name="activity_late">희망 도착 %1$s보다 %2$s 늦어요</string>
+    <string name="activity_tasks_label">정차에서 할 일 · %1$d/%2$d</string>
+    <string name="activity_charge_info_label">충전 정보</string>
+    <string name="activity_unavailable_chip">충전 정보를 받지 못했어요</string>
+    <string name="activity_unavailable_body">차량에서 충전 상태를 받지 못했어요. 충전기 화면에서 확인해 주세요.</string>
+    <string name="activity_before_body">충전을 시작하면 자동으로 바뀌어요.</string>
+    <string name="activity_done_title">출발해도 돼요. 내비 안내를 이어가세요.</string>
+    <string name="activity_battery">배터리 %1$d%%</string>
+    <string name="activity_battery_unknown">배터리 미확인</string>
+    <string name="activity_range">주행 가능 거리 %1$dkm · 차량에서 받은 값이에요.</string>
+</resources>
