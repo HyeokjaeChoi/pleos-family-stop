@@ -162,6 +162,7 @@ private fun WheelColumn(
     val state = rememberLazyListState(initialFirstVisibleItemIndex = index)
     val scope = rememberCoroutineScope()
     val update by rememberUpdatedState(onIndex)
+    val current by rememberUpdatedState(index)
     val center by remember {
         derivedStateOf {
             val half = state.layoutInfo.visibleItemsInfo.firstOrNull()?.size?.div(2) ?: 0
@@ -175,7 +176,7 @@ private fun WheelColumn(
     }
     LaunchedEffect(state) {
         snapshotFlow { state.isScrollInProgress to center }.collect { (moving, c) ->
-            if (!moving && c != index) update(c)
+            if (!moving && c != current) update(c)
         }
     }
     LazyColumn(
