@@ -30,6 +30,7 @@ import ai.familystop.feature.input.PlanStep
 import ai.familystop.feature.input.PlanSummaryBar
 import ai.familystop.feature.input.ValidationResult
 import ai.familystop.feature.input.destinationKey
+import ai.familystop.feature.input.label
 import ai.familystop.feature.input.validate
 import ai.familystop.feature.recommend.FETCH_TIMEOUT_MS
 import ai.familystop.feature.recommend.RecommendScreen
@@ -257,7 +258,7 @@ private fun Parked(
                 wishedArrival = trip.arrival
             ),
             energy = energy,
-            tasks = trip.needs.map { it.label },
+            tasks = trip.needs.map { it.label() },
             sessionId = s.tripId
         )
         return

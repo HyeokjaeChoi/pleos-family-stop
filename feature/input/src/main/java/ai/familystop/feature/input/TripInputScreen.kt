@@ -15,6 +15,7 @@ import ai.familystop.core.designsystem.Status
 import ai.familystop.core.designsystem.StatusChip
 import ai.familystop.core.designsystem.Stepper
 import ai.familystop.core.designsystem.TimeWheel
+import ai.familystop.core.formatClock
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -28,6 +29,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import java.time.LocalDateTime
 
@@ -55,7 +58,7 @@ fun PlanSummaryBar(
     val list = (destinations as? DestinationsState.Ready)?.list.orEmpty()
     Row(modifier.fillMaxWidth(), horizontalArrangement = Gap) {
         summaryChips(draft, list).forEach { chip ->
-            AppStepChip(chip.label, current = chip.step == step, filled = chip.filled) {
+            AppStepChip(chip.text(), current = chip.step == step, filled = chip.filled) {
                 onStep(chip.step)
             }
         }
@@ -75,10 +78,17 @@ fun DestinationStep(
     val ready = draft.destinationKey != null
     Column(modifier, verticalArrangement = Gap) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            Section("어디로 가나요") { Destinations(destinations, draft, onDraft, onRetry) }
+            Section(stringResource(R.string.input_where)) {
+                Destinations(destinations, draft, onDraft, onRetry)
+            }
         }
-        if (!ready) StatusChip(Status.Unknown, "목적지를 골라 주세요")
-        AppButton("다음", onNext, Modifier.fillMaxWidth(), enabled = ready)
+        if (!ready) StatusChip(Status.Unknown, stringResource(R.string.input_choose_destination))
+        AppButton(
+            stringResource(R.string.input_next),
+            onNext,
+            Modifier.fillMaxWidth(),
+            enabled = ready
+        )
     }
 }
 
@@ -118,9 +128,9 @@ fun ConditionsStep(
             horizontalArrangement = Gap
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Gap) {
-                Section("도착 희망 시각") {
+                Section(stringResource(R.string.input_arrival_title)) {
                     if (eta == null && etaFailed) {
-                        StatusChip(Status.Warn, "내비 예상 도착 시각을 받지 못했어요. 직접 정해 주세요.")
+                        StatusChip(Status.Warn, stringResource(R.string.input_eta_failed))
                     }
                     val shown = draft.hour24 ?: now().hour
                     val shownMinute = if (draft.hour24 == null) now().minute else draft.minute
@@ -133,7 +143,7 @@ fun ConditionsStep(
                     // 휠이 보여 주는 값은 아직 정한 값이 아니다 → 그대로 쓰려면 직접 확정한다.
                     if (!timeSet) {
                         AppButton(
-                            "이 시각으로 정하기",
+                            stringResource(R.string.input_set_this_time),
                             { onDraft(draft.copy(hour24 = shown, minute = shownMinute)) },
                             primary = false
                         )
@@ -141,25 +151,37 @@ fun ConditionsStep(
                 }
             }
             Column(Modifier.weight(1.2f), verticalArrangement = Gap) {
-                Section("정차에서 필요한 것") {
+                Section(stringResource(R.string.input_needs_title)) {
                     // Figma Tiles: 같은 폭·높이 3등분
                     Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Gap) {
                         StopNeed.entries.forEach { n ->
                             AppToggleTile(
                                 n in draft.needs,
-                                n.label,
+                                stringResource(n.labelRes()),
                                 n.icon(),
                                 Modifier.weight(1f).fillMaxHeight()
                             ) { onDraft(draft.copy(needs = draft.needs.toggle(n))) }
                         }
                     }
                 }
-                Section("충전") { Charge(draft, autoSocPercent, onDraft) }
+                Section(stringResource(R.string.input_charge_title)) {
+                    Charge(draft, autoSocPercent, onDraft)
+                }
             }
         }
-        if (!timeSet) StatusChip(Status.Unknown, "도착 시각을 정해 주세요")
-        if (draft.needs.isEmpty()) StatusChip(Status.Unknown, "정차에서 필요한 것을 골라 주세요")
-        AppButton("후보 보기", onNext, Modifier.fillMaxWidth(), enabled = ready)
+        if (!timeSet) StatusChip(Status.Unknown, stringResource(R.string.input_set_arrival))
+        if (draft.needs.isEmpty()) {
+            StatusChip(
+                Status.Unknown,
+                stringResource(R.string.input_choose_needs)
+            )
+        }
+        AppButton(
+            stringResource(R.string.input_see_candidates),
+            onNext,
+            Modifier.fillMaxWidth(),
+            enabled = ready
+        )
     }
 }
 
@@ -171,11 +193,48 @@ private fun Section(title: String, content: @Composable () -> Unit) {
     }
 }
 
-private fun Destination.kindLabel() = when (kind) {
-    DestinationKind.CURRENT -> "내비에서 안내 중"
-    DestinationKind.HOME -> "집"
-    DestinationKind.OFFICE -> "회사"
-    DestinationKind.RECENT -> "최근 목적지"
+@Composable
+private fun SummaryChip.text(): String {
+    val unset = stringResource(R.string.input_unset)
+    return when (this) {
+        is SummaryChip.Destination ->
+            stringResource(R.string.input_chip_destination, name ?: unset)
+        is SummaryChip.Arrival -> {
+            val locale = LocalConfiguration.current.locales[0]
+            stringResource(
+                R.string.input_chip_arrival,
+                time?.let { formatClock(it.hour, it.minute, locale) } ?: unset
+            )
+        }
+        is SummaryChip.Needs -> {
+            val sep = stringResource(R.string.input_needs_separator)
+            val list = needs.map { stringResource(it.labelRes()) }.joinToString(sep)
+            stringResource(R.string.input_chip_needs, list.ifEmpty { unset })
+        }
+    }
+}
+
+/** 필요 항목의 화면 이름. 다른 화면(충전 활동)이 같은 이름을 쓰도록 공개한다. */
+@Composable
+fun StopNeed.label(): String = stringResource(labelRes())
+
+private fun StopNeed.labelRes() = when (this) {
+    StopNeed.MEAL -> R.string.input_need_meal
+    StopNeed.RESTROOM -> R.string.input_need_restroom
+    StopNeed.KIDS_REST -> R.string.input_need_kids_rest
+}
+
+private fun ChargeNeed.labelRes() = when (this) {
+    ChargeNeed.YES -> R.string.input_charge_yes
+    ChargeNeed.NO -> R.string.input_charge_no
+    ChargeNeed.UNDECIDED -> R.string.input_charge_undecided
+}
+
+private fun DestinationKind.labelRes() = when (this) {
+    DestinationKind.CURRENT -> R.string.input_kind_current
+    DestinationKind.HOME -> R.string.input_kind_home
+    DestinationKind.OFFICE -> R.string.input_kind_office
+    DestinationKind.RECENT -> R.string.input_kind_recent
 }
 
 @Composable
@@ -186,10 +245,13 @@ private fun Destinations(
     onRetry: () -> Unit
 ) {
     when (state) {
-        DestinationsState.Loading -> Text("목적지를 불러오는 중…", style = App.type.stopBody)
+        DestinationsState.Loading -> Text(
+            stringResource(R.string.input_loading),
+            style = App.type.stopBody
+        )
         DestinationsState.Unavailable -> {
-            StatusChip(Status.Danger, "내비에서 목적지를 불러오지 못했어요")
-            AppButton("다시 불러오기", onRetry, primary = false)
+            StatusChip(Status.Danger, stringResource(R.string.input_load_failed))
+            AppButton(stringResource(R.string.input_reload), onRetry, primary = false)
         }
         is DestinationsState.Ready -> Column(
             verticalArrangement = Arrangement.spacedBy(App.space.md)
@@ -198,7 +260,7 @@ private fun Destinations(
                 val key = destinationKey(d)
                 SelectRow(
                     title = d.name,
-                    subtitle = d.kindLabel(),
+                    subtitle = stringResource(d.kind.labelRes()),
                     selected = key == draft.destinationKey,
                     onClick = { onDraft(draft.copy(destinationKey = key)) }
                 )
@@ -211,7 +273,11 @@ private fun Destinations(
 private fun Charge(draft: TripDraft, auto: Int?, onDraft: (TripDraft) -> Unit) {
     Row(horizontalArrangement = Gap) {
         ChargeNeed.entries.forEach { c ->
-            AppToggleChip(draft.chargeNeed == c, c.label, role = Role.RadioButton) {
+            AppToggleChip(
+                draft.chargeNeed == c,
+                stringResource(c.labelRes()),
+                role = Role.RadioButton
+            ) {
                 onDraft(draft.copy(chargeNeed = c))
             }
         }
@@ -221,9 +287,9 @@ private fun Charge(draft: TripDraft, auto: Int?, onDraft: (TripDraft) -> Unit) {
     if (percent != null) ProgressBar(percent / 100f)
     Text(
         when (soc) {
-            is Soc.Auto -> "배터리 ${soc.percent}% · 차량에서 자동 확인"
-            is Soc.Manual -> "배터리 ${soc.percent}% · 직접 정함(자동 아님)"
-            Soc.Unknown -> "잔량 미확인 · 도달 가능 여부는 알 수 없어요"
+            is Soc.Auto -> stringResource(R.string.input_soc_auto, soc.percent)
+            is Soc.Manual -> stringResource(R.string.input_soc_manual, soc.percent)
+            Soc.Unknown -> stringResource(R.string.input_soc_unknown)
         },
         style = App.type.stopBody,
         color = App.colors.textSecondary
@@ -231,15 +297,16 @@ private fun Charge(draft: TripDraft, auto: Int?, onDraft: (TripDraft) -> Unit) {
     if (auto == null) {
         val m = draft.manualSoc
         Stepper(
-            value = m?.let { "$it%" } ?: "미정",
+            value = m?.let { stringResource(R.string.input_soc_value, it) }
+                ?: stringResource(R.string.input_soc_unset),
             onMinus = { onDraft(draft.copy(manualSoc = stepSoc(m, -1))) },
             onPlus = { onDraft(draft.copy(manualSoc = stepSoc(m, 1))) },
             modifier = Modifier.fillMaxWidth(),
-            minusLabel = "배터리 ${SOC_STEP}% 줄이기",
-            plusLabel = "배터리 ${SOC_STEP}% 늘리기"
+            minusLabel = stringResource(R.string.input_soc_minus, SOC_STEP),
+            plusLabel = stringResource(R.string.input_soc_plus, SOC_STEP)
         )
     } else if (socMismatch(auto, draft.manualSoc)) {
-        Text("직접 정한 값(${draft.manualSoc}%)과 차량 데이터가 달라요. 차량 값을 사용해요.")
+        Text(stringResource(R.string.input_soc_mismatch, draft.manualSoc ?: 0))
     }
 }
 
