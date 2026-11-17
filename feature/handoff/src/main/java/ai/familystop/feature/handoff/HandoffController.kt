@@ -14,6 +14,9 @@ const val MAX_WAYPOINTS = 2
 /** 주행 중 한 번 탭 뒤 취소를 허용하는 시간(ADR-0003). ponytail: 시연하며 조정. */
 const val UNDO_GRACE_MS = 10_000L
 
+/** 실패 사유(문구는 화면이 리소스로 조립, ADR-0007). */
+enum class HandoffFail { SendFailed, ReplaceFailed, StaleRemoved }
+
 sealed interface HandoffState {
     data object Idle : HandoffState
 
@@ -28,7 +31,7 @@ sealed interface HandoffState {
         HandoffState
 
     /** 실패 → 재시도([HandoffController.retry]) 또는 비교 복귀([HandoffController.backToCompare]). */
-    data class Failed(val place: StopPlace, val reason: String) : HandoffState
+    data class Failed(val place: StopPlace, val reason: HandoffFail) : HandoffState
 }
 
 /**
@@ -76,7 +79,7 @@ class HandoffController(
         } else {
             val mine = ++seq
             _state.value = HandoffState.Sending(place)
-            addAs(mine, place, "길 안내에 전달하지 못했어요.")
+            addAs(mine, place, HandoffFail.SendFailed)
         }
     }
 
@@ -87,7 +90,7 @@ class HandoffController(
         val mine = ++seq
         _state.value = HandoffState.Sending(s.place)
         if (held.size < MAX_WAYPOINTS || target !in held) { // 선택 뒤 주행 카드 취소 등으로 자리가 이미 났다
-            addAs(mine, s.place, "길 안내에 전달하지 못했어요.")
+            addAs(mine, s.place, HandoffFail.SendFailed)
             return
         }
         navi.removeWaypoint(
@@ -97,8 +100,8 @@ class HandoffController(
                 when {
                     mine != seq -> Unit // 그사이 취소됨: 새 경유지는 넣지 않는다
                     r.isSuccess ->
-                        addAs(mine, s.place, "기존 경유지는 이미 지워졌어요. 다시 시도해 주세요.")
-                    else -> fail(mine, s.place, "기존 경유지를 바꾸지 못했어요.")
+                        addAs(mine, s.place, HandoffFail.StaleRemoved)
+                    else -> fail(mine, s.place, HandoffFail.ReplaceFailed)
                 }
             }
         )
@@ -134,7 +137,7 @@ class HandoffController(
         )
     }
 
-    private fun addAs(mine: Int, place: StopPlace, failReason: String) {
+    private fun addAs(mine: Int, place: StopPlace, failReason: HandoffFail) {
         navi.addWaypoint(
             place,
             settled { r ->
@@ -161,7 +164,7 @@ class HandoffController(
         }
     }
 
-    private fun fail(mine: Int, place: StopPlace, reason: String) {
+    private fun fail(mine: Int, place: StopPlace, reason: HandoffFail) {
         if (mine == seq) _state.value = HandoffState.Failed(place, reason)
     }
 }

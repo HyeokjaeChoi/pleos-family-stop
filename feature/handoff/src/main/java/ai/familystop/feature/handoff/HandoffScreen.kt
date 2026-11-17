@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -58,39 +59,82 @@ fun HandoffScreen(
                 when (state) {
                     HandoffState.Idle -> Unit
                     is HandoffState.Sending -> {
-                        Text("${state.place.name} 전달 중…", style = App.type.stopTitle)
-                        Text("응답을 기다리고 있어요.", color = App.colors.textSecondary)
+                        Text(
+                            stringResource(R.string.handoff_sending, state.place.name),
+                            style = App.type.stopTitle
+                        )
+                        Text(
+                            stringResource(R.string.handoff_sending_wait),
+                            color = App.colors.textSecondary
+                        )
                     }
                     is HandoffState.NeedReplace -> {
-                        Text("경유지가 가득 찼어요", style = App.type.stopTitle)
                         Text(
-                            "새 경유지: ${state.place.name}. 바꿀 경유지를 골라 주세요.",
+                            stringResource(R.string.handoff_full_title),
+                            style = App.type.stopTitle
+                        )
+                        Text(
+                            stringResource(R.string.handoff_full_body, state.place.name),
                             color = App.colors.textSecondary
                         )
                         state.options.forEach {
-                            AppButton("${it.name} 대신", {
+                            AppButton(stringResource(R.string.handoff_replace_option, it.name), {
                                 onReplace(it)
                             }, Modifier.fillMaxWidth(), primary = false)
                         }
-                        AppButton("취소", onBack, Modifier.fillMaxWidth(), primary = false)
+                        AppButton(
+                            stringResource(R.string.handoff_cancel),
+                            onBack,
+                            Modifier.fillMaxWidth(),
+                            primary = false
+                        )
                     }
                     is HandoffState.Done -> {
-                        StatusChip(Status.Ok, "경유지로 추가했어요")
+                        StatusChip(Status.Ok, stringResource(R.string.handoff_done_chip))
                         Text(
-                            "${state.place.name}이(가) 길 안내에 전달됐어요. 도착 여부와는 별개예요.",
+                            stringResource(R.string.handoff_done_body, state.place.name),
                             color = App.colors.textSecondary
                         )
-                        if (state.undoFailed) StatusChip(Status.Danger, "되돌리지 못했어요.")
-                        if (state.undoable) AppButton("취소", onUndo, Modifier.fillMaxWidth())
+                        if (state.undoFailed) {
+                            StatusChip(
+                                Status.Danger,
+                                stringResource(R.string.handoff_undo_failed)
+                            )
+                        }
+                        if (state.undoable) {
+                            AppButton(
+                                stringResource(R.string.handoff_cancel),
+                                onUndo,
+                                Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                     is HandoffState.Failed -> {
-                        StatusChip(Status.Danger, state.reason)
-                        Text("${state.place.name}은 아직 추가되지 않았어요.", color = App.colors.textSecondary)
-                        AppButton("다시 시도", onRetry, Modifier.fillMaxWidth())
-                        AppButton("후보로 돌아가기", onBack, Modifier.fillMaxWidth(), primary = false)
+                        StatusChip(Status.Danger, stringResource(state.reason.res()))
+                        Text(
+                            stringResource(R.string.handoff_failed_body, state.place.name),
+                            color = App.colors.textSecondary
+                        )
+                        AppButton(
+                            stringResource(R.string.handoff_retry),
+                            onRetry,
+                            Modifier.fillMaxWidth()
+                        )
+                        AppButton(
+                            stringResource(R.string.handoff_back_to_candidates),
+                            onBack,
+                            Modifier.fillMaxWidth(),
+                            primary = false
+                        )
                     }
                 }
             }
         }
     }
+}
+
+private fun HandoffFail.res() = when (this) {
+    HandoffFail.SendFailed -> R.string.handoff_fail_send
+    HandoffFail.ReplaceFailed -> R.string.handoff_fail_replace
+    HandoffFail.StaleRemoved -> R.string.handoff_fail_stale
 }

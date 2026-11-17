@@ -2,7 +2,9 @@ package ai.familystop.feature.voice
 
 import ai.familystop.core.DataSource
 import ai.familystop.core.StopCandidate
+import ai.familystop.core.StopNeed
 import ai.familystop.core.StopPlace
+import ai.familystop.core.StopReason
 import ai.familystop.core.VoiceOutput
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -28,7 +30,7 @@ private fun cand(name: String) = StopCandidate(
     StopPlace(name, 0.0, 0.0),
     emptySet(),
     emptySet(),
-    "식사 해결",
+    StopReason(listOf(StopNeed.MEAL), coversAll = false),
     5,
     1.0,
     DataSource.VIRTUAL

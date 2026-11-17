@@ -8,6 +8,10 @@
     <string name="fallback_location_purpose">Your location is needed to find nearby stop candidates.</string>
     <string name="fallback_location_limit">Recommendations based on your location aren\'t available right now.</string>
     <string name="fallback_location_alternative">Please enter a destination or waypoint yourself.</string>
+    <string name="fallback_location_item">location</string>
+    <string name="fallback_location_unavailable">Location isn\'t available</string>
+    <string name="fallback_location_no_permission">Location permission is missing</string>
+    <string name="fallback_location_off">Location is turned off</string>
     <string name="fallback_permission_title">%1$s permission is off</string>
     <string name="fallback_permission_off">Permission off</string>
     <string name="fallback_permission_retry">Ask again</string>

@@ -3,23 +3,14 @@ package ai.familystop.feature.input
 import ai.familystop.core.Destination
 import ai.familystop.core.DestinationKind
 import ai.familystop.core.RouteEta
-import ai.familystop.core.formatClock
 import java.time.LocalDateTime
 import java.time.LocalTime
 
 /** F-GFBDZR: 가족이 정차에서 해결하려는 필요. */
-enum class StopNeed(val label: String) {
-    MEAL("식사"),
-    RESTROOM("화장실"),
-    KIDS_REST("아이 휴식")
-}
+enum class StopNeed { MEAL, RESTROOM, KIDS_REST }
 
 /** F-QOZAMV: 충전(보충) 필요 여부. */
-enum class ChargeNeed(val label: String) {
-    YES("필요"),
-    NO("불필요"),
-    UNDECIDED("미정")
-}
+enum class ChargeNeed { YES, NO, UNDECIDED }
 
 /** 잔량 출처. 자동값과 수동값을 화면에서 구분해 표시한다(PL-UJFQXQ). */
 sealed interface Soc {
@@ -59,10 +50,7 @@ const val SOC_MISMATCH_PERCENT = 10
 fun socMismatch(auto: Int?, manual: Int?): Boolean =
     auto != null && manual != null && kotlin.math.abs(auto - manual) >= SOC_MISMATCH_PERCENT
 
-enum class InputError(val message: String) {
-    DESTINATION_MISSING("목적지를 골라 주세요"),
-    TIME_MISSING("도착 시각을 정해 주세요")
-}
+enum class InputError { DESTINATION_MISSING, TIME_MISSING }
 
 data class TripInput(
     val destination: Destination,
@@ -141,17 +129,33 @@ fun validate(
 /** 정차 계획 3단계(#72). 상단 요약 칩이 진행 표시이자 되돌아가기다. */
 enum class PlanStep { DESTINATION, CONDITIONS, CANDIDATES }
 
-/** 요약 칩 한 개. [filled]가 false면 아직 정하지 않은 값. 누르면 [step]으로 돌아간다. */
-data class SummaryChip(val label: String, val filled: Boolean, val step: PlanStep)
+/** 요약 칩 한 개(ADR-0007: 의미 값, 문장은 화면이 만든다). [filled]가 false면 아직 정하지 않은 값. 누르면 [step]으로 돌아간다. */
+sealed interface SummaryChip {
+    val filled: Boolean
+    val step: PlanStep
+
+    data class Destination(val name: String?) : SummaryChip {
+        override val filled get() = name != null
+        override val step get() = PlanStep.DESTINATION
+    }
+
+    data class Arrival(val time: LocalTime?) : SummaryChip {
+        override val filled get() = time != null
+        override val step get() = PlanStep.CONDITIONS
+    }
+
+    data class Needs(val needs: List<StopNeed>) : SummaryChip {
+        override val filled get() = needs.isNotEmpty()
+        override val step get() = PlanStep.CONDITIONS
+    }
+}
 
 /** 목적지 · 도착 시각 · 필요 항목 요약 칩 3개. */
 fun summaryChips(draft: TripDraft, destinations: List<Destination>): List<SummaryChip> {
     val dest = destinations.firstOrNull { destinationKey(it) == draft.destinationKey }
-    val time = draft.hour24?.let { formatClock(it, draft.minute) }
-    val needs = StopNeed.entries.filter { it in draft.needs }.joinToString("·") { it.label }
     return listOf(
-        SummaryChip("목적지 · ${dest?.name ?: "선택 전"}", dest != null, PlanStep.DESTINATION),
-        SummaryChip("도착 · ${time ?: "선택 전"}", time != null, PlanStep.CONDITIONS),
-        SummaryChip("필요 · ${needs.ifEmpty { "선택 전" }}", needs.isNotEmpty(), PlanStep.CONDITIONS)
+        SummaryChip.Destination(dest?.name),
+        SummaryChip.Arrival(draft.hour24?.let { LocalTime.of(it, draft.minute) }),
+        SummaryChip.Needs(StopNeed.entries.filter { it in draft.needs })
     )
 }

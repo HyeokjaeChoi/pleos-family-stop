@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ds_unit_ordinal">%1$d번</string>
+    <string name="ds_time_am">오전</string>
+    <string name="ds_time_pm">오후</string>
+    <string name="ds_wheel_hour">시</string>
+    <string name="ds_wheel_minute">분</string>
+    <string name="ds_wheel_increase">%1$s 늘리기</string>
+    <string name="ds_wheel_decrease">%1$s 줄이기</string>
+    <string name="ds_stepper_minus">줄이기</string>
+    <string name="ds_stepper_plus">늘리기</string>
+    <plurals name="ds_unit_minutes">
+        <item quantity="other">%1$d분</item>
+    </plurals>
+    <plurals name="ds_unit_seconds">
+        <item quantity="other">%1$d초</item>
+    </plurals>
+    <plurals name="ds_unit_items">
+        <item quantity="other">%1$d개</item>
+    </plurals>
+</resources>
