@@ -5,6 +5,7 @@
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- addWaypoint requires this (#107) -->
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH" />
     <uses-permission android:name="pleos.car.permission.CAR_ENERGY" />
     <!-- Odometer RANGE_REMAINING: 충전 카드 주행 가능 거리 (#81) -->
@@ -20,6 +21,7 @@
 
     <application
         android:name=".FamilyStopApp"
+        android:allowBackup="false"
         android:label="Family Stop"
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
         <!-- Single activity. Driving screens must stay usable while moving (ADR-0003),
