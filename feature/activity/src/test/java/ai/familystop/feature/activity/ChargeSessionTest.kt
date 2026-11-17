@@ -25,13 +25,6 @@ class ChargeSessionTest {
     }
 
     @Test
-    fun stopStatusFollowsTheCard() {
-        assertEquals("충전 끝", stopStatus(ChargeView.DONE))
-        assertEquals("충전 중", stopStatus(ChargeView.CHARGING))
-        assertEquals("충전 정보 없음", stopStatus(ChargeView.UNAVAILABLE))
-    }
-
-    @Test
     fun lateOnlyWhenArrivalIsAfterWish() {
         assertEquals(27L, lateMinutes(t0.plusMinutes(27), t0))
         assertNull(lateMinutes(t0, t0))

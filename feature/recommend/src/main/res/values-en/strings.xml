@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="recommend_loading">Finding nearby facilities…</string>
+    <string name="recommend_empty">No matching stop candidates.</string>
+    <string name="recommend_fail_timeout">Couldn\'t receive facility info. Please try again.</string>
+    <string name="recommend_fail_load">Couldn\'t load facility info. Please try again.</string>
+    <string name="recommend_retry">Search again</string>
+    <string name="recommend_title">Compare stop candidates</string>
+    <string name="recommend_source">Source: %1$s</string>
+    <string name="recommend_source_real">Real data</string>
+    <string name="recommend_source_virtual">Virtual data (demo)</string>
+    <string name="recommend_distance_km">%1$s km</string>
+    <string name="recommend_chip_met">All needs met</string>
+    <string name="recommend_chip_unmet">Some unmet</string>
+    <string name="recommend_selected">Selected: %1$s</string>
+    <string name="recommend_add_waypoint">Add as waypoint</string>
+    <string name="recommend_need_meal">Meal</string>
+    <string name="recommend_need_restroom">Restroom</string>
+    <string name="recommend_need_kids_rest">Kids\' rest</string>
+    <string name="recommend_need_separator">, </string>
+    <string name="recommend_need_met">%1$s met</string>
+    <string name="recommend_need_unmet">%1$s unmet</string>
+    <string name="recommend_reason_all">%1$s, all in one stop</string>
+    <string name="recommend_reason_some">Solves %1$s</string>
+</resources>

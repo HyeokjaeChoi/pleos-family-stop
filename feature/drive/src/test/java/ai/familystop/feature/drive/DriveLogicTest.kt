@@ -58,6 +58,6 @@ class DriveLogicTest {
         c.pick(StopPlace("b", 0.0, 0.0)) // ignored: removal still pending
         assertEquals(PickState.Removing(a), c.state)
         cb!!(Result.failure(IllegalStateException()))
-        assertTrue((c.state as PickState.Done).note != null)
+        assertEquals(PickState.Done(a, PickNote.UndoFailed), c.state)
     }
 }

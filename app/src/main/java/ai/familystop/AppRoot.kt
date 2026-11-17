@@ -36,6 +36,7 @@ import ai.familystop.feature.recommend.FETCH_TIMEOUT_MS
 import ai.familystop.feature.recommend.RecommendScreen
 import ai.familystop.feature.recommend.RecommendState
 import ai.familystop.feature.recommend.driveCards
+import ai.familystop.feature.recommend.stopReasonText
 import ai.familystop.feature.voice.VoiceBar
 import android.Manifest
 import android.content.pm.PackageManager
@@ -76,7 +77,7 @@ private fun delayMinutes(minutes: Int) =
 @Composable
 private fun StopCandidate.driveCard(locale: Locale) = DriveCandidate(
     place,
-    reason,
+    stopReasonText(reason),
     if (missed.isEmpty()) {
         Status.Ok to stringResource(R.string.app_card_met)
     } else {
