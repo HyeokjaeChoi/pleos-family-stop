@@ -1,5 +1,6 @@
 package ai.familystop.impl.platform
 
+import ai.familystop.core.VoiceError
 import ai.familystop.core.VoiceOutput
 import android.content.Context
 import android.media.AudioAttributes
@@ -12,12 +13,12 @@ import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import java.util.Locale
 
-/** Error text for a failed TTS init/language setup, null = ready. */
-internal fun ttsInitError(status: Int, langResult: Int): String? = when {
-    status != TextToSpeech.SUCCESS -> "음성 엔진을 시작하지 못했습니다"
-    langResult < TextToSpeech.LANG_AVAILABLE -> "한국어 음성을 사용할 수 없습니다"
-    else -> null
-}
+/** First of the app language, then Korean (ADR-0007: default language) that the engine supports. */
+internal fun pickLanguage(app: Locale, set: (Locale) -> Int): Locale? =
+    (if (app.language == Locale.KOREAN.language) listOf(app) else listOf(app, Locale.KOREAN))
+        .firstOrNull { set(it) >= TextToSpeech.LANG_AVAILABLE }
+
+private class Request(val locale: Locale, val text: (Locale) -> String)
 
 /** True if the utterance belongs to the current request (a flushed older one must not drop focus). */
 internal fun isCurrentUtterance(utteranceId: String?, gen: Int, prefix: String): Boolean =
@@ -32,25 +33,26 @@ class PlatformVoiceOutput(context: Context) : VoiceOutput {
     private val main = Handler(Looper.getMainLooper())
     private var tts: TextToSpeech? = null
     private var ready = false
-    private var pending: String? = null
+    private var pending: Request? = null
     private val audio = appContext.getSystemService(AudioManager::class.java)
     private val attrs = AudioAttributes.Builder()
         .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
         .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
         .build()
     private var focus: AudioFocusRequest? = null
-    private var errorCb: (String) -> Unit = {}
+    private var errorCb: (VoiceError) -> Unit = {}
 
     // Bumped by every speak/stop/close; errors of an older request are dropped.
     private var gen = 0
 
-    override fun speak(text: String, onError: (String) -> Unit) {
+    override fun speak(locale: Locale, text: (Locale) -> String, onError: (VoiceError) -> Unit) {
         gen++
         errorCb = onError
+        val request = Request(locale, text)
         if (ready) {
-            say(text)
+            say(request)
         } else {
-            pending = text
+            pending = request
             if (tts == null) init()
         }
     }
@@ -91,37 +93,22 @@ class PlatformVoiceOutput(context: Context) : VoiceOutput {
             override fun onError(utteranceId: String?, errorCode: Int) {
                 if (Log.isLoggable(TAG, Log.DEBUG)) Log.d(TAG, "utterance error code=$errorCode")
                 release(utteranceId)
-                fail(utteranceId?.removePrefix(ID_PREFIX)?.toIntOrNull(), "음성 안내를 재생하지 못했습니다")
+                fail(utteranceId?.removePrefix(ID_PREFIX)?.toIntOrNull(), VoiceError.PLAYBACK)
             }
         })
     }
 
     private fun onInit(engine: TextToSpeech, status: Int) {
         if (engine !== tts) return
-        val lang = if (status ==
-            TextToSpeech.SUCCESS
-        ) {
-            engine.setLanguage(Locale.KOREAN)
-        } else {
-            TextToSpeech.ERROR
+        if (Log.isLoggable(TAG, Log.DEBUG)) {
+            Log.d(TAG, "init status=$status engine=${engine.defaultEngine}")
         }
-        val error = ttsInitError(status, lang)
-        if (Log.isLoggable(
-                TAG,
-                Log.DEBUG
-            )
-        ) {
-            Log.d(
-                TAG,
-                "init status=$status lang=$lang engine=${engine.defaultEngine} error=$error"
-            )
-        }
-        if (error != null) {
+        if (status != TextToSpeech.SUCCESS) {
             val g = gen
             val wanted = pending != null
             close() // so a later speak() retries (e.g. voice data installed meanwhile)
             gen = g // close() bumped it; this failure still belongs to the pending request
-            if (wanted) fail(g, error)
+            if (wanted) fail(g, VoiceError.ENGINE_START)
             return
         }
         engine.setAudioAttributes(attrs)
@@ -130,7 +117,21 @@ class PlatformVoiceOutput(context: Context) : VoiceOutput {
         pending = null
     }
 
-    private fun say(text: String) {
+    private fun say(request: Request) {
+        // Language is set per request: the app language can change while the engine lives.
+        val engine = tts ?: return
+        val spoken = pickLanguage(request.locale) { engine.setLanguage(it) }
+        if (Log.isLoggable(
+                TAG,
+                Log.DEBUG
+            )
+        ) {
+            Log.d(TAG, "language app=${request.locale} used=$spoken")
+        }
+        if (spoken == null) {
+            fail(gen, VoiceError.LANGUAGE_UNAVAILABLE)
+            return
+        }
         // Speak even if focus is denied: guidance is safety-relevant.
         if (focus == null) {
             val req = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
@@ -139,11 +140,11 @@ class PlatformVoiceOutput(context: Context) : VoiceOutput {
             focus = req
             audio.requestAudioFocus(req)
         }
-        if (tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "$ID_PREFIX$gen") ==
+        if (engine.speak(request.text(spoken), TextToSpeech.QUEUE_FLUSH, null, "$ID_PREFIX$gen") ==
             TextToSpeech.ERROR
         ) {
             abandonFocus()
-            fail(gen, "음성 안내를 재생하지 못했습니다")
+            fail(gen, VoiceError.PLAYBACK)
         }
     }
 
@@ -157,9 +158,9 @@ class PlatformVoiceOutput(context: Context) : VoiceOutput {
         focus = null
     }
 
-    private fun fail(requestGen: Int?, message: String) {
+    private fun fail(requestGen: Int?, error: VoiceError) {
         val cb = errorCb
-        main.post { if (requestGen == gen) cb(message) }
+        main.post { if (requestGen == gen) cb(error) }
     }
 
     private companion object {

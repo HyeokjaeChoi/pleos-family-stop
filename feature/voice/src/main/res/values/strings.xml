@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_on">음성 안내 켜짐</string>
+    <string name="voice_next">다음 후보</string>
+    <plurals name="voice_status_candidates">
+        <item quantity="other">후보 %1$d개 · 정차 후 확인</item>
+    </plurals>
+    <string name="voice_status_next">%1$s 후보 · 정차 후 확인</string>
+    <string name="voice_status_added">경유지 추가됨</string>
+    <string name="voice_status_add_failed">경유지 추가 실패 · 정차 후 확인</string>
+    <plurals name="voice_say_recommend">
+        <item quantity="other">정차 후보 %1$d개예요. %2$s.</item>
+    </plurals>
+    <string name="voice_say_item">%1$s %2$s</string>
+    <string name="voice_say_separator">, </string>
+    <string name="voice_say_next">%1$s %2$s, %3$s.</string>
+    <string name="voice_say_added">경유지에 추가했어요. %1$s.</string>
+    <string name="voice_say_add_failed">경유지를 추가하지 못했어요. 정차 후 다시 확인해 주세요.</string>
+    <string name="voice_need_meal">식사</string>
+    <string name="voice_need_restroom">화장실</string>
+    <string name="voice_need_kids_rest">아이 휴식</string>
+    <string name="voice_need_separator">·</string>
+    <string name="voice_reason_all">%1$s 모두 한 번에 해결</string>
+    <string name="voice_reason_some">%1$s 해결</string>
+</resources>

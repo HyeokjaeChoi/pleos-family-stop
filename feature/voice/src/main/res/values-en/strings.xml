@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_on">Voice guidance on</string>
+    <string name="voice_next">Next candidate</string>
+    <plurals name="voice_status_candidates">
+        <item quantity="one">%1$d candidate · check after stopping</item>
+        <item quantity="other">%1$d candidates · check after stopping</item>
+    </plurals>
+    <string name="voice_status_next">%1$s candidate · check after stopping</string>
+    <string name="voice_status_added">Waypoint added</string>
+    <string name="voice_status_add_failed">Waypoint add failed · check after stopping</string>
+    <plurals name="voice_say_recommend">
+        <item quantity="one">%1$d stop candidate. %2$s.</item>
+        <item quantity="other">%1$d stop candidates. %2$s.</item>
+    </plurals>
+    <string name="voice_say_item">%1$s %2$s</string>
+    <string name="voice_say_separator">, </string>
+    <string name="voice_say_next">%1$s %2$s, %3$s.</string>
+    <string name="voice_say_added">Added to your route. %1$s.</string>
+    <string name="voice_say_add_failed">Couldn\'t add the stop. Please check again after stopping.</string>
+    <string name="voice_need_meal">Meal</string>
+    <string name="voice_need_restroom">Restroom</string>
+    <string name="voice_need_kids_rest">Kids\' rest</string>
+    <string name="voice_need_separator">, </string>
+    <string name="voice_reason_all">%1$s, all in one stop</string>
+    <string name="voice_reason_some">Solves %1$s</string>
+</resources>
