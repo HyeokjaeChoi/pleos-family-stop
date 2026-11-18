@@ -10,7 +10,9 @@ import ai.familystop.core.NaviGateway
 import ai.familystop.core.RouteEta
 import ai.familystop.core.StopPlace
 import ai.familystop.core.VehicleEnergySource
+import ai.familystop.core.VoiceError
 import ai.familystop.core.VoiceOutput
+import java.util.Locale
 
 // Temporary implementations so screens can be built before the real ones land.
 
@@ -22,7 +24,8 @@ class FakeLocationSource(private val point: GeoPoint = GeoPoint(37.5665, 126.978
 }
 
 class FakeVoiceOutput(private val log: (String) -> Unit = {}) : VoiceOutput {
-    override fun speak(text: String, onError: (String) -> Unit) = log(text)
+    override fun speak(locale: Locale, text: (Locale) -> String, onError: (VoiceError) -> Unit) =
+        log(text(locale))
     override fun stop() {}
 }
 
