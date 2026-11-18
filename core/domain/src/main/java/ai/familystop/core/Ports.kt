@@ -1,5 +1,7 @@
 package ai.familystop.core
 
+import java.util.Locale
+
 // Swappable seams (ADR-0001, ADR-0002). Each Pleos SDK that is still "준비 중"
 // gets a platform/fake implementation now and a Pleos one when it opens.
 
@@ -14,9 +16,16 @@ interface LocationSource {
 
 /** Short spoken notices (1~2 sentences). Impl: Pleos TTS ON_DEVICE or platform TextToSpeech. */
 interface VoiceOutput {
-    fun speak(text: String, onError: (String) -> Unit)
+    /**
+     * Speaks in [locale], else Korean if the engine lacks it. [text] builds the sentence for the
+     * language actually used, so the words match the voice (#102). [onError] runs on the main thread.
+     */
+    fun speak(locale: Locale, text: (Locale) -> String, onError: (VoiceError) -> Unit)
     fun stop()
 }
+
+/** Why speech failed (ADR-0007: semantic value). */
+enum class VoiceError { ENGINE_START, LANGUAGE_UNAVAILABLE, PLAYBACK }
 
 /** Hands a chosen stop to the navigation app as a waypoint (ADR-0003). */
 interface NaviGateway {

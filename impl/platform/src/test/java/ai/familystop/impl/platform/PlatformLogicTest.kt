@@ -2,8 +2,8 @@ package ai.familystop.impl.platform
 
 import android.location.LocationManager
 import android.speech.tts.TextToSpeech
+import java.util.Locale
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -25,11 +25,31 @@ class PlatformLogicTest {
     }
 
     @Test
-    fun ttsInitErrors() {
-        assertNull(ttsInitError(TextToSpeech.SUCCESS, TextToSpeech.LANG_AVAILABLE))
-        assertNotNull(ttsInitError(TextToSpeech.ERROR, TextToSpeech.LANG_AVAILABLE))
-        assertNotNull(ttsInitError(TextToSpeech.SUCCESS, TextToSpeech.LANG_MISSING_DATA))
-        assertNotNull(ttsInitError(TextToSpeech.SUCCESS, TextToSpeech.ERROR))
+    fun languageFallsBackToKoreanThenFails() {
+        val ok = TextToSpeech.LANG_AVAILABLE
+        val none = TextToSpeech.LANG_MISSING_DATA
+        assertEquals(Locale.ENGLISH, pickLanguage(Locale.ENGLISH) { ok })
+        assertEquals(
+            Locale.KOREAN,
+            pickLanguage(Locale.ENGLISH) {
+                if (it ==
+                    Locale.KOREAN
+                ) {
+                    ok
+                } else {
+                    none
+                }
+            }
+        )
+        assertNull(pickLanguage(Locale.ENGLISH) { TextToSpeech.LANG_NOT_SUPPORTED })
+        val tried = mutableListOf<Locale>()
+        assertNull(
+            pickLanguage(Locale.KOREA) {
+                tried += it
+                none
+            }
+        )
+        assertEquals(listOf(Locale.KOREA), tried)
     }
 
     @Test

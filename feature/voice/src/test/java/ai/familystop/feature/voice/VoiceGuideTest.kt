@@ -5,7 +5,9 @@ import ai.familystop.core.StopCandidate
 import ai.familystop.core.StopNeed
 import ai.familystop.core.StopPlace
 import ai.familystop.core.StopReason
+import ai.familystop.core.VoiceError
 import ai.familystop.core.VoiceOutput
+import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -16,9 +18,9 @@ private class RecordingVoice(var fail: Boolean = false) : VoiceOutput {
     val spoken = mutableListOf<String>()
     var stops = 0
 
-    override fun speak(text: String, onError: (String) -> Unit) {
-        spoken += text
-        if (fail) onError("x")
+    override fun speak(locale: Locale, text: (Locale) -> String, onError: (VoiceError) -> Unit) {
+        spoken += text(locale)
+        if (fail) onError(VoiceError.PLAYBACK)
     }
 
     override fun stop() {
@@ -38,9 +40,9 @@ private fun cand(name: String) = StopCandidate(
 
 class VoiceGuideTest {
     private val said = mutableListOf<Utterance>()
-    private fun guide(v: VoiceOutput) = VoiceGuide(v) {
-        said += it
-        it.toString()
+    private fun guide(v: VoiceOutput) = VoiceGuide(v, { Locale.KOREAN }) { u, _ ->
+        said += u
+        u.toString()
     }
     private val three = listOf(cand("가"), cand("나"), cand("다"))
 
@@ -118,9 +120,13 @@ class VoiceGuideTest {
 
     @Test
     fun lateErrorOfOlderRequestIsIgnored() {
-        val cbs = mutableListOf<(String) -> Unit>()
+        val cbs = mutableListOf<(VoiceError) -> Unit>()
         val v = object : VoiceOutput {
-            override fun speak(text: String, onError: (String) -> Unit) {
+            override fun speak(
+                locale: Locale,
+                text: (Locale) -> String,
+                onError: (VoiceError) -> Unit
+            ) {
                 cbs += onError
             }
 
@@ -129,7 +135,7 @@ class VoiceGuideTest {
         val g = guide(v)
         g.announce(three)
         g.announceResult(StopPlace("가", 0.0, 0.0), ok = true)
-        cbs[0]("late")
+        cbs[0](VoiceError.PLAYBACK)
         assertNull(g.status)
     }
 

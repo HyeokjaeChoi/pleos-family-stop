@@ -7,6 +7,7 @@ import ai.familystop.core.VoiceOutput
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import java.util.Locale
 
 /** 주행 중 첫 안내에서 번호로 읽는 후보 수 (ADR-0002·0003). 3번째는 "다음" 요청 시에만. */
 const val SPOKEN_FIRST = 2
@@ -44,7 +45,11 @@ fun nextUtterance(candidate: StopCandidate) =
  * 후보·결과를 [VoiceOutput]으로 안내한다. 음성 실패 시 같은 문장을 다시 읽지 않고
  * 한 줄 [status]만 남긴다(ADR-0002). 호출은 메인 스레드에서.
  */
-class VoiceGuide(private val voice: VoiceOutput, private val render: (Utterance) -> String) {
+class VoiceGuide(
+    private val voice: VoiceOutput,
+    private val locale: () -> Locale,
+    private val render: (Utterance, Locale) -> String
+) {
     private var candidates by mutableStateOf<List<StopCandidate>>(emptyList())
     private var nextSpoken by mutableStateOf(false)
     private var request = 0 // 오래된 요청의 늦은 오류가 최신 상태를 덮지 않게 한다
@@ -93,7 +98,7 @@ class VoiceGuide(private val voice: VoiceOutput, private val render: (Utterance)
         val id = ++request
         status = null
         nextSpoken = nextRead // 새 요청이 3번째 후보 낭독을 끊으면 버튼을 되살린다
-        voice.speak(render(what)) {
+        voice.speak(locale(), { render(what, it) }) {
             if (id == request) {
                 nextSpoken = false
                 status = onFail

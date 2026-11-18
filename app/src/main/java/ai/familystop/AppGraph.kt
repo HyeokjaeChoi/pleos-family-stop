@@ -13,6 +13,7 @@ import ai.familystop.feature.recommend.RecommendController
 import ai.familystop.feature.recommend.RecommendState
 import ai.familystop.feature.recommend.parseFacilities
 import ai.familystop.feature.voice.VoiceGuide
+import ai.familystop.feature.voice.spokenText
 import ai.familystop.impl.platform.PlatformLocationSource
 import ai.familystop.impl.platform.PlatformVoiceOutput
 import ai.familystop.impl.pleos.NaviSession
@@ -49,7 +50,9 @@ class AppGraph(context: Context) {
     // Process-lifetime state so Activity recreation (day/night) keeps results and voice status.
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     val recommend = RecommendController(scope, facilities)
-    val guide = VoiceGuide(voice)
+    val guide = VoiceGuide(voice, { app.resources.configuration.locales[0] }) { u, locale ->
+        spokenText(app, u, locale)
+    }
     val session = Session(metrics)
 
     /** Navi seen by every screen: voice result + metrics on each successful add. */
