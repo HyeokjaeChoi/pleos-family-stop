@@ -123,3 +123,21 @@ adb shell am start -n ai.familystop.app/ai.familystop.MainActivity
 ## 시연 전 AOT 컴파일 (R8 release, #105)
 
 시연 전에 `adb shell cmd package compile -m speed -f ai.familystop.app`를 실행한다. 이 에뮬레이터는 sideload APK의 ProfileInstaller 프로필을 쓰지 못한다(broadcast 결과 `4` NOT_WRITABLE, dexopt는 `status=verify` 그대로). 컴파일하지 않으면 앱이 JIT로만 돈다.
+
+## 앱별 언어(per-app locale) 검증 (2026-11-17, #93)
+
+시스템 로케일은 건드리지 않고 앱 로케일만 바꾼다(`setprop`/`settings` 금지).
+
+```bash
+adb shell cmd locale set-app-locales ai.familystop.app --locales en-US   # 영어
+adb shell cmd locale set-app-locales ai.familystop.app --locales ko-KR   # 한국어
+adb shell cmd locale set-app-locales ai.familystop.app --locales ""      # 기본값 복원 (get-app-locales → [])
+adb shell cmd locale get-app-locales ai.familystop.app
+```
+
+- Pleos Connect AAOS(user 10)에서 **적용된다.** 앱 프로세스를 죽이지 않고 Activity가 재생성되어 바로 반영된다(`force-stop` 불필요).
+- 주의: 로케일을 바꾸면 Activity가 재생성되어 화면 상태가 추천 화면 쪽으로 돌아갈 수 있다. 정차 할 일(Activity) 화면을 영어로 보려면 로케일을 먼저 설정한 뒤 `force-stop` → 실행 → 입력 흐름을 처음부터 진행한다.
+- `scripts/e2e-demo.sh`는 한국어 문구(`어디로 가나요`, `다음` 등)로 판별하므로 영어 로케일에서는 쓸 수 없다. 영어 확인은 같은 흐름을 영어 문구(`Next`, `Meal`, `Restroom`, `Needed`, `See candidates`, `Add as waypoint`)로 `uiautomator dump`+탭해야 한다. 입력 2단계의 `이 시각으로 정하기`/`Set this time`은 시각이 이미 정해져 있으면 나타나지 않는다.
+- 장소명·`가상 …` 데이터와 내비에서 받은 목적지명은 번역되지 않는다(데이터). 시스템 UI(상단바·왼쪽 차량 패널)는 앱 로케일과 무관하게 한국어다.
+- `scripts/capture-drive-states.sh`는 `:app:assembleDebugAndroidTest`가 컴파일되어야 동작한다. 이 날짜 main에서는 `RecommendScreenshotTest.kt`의 `assertDoesNotExist` 미해결로 빌드가 실패했다.
+- 검증 후 `--locales ""`로 되돌린다.
