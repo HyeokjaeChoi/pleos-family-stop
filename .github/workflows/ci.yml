@@ -36,4 +36,4 @@ jobs:
       - if: steps.changes.outputs.code == 'true'
         run: scripts/check-i18n-resources.py --self-test && scripts/check-i18n-resources.py
       - if: steps.changes.outputs.code == 'true'
-        run: ./gradlew ktlintCheck testDebugUnitTest assembleDebug
+        run: ./gradlew ktlintCheck testDebugUnitTest assembleDebug assembleRelease

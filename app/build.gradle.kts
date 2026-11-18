@@ -15,6 +15,16 @@ android {
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
     buildFeatures { compose = true }
     // Per-app language (ADR-0007): res/values is Korean (see res/resources.properties), values-en is English.
     androidResources { generateLocaleConfig = true }
