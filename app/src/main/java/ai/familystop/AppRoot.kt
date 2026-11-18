@@ -51,10 +51,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -93,7 +93,6 @@ private fun StopCandidate.driveCard(locale: Locale) = DriveCandidate(
 fun AppRoot(graph: AppGraph) {
     val context = LocalContext.current
     val s = graph.session
-    val holder = rememberSaveableStateHolder()
     val rec by graph.recommend.state.collectAsState()
     var energy by remember { mutableStateOf<EnergyState?>(null) }
     val soc = energy?.socPercent
@@ -197,15 +196,14 @@ fun AppRoot(graph: AppGraph) {
     }
     LaunchedEffect(Unit) { if (s.rawList == null && !s.listFailed) reload() }
 
-    val destList = (s.destinations as? DestinationsState.Ready)?.list.orEmpty()
-    val valid = (
-        validate(
-            s.draft,
-            destList,
-            soc,
-            LocalDateTime.now()
-        ) as? ValidationResult.Ok
-        )?.input
+    // Derived so wheel/draft edits recompute validity without recomposing the root (only a changed result does).
+    val validState = remember(s, soc) {
+        derivedStateOf {
+            val destList = (s.destinations as? DestinationsState.Ready)?.list.orEmpty()
+            (validate(s.draft, destList, soc, LocalDateTime.now()) as? ValidationResult.Ok)?.input
+        }
+    }
+    val valid = validState.value
     LaunchedEffect(valid) { s.trip = valid }
     // 후보 단계에 들어서거나(또는 거기서 유효성·필요 사항이 바뀌면) 조회한다. 휠을 돌릴 때마다 조회하지 않는다.
     LaunchedEffect(s.step, valid != null, valid?.needs) {

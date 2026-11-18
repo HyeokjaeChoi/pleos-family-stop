@@ -156,43 +156,47 @@ fun AppTheme(
 ) {
     val c = if (night) NightColors else DayColors
     val t = remember { AppType() }
-    val scheme = if (night) {
-        darkColorScheme(
-            primary = c.accentPrimary,
-            onPrimary = c.accentOn,
-            background = c.bgBase,
-            onBackground = c.textPrimary,
-            surface = c.bgSurface,
-            onSurface = c.textPrimary,
-            surfaceVariant = c.bgRaised,
-            onSurfaceVariant = c.textSecondary,
-            error = c.statusDanger
-        )
-    } else {
-        lightColorScheme(
-            primary = c.accentPrimary,
-            onPrimary = c.accentOn,
-            background = c.bgBase,
-            onBackground = c.textPrimary,
-            surface = c.bgSurface,
-            onSurface = c.textPrimary,
-            surfaceVariant = c.bgRaised,
-            onSurfaceVariant = c.textSecondary,
-            error = c.statusDanger
-        )
+    val scheme = remember(night) {
+        if (night) {
+            darkColorScheme(
+                primary = c.accentPrimary,
+                onPrimary = c.accentOn,
+                background = c.bgBase,
+                onBackground = c.textPrimary,
+                surface = c.bgSurface,
+                onSurface = c.textPrimary,
+                surfaceVariant = c.bgRaised,
+                onSurfaceVariant = c.textSecondary,
+                error = c.statusDanger
+            )
+        } else {
+            lightColorScheme(
+                primary = c.accentPrimary,
+                onPrimary = c.accentOn,
+                background = c.bgBase,
+                onBackground = c.textPrimary,
+                surface = c.bgSurface,
+                onSurface = c.textPrimary,
+                surfaceVariant = c.bgRaised,
+                onSurfaceVariant = c.textSecondary,
+                error = c.statusDanger
+            )
+        }
     }
     // M3 기본 컴포넌트가 12~14sp를 쓰지 않도록 보조 이하 슬롯을 모두 stop/body로 맞춘다.
-    val typography = Typography(
-        titleLarge = t.stopTitle,
-        titleMedium = t.stopTitle,
-        titleSmall = t.stopBody,
-        bodyLarge = t.stopBody,
-        bodyMedium = t.stopBody,
-        bodySmall = t.stopBody,
-        labelLarge = t.stopBody,
-        labelMedium = t.stopBody,
-        labelSmall = t.stopBody
-    )
+    val typography = remember(t) {
+        Typography(
+            titleLarge = t.stopTitle,
+            titleMedium = t.stopTitle,
+            titleSmall = t.stopBody,
+            bodyLarge = t.stopBody,
+            bodyMedium = t.stopBody,
+            bodySmall = t.stopBody,
+            labelLarge = t.stopBody,
+            labelMedium = t.stopBody,
+            labelSmall = t.stopBody
+        )
+    }
     CompositionLocalProvider(
         LocalAppColors provides c,
         LocalAppType provides t,
