@@ -94,7 +94,8 @@ fun DriveScreen(
     val draft = rememberSaveable(saver = DraftSaver) { InputDraft() }
     val tracker = remember { MovementTracker() }
     var reading by remember { mutableStateOf(tracker.reading) }
-    val picker = rememberSaveable(navi, saver = pickControllerSaver(navi, ::nowMs)) {
+    val pickerSaver = remember(navi) { pickControllerSaver(navi, ::nowMs) }
+    val picker = rememberSaveable(navi, saver = pickerSaver) {
         PickController(navi, ::nowMs)
     }
     var now by remember { mutableLongStateOf(nowMs()) }
@@ -149,7 +150,7 @@ fun DriveScreen(
                             ) { picker.pick(c.place) }
                         }
                     }
-                    StatusSlot(picker.state, now) { picker.undo() }
+                    StatusSlot(picker.state, { now }) { picker.undo() }
                 }
                 Spacer(Modifier.weight(1f))
             }
@@ -235,7 +236,7 @@ private fun CandidateCard(
 
 /** Fixed-height slot so showing/hiding a status never moves the cards (#50 D6). */
 @Composable
-private fun StatusSlot(state: PickState, now: Long, onUndo: () -> Unit) {
+private fun StatusSlot(state: PickState, now: () -> Long, onUndo: () -> Unit) {
     val reduce = AppMotion.reduce
     val risePx = with(LocalDensity.current) { AppMotion.RISE_DP.dp.roundToPx() }
     Box(
@@ -316,8 +317,8 @@ private fun StatusBar(status: Status, chip: String, message: String) = SlotBar {
 }
 
 @Composable
-private fun UndoBar(s: PickState.Undoable, now: Long, onUndo: () -> Unit) {
-    val sec = ((s.expiresAtMs - now + 999) / 1000).coerceAtLeast(0)
+private fun UndoBar(s: PickState.Undoable, now: () -> Long, onUndo: () -> Unit) {
+    val sec = ((s.expiresAtMs - now() + 999) / 1000).coerceAtLeast(0)
     SlotBar {
         Text(
             stringResource(
@@ -325,7 +326,7 @@ private fun UndoBar(s: PickState.Undoable, now: Long, onUndo: () -> Unit) {
                 s.place.name,
                 pluralStringResource(DsR.plurals.ds_unit_seconds, sec.toInt(), sec.toInt())
             ),
-            style = App.type.driveBody.copy(fontFeatureSettings = "tnum"),
+            style = App.type.driveBody,
             color = App.colors.textPrimary,
             modifier = Modifier.weight(1f)
         )

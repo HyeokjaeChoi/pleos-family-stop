@@ -15,6 +15,7 @@ import ai.familystop.feature.input.mergeCurrent
 import ai.familystop.feature.metrics.DataOrigin
 import ai.familystop.feature.metrics.MetricsCollector
 import ai.familystop.feature.metrics.TripMetrics
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -39,15 +40,14 @@ class Session(private val metrics: MetricsCollector) {
     var etaLoadedAt by mutableStateOf<LocalDateTime?>(null)
 
     /** Navi's list plus the route it is guiding now; derived so the two async answers cannot overwrite each other. */
-    val destinations: DestinationsState
-        get() {
-            val merged = mergeCurrent(rawList.orEmpty(), eta)
-            return when {
-                merged.isNotEmpty() -> DestinationsState.Ready(merged)
-                rawList != null || listFailed -> DestinationsState.Unavailable
-                else -> DestinationsState.Loading
-            }
+    val destinations: DestinationsState by derivedStateOf {
+        val merged = mergeCurrent(rawList.orEmpty(), eta)
+        when {
+            merged.isNotEmpty() -> DestinationsState.Ready(merged)
+            rawList != null || listFailed -> DestinationsState.Unavailable
+            else -> DestinationsState.Loading
         }
+    }
     var locating by mutableStateOf(false)
     var fallback by mutableStateOf<FallbackCause?>(null)
     var stop by mutableStateOf<StopCandidate?>(null)

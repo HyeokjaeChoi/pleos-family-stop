@@ -28,13 +28,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import java.time.LocalDateTime
 
-private val Gap @Composable get() = Arrangement.spacedBy(App.space.lg) // 터치 대상 간격 24dp 이상
+private val Gap = Arrangement.spacedBy(App.space.lg) // 터치 대상 간격 24dp 이상
 
 /** 목적지 목록을 불러오는 상태. */
 sealed interface DestinationsState {
@@ -55,9 +56,11 @@ fun PlanSummaryBar(
     onStep: (PlanStep) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val list = (destinations as? DestinationsState.Ready)?.list.orEmpty()
+    val chips = remember(draft, destinations) {
+        summaryChips(draft, (destinations as? DestinationsState.Ready)?.list.orEmpty())
+    }
     Row(modifier.fillMaxWidth(), horizontalArrangement = Gap) {
-        summaryChips(draft, list).forEach { chip ->
+        chips.forEach { chip ->
             AppStepChip(chip.text(), current = chip.step == step, filled = chip.filled) {
                 onStep(chip.step)
             }
